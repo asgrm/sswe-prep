@@ -1,0 +1,165 @@
+Here are **5 solid Anki cards** that cover **concept, code understanding, and load balancing** using node-http-proxy.
+
+---
+
+## Card 1 — Concept
+
+**Front:**
+What is a reverse proxy?
+
+**Back:**
+A **reverse proxy** is a server that sits **between clients and backend servers**, forwarding client requests to one or more backend servers and returning their responses.
+
+**Benefits:**
+
+* Security (backend servers are hidden)
+* Load balancing
+* SSL termination
+* Caching
+* Centralized logging
+
+**Flow:**
+
+```
+Client → Reverse Proxy → Backend Server
+Client ← Reverse Proxy ← Response
+```
+
+---
+
+## Card 2 — Basic reverse proxy in Node.js
+
+**Front:**
+How do you implement a simple reverse proxy in Node.js using node-http-proxy?
+
+**Back:**
+
+Example:
+
+```javascript
+const http = require("http");
+const httpProxy = require("http-proxy");
+
+const proxy = httpProxy.createProxyServer({});
+
+http.createServer((req, res) => {
+  proxy.web(req, res, { target: "http://localhost:5000" });
+}).listen(3000);
+```
+
+**Explanation:**
+
+* Client sends request → `localhost:3000`
+* Proxy forwards request → `localhost:5000`
+* Backend response returns through the proxy
+
+---
+
+## Card 3 — Request flow understanding
+
+**Front:**
+What happens internally when a request passes through a reverse proxy built with node-http-proxy?
+
+**Back:**
+
+1. Client sends HTTP request to proxy server.
+2. Proxy receives request.
+3. Proxy forwards request to **target backend server**.
+4. Backend processes request.
+5. Response goes back through proxy to client.
+
+**Diagram**
+
+```
+Client
+  ↓
+Proxy (Node.js)
+  ↓
+Backend Server
+  ↑
+Response
+```
+
+---
+
+## Card 4 — Load balancing concept
+
+**Front:**
+How can a reverse proxy perform load balancing?
+
+**Back:**
+A reverse proxy can distribute requests across **multiple backend servers** to prevent overload.
+
+Common strategies:
+
+* **Round robin** – send requests sequentially to servers
+* **Least connections** – send to the server with the fewest active connections
+* **IP hash** – same client IP → same server
+
+Example architecture:
+
+```
+          Proxy
+        /   |   \
+      API1 API2 API3
+```
+
+This improves:
+
+* scalability
+* reliability
+* fault tolerance
+
+---
+
+## Card 5 — Load balancing example with node-http-proxy
+
+**Front:**
+How can you implement simple round-robin load balancing using node-http-proxy?
+
+**Back:**
+
+Example:
+
+```javascript
+const http = require("http");
+const httpProxy = require("http-proxy");
+
+const servers = [
+  "http://localhost:5001",
+  "http://localhost:5002",
+  "http://localhost:5003"
+];
+
+let current = 0;
+const proxy = httpProxy.createProxyServer({});
+
+http.createServer((req, res) => {
+  const target = servers[current];
+  current = (current + 1) % servers.length;
+
+  proxy.web(req, res, { target });
+}).listen(3000);
+```
+
+**How it works:**
+
+Each request goes to the next server:
+
+```
+req1 → server1
+req2 → server2
+req3 → server3
+req4 → server1
+```
+
+This is **round-robin load balancing**.
+
+---
+
+If you'd like, I can also make **a few deeper Anki cards** that senior backend interviews often ask about, like:
+
+* **reverse proxy vs API gateway**
+* **sticky sessions**
+* **health checks in load balancers**
+* **why big systems prefer Nginx or HAProxy over Node-based proxies.**

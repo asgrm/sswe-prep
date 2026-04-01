@@ -1,0 +1,31 @@
+ok how to set up venv in python and install dependencies of pulled git repo?Here's how to set up a virtual environment and install dependencies from a Git repo:
+1. Navigate to your project directory
+cd path/to/your/project
+2. Create a virtual environment
+python -m venv venv
+This creates a folder called venv with the virtual environment.
+3. Activate the virtual environment
+On Windows:
+venv\Scripts\activate
+On Mac/Linux:
+source venv/bin/activate
+You'll see (venv) appear at the beginning of your command prompt when activated.
+4. Install dependencies
+Most Python projects include a requirements.txt file. Install all dependencies with:
+pip install -r requirements.txt
+Other common dependency files:
+
+If there's a setup.py: pip install -e .
+If there's a pyproject.toml: pip install .
+If there's a Pipfile: pipenv install (requires pipenv)
+
+5. Verify installation
+pip list
+Bonus: PyCharm Integration
+PyCharm can detect your venv automatically. If not:
+
+Go to File → Settings → Project → Python Interpreter
+Click the gear icon → Add
+Select Existing environment and browse to venv/Scripts/python.exe
+
+To deactivate the venv later, just type deactivate in the terminal.

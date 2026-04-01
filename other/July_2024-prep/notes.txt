@@ -1,0 +1,43 @@
+docker commands
+
+docker pull: This command is used to pull an image from a Docker registry. Example: docker pull ubuntu will pull the latest Ubuntu image.
+
+docker run: This command is used to start a new container from an image. Example: docker run -it ubuntu bash will start a new Ubuntu container and open a bash shell in it. The -it flag allows you to interact with the container.
+
+docker ps: This command is used to list running containers. Example: docker ps will show you all running containers, their IDs, their status, and other information.
+
+docker stop: This command is used to stop a running container. Example: docker stop container_id will stop the container with the given ID.
+
+docker rm: This command is used to remove a stopped container. Example: docker rm container_id will remove the container with the given ID.
+
+docker images: This command is used to list all images. Example: docker images will show you all images that you have pulled or built.
+
+docker rmi: This command is used to remove an image. Example: docker rmi image_id will remove the image with the given ID.
+
+docker build: This command is used to build an image from a Dockerfile. Example: docker build -t my-app . will build an image from the Dockerfile in the current directory and tag it as "my-app".
+
+docker exec: This command is used to run a command in a running container. Example: docker exec -it container_id bash will open a bash shell in a running container.
+
+docker logs: This command is used to view the logs of a container. Example: docker logs container_id will show you the logs for the container with the given ID.
+
+dockerfile syntax
+
+FROM: This instruction initializes a new build stage and sets the base image for subsequent instructions. For example, FROM ubuntu:18.04 uses the Ubuntu 18.04 image as the base.
+
+RUN: This instruction will execute any commands in a new layer on top of the current image and commit the results. For example, RUN apt-get update && apt-get install -y curl updates the package lists and installs curl.
+
+CMD: This instruction provides defaults for an executing container. It can include an executable, or they can omit the executable, in which case you must specify an ENTRYPOINT instruction. For example, CMD ["echo", "Hello, World!"].
+
+ENTRYPOINT: This instruction allows you to configure a container that will run as an executable. For example, ENTRYPOINT ["echo"].
+
+COPY: This instruction copies new files or directories from <src> and adds them to the filesystem of the container at the path <dest>. For example, COPY . /app.
+
+ADD: This instruction copies new files, directories or remote file URLs from <src> and adds them to the filesystem of the container at the path <dest>. It also supports tarball extraction and remote URL handling. For example, ADD test.tar.gz /app.
+
+WORKDIR: This instruction sets the working directory for any RUN, CMD, ENTRYPOINT, COPY and ADD instructions that follow in the Dockerfile. For example, WORKDIR /app.
+
+EXPOSE: This instruction informs Docker that the container listens on the specified network ports at runtime. For example, EXPOSE 8080.
+
+ENV: This instruction sets the environment variable <key> to the value <value>. This value will be in the environment for all subsequent instructions in the build stage and can be replaced inline in many as well. For example, ENV NODE_ENV=production.
+
+VOLUME: This instruction creates a mount point with the specified name and marks it as holding externally mounted volumes from native host or other containers.

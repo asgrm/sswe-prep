@@ -1,0 +1,67 @@
+- docker
+- terraform (paused)
+- GitHub actions (DONE)
+- k8s
+  https://kubernetes.io/training/ -> Introduction to Kubernetes + Introduction to Cloud Infrastructure Technologies
+
+node.js bundlers
+
+- redis (paused)
+  0 Redis by S Grinder
+  1 https://redis.io/docs/latest/develop/get-started/
+  2 Get started with Redis https://university.redis.io/learningpath/14q8m6gilfwltm?tab=details
+  3 Get started with Redis Software https://university.redis.io/learningpath/an0mgw5bjpjfbe?tab=details
+  4 Redis for JavaScript developers https://university.redis.io/learningpath/jjzus2xg4rjdrt?tab=details
+  5 Redis streams
+  https://university.redis.io/course/cjoybtwksjmsjz?tab=details
+  https://university.redis.io/learningpath/grnomm8jaglgcu?tab=details
+  6 Redis JSON
+  https://university.redis.io/learningpath/6q3tbh3qk2gexx?tab=details
+  7 Redis Query Engine
+  https://university.redis.io/learningpath/pdkbr7xdv3miym?tab=details
+
+- postgress (much deeper then I know for now)
+- graph ql ! (DONE)
+- kafka
+  https://www.udemy.com/course/apache-kafka/
+
+  https://www.youtube.com/watch?v=-AZOi3kP9Js
+  https://www.youtube.com/watch?v=QkdkLdMBuL0
+  https://www.youtube.com/watch?v=B7CwU_tNYIE
+
+  https://developer.confluent.io/courses/apache-kafka/events/
+  https://developer.confluent.io/courses/kafka-streams/get-started/
+  https://developer.confluent.io/courses/schema-registry/key-concepts/
+  https://developer.confluent.io/courses/kafka-connect/intro/
+  https://developer.confluent.io/courses/ksqldb/intro/
+
+  https://docs.confluent.io/kafka/introduction.html
+  https://docs.confluent.io/kafka-client/overview.html
+
+  https://kafka.js.org/docs/getting-started
+
+- mongo
+  https://learn.mongodb.com/learning-paths/introduction-to-mongodb - CANCELED
+  https://learn.mongodb.com/learning-paths/mongodb-nodejs-developer-path
+
+- web sockets (socket.io) DONE
+- [learn.js](https://javascript.info/) - just go over of parts I am not absolutely confident about
+- nest docs
+
+https://kb.epam.com/display/EPMCJSCC/JS+Senior+Developer+Growth
+
+https://medium.com/@manikmudholkar831995/worker-threads-multitasking-in-nodejs-6028cdf35e9d - extra workers
+
+https://ebook.learn.epam.com/node-gmp/docs/docker-basics/docker-basics - mentoring program materials
+
+https://www.udemy.com/course/understanding-nodejs-core-concepts/
+
+- protobuf + GRPC
+  OPTION - SHALLOW
+  https://protobuf.dev/overview/
+  https://grpc.io/docs/what-is-grpc/ - all blocks
+  https://grpc.io/docs/languages/node/ - all blocks
+
+  https://www.w3tutorials.net/blog/grpc-nodejs/
+  https://www.xjavascript.com/blog/node-grpc-typescript/
+  https://www.youtube.com/watch?v=MCwgV9idOeY

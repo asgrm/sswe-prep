@@ -1,0 +1,110 @@
+https://hpbn.co/
+https://bytebytego.com/
+
+https://portswigger.net/web-security
+
+https://www.udemy.com/course/developer-to-architect/
+
+- protobuf + GRPC
+  OPTION - IN DEPTH
+
+  https://protobuf.dev/overview/
+  https://protobuf.dev/programming-guides/editions/
+  https://protobuf.dev/programming-guides/proto3/ - shallow
+  https://grpc.io/ - WOULD BE BEST TO READ IT ALL
+  https://grpc.io/docs/what-is-grpc/
+  https://grpc.io/docs/languages/node/
+  https://www.youtube.com/playlist?list=PLy_6D98if3UJd5hxWNfAqKMr15HZqFnqf
+  https://blog.postman.com/how-to-build-a-grpc-api-in-node-js/
+  https://www.honeybadger.io/blog/building-apis-with-node-js-and-grpc/
+  https://medium.com/@ayushagrwl9415/mastering-grpc-with-node-js-from-beginner-to-advanced-f25991a51de1
+  https://dev.to/padie78/building-a-clean-grpc-api-in-nodejs-4ojd
+
+  Here's a focused breakdown specifically for Node.js:
+
+  ***
+
+  ## The Core Idea
+
+  gRPC has its **own status code system** — completely separate from HTTP status codes. When a call fails, you get back a `code` (number) and a `details` (string message), not a 404 or 500.
+
+  ***
+
+  ## The Status Codes You'll Actually Use
+
+  | Code | Name                 | When to use                                 |
+  | ---- | -------------------- | ------------------------------------------- |
+  | 0    | `OK`                 | Success                                     |
+  | 1    | `CANCELLED`          | Client cancelled the request                |
+  | 2    | `UNKNOWN`            | Something went wrong, no details            |
+  | 3    | `INVALID_ARGUMENT`   | Bad input from client (like 422)            |
+  | 4    | `DEADLINE_EXCEEDED`  | Took too long                               |
+  | 5    | `NOT_FOUND`          | Resource doesn't exist (like 404)           |
+  | 6    | `ALREADY_EXISTS`     | Duplicate resource (like 409)               |
+  | 7    | `PERMISSION_DENIED`  | Authenticated but not authorized (like 403) |
+  | 8    | `RESOURCE_EXHAUSTED` | Rate limited / quota hit                    |
+  | 13   | `INTERNAL`           | Server-side bug (like 500)                  |
+  | 14   | `UNAVAILABLE`        | Server is down, good for retry logic        |
+  | 16   | `UNAUTHENTICATED`    | No valid credentials (like 401)             |
+
+  You won't need all 17 codes early on — the ones above cover ~95% of real scenarios.
+
+  ***
+
+  ## How it looks in Node.js
+
+  **Server side — throwing an error:**
+
+  ```js
+  const grpc = require("@grpc/grpc-js");
+
+  function getUser(call, callback) {
+    const user = db.find(call.request.id);
+
+    if (!user) {
+      return callback({
+        code: grpc.status.NOT_FOUND,
+        details: `User with id ${call.request.id} not found`,
+      });
+    }
+
+    callback(null, user);
+  }
+  ```
+
+  **Client side — catching an error:**
+
+  ```js
+  client.getUser({ id: 99 }, (err, response) => {
+    if (err) {
+      console.log(err.code); // 5
+      console.log(err.details); // "User with id 99 not found"
+      console.log(err.message); // "5 NOT_FOUND: User with id 99 not found"
+      return;
+    }
+    console.log(response);
+  });
+  ```
+
+  ***
+
+  ## The Gotcha Most Tutorials Miss
+
+  **Don't use raw numbers** — always use the `grpc.status` enum:
+
+  ```js
+  // ❌ bad — magic numbers are fragile
+  callback({ code: 5, details: "not found" });
+
+  // ✅ good
+  callback({ code: grpc.status.NOT_FOUND, details: "not found" });
+  ```
+
+  ***
+
+  ## Resources specifically for this topic
+  - **[grpc.io — Error handling guide](https://grpc.io/docs/guides/error/)** — official, short, worth reading fully
+  - **[grpc.io — Status codes reference](https://grpc.io/docs/guides/status-codes/)** — the full table with descriptions of when each code is appropriate
+  - **[`@grpc/grpc-js` status enum source](https://github.com/grpc/grpc-node/blob/master/packages/grpc-js/src/constants.ts)** — useful to see all codes in one place in a Node context
+
+  Those three links + the code examples above will get you fully covered on error handling for basic to intermediate work

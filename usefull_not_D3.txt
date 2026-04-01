@@ -1,0 +1,99 @@
+
+41. Name Undici network & connection errors (most relevant to connection failures)
+
+  UND_ERR_CONNECT_TIMEOUT — connection timed out
+
+  UND_ERR_SOCKET — socket/TCP error or drop
+
+  UND_ERR_HEADERS_TIMEOUT — headers not received in time
+
+  UND_ERR_BODY_TIMEOUT — response body too slow
+
+42. Name Undici content length mismatch errors (typically retryable)
+
+  UND_ERR_REQ_CONTENT_LENGTH_MISMATCH — request body ≠ declared length
+
+  UND_ERR_RES_CONTENT_LENGTH_MISMATCH — response body ≠ declared length
+
+43. Name Undici infrastructure errors
+
+  UND_ERR_DESTROYED — client already destroyed
+
+  UND_ERR_CLOSED — client already closed
+
+  UND_ERR_BPL_MISSING_UPSTREAM — no upstream server available
+
+44. Name Undici protocol errors
+
+  UND_ERR_HEADERS_OVERFLOW — headers too large
+
+  UND_ERR_RES_EXCEEDED_MAX_SIZE — response too large
+
+  UND_ERR_TRAILER_MISMATCH — invalid/mismatched trailers
+
+45. Which Undici abort error is NOT retried?
+  UND_ERR_ABORTED — request explicitly cancelled
+
+
+
+43. In a GraphQL Codegen `config`, what does the generates section do, what does the output file path represent, and how do plugins and nested config affect generation?
+
+  import type { CodegenConfig } from "@graphql-codegen/cli";
+
+  const config: CodegenConfig = {
+    schema: "./src/schema.ts", // where is the schema
+    generates: {
+      "./src/types.ts": { // where to output
+        plugins: [
+          "typescript", // generate types for schema
+          "typescript-resolvers" // generate types for resolvers
+        ],
+        config: {
+          contextType: "./context#DataSourceContext", // custom type for context
+          mappers: {
+            Track: "./models#TrackModel" // custom mapping explaining how raw data looks like (type Track located at TrackModel)to fix mismatch between raw data and schema
+          }
+        }
+      }
+    }
+  };
+
+  export default config;
+
+  # Track in schema
+      type Track {
+        id: ID!
+        title: String!
+        author: Author!
+        thumbnail: String
+        length: Int
+        modulesCount: Int
+      }
+
+  # the same type as raw data
+    export type TrackModel = {
+      id: string;
+      title: string;
+      authorId: string;
+      thumbnail: string;
+      length: number;
+      modulesCount: number;
+    };
+
+  # custom context type used in resolvers:
+    export type DataSourceContext = {
+      dataSources: {
+        trackAPI: TrackAPI;
+      };
+    };
+
+What is WebTransport?
+In short, WebTransport is an alternative to WebSocket which fixes several performance issues that plague WebSockets like head-of-line blocking (https://en.wikipedia.org/wiki/Head-of-line_blocking).
+
+
+https://socket.io/how-to/use-with-express-session
+
+https://socket.io/get-started/private-messaging-part-1/
+
+https://github.com/grpc-ecosystem/awesome-grpc
+https://grpc.io/

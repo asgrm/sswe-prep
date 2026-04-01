@@ -1,0 +1,205 @@
+1. What is the purpose of Document in langchain_core.documents?
+  A Document is a standard container for text + metadata in LangChain.
+  It represents a chunk of knowledge that can be loaded, split, embedded, stored, retrieved, and cited.
+
+  Mental model:
+  👉 “Text with a luggage tag (metadata)”
+
+2. How do you import and create a basic Document?
+
+  from langchain_core.documents import Document
+
+  doc = Document(
+      page_content="LangChain is a framework for LLM apps.",
+      metadata={"source": "intro.md"}
+  )
+  page_content → the text the model will read
+
+  metadata → info about where the text came from
+
+3. What are the main fields of a LangChain Document?
+  doc.page_content  # str → main text
+  doc.metadata      # dict → source, page, tags, etc.
+  doc.id            # Optional[str] → identity / deduplication
+
+  Only page_content is required.
+
+4. How are Documents split into chunks?
+
+  from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+  splitter = RecursiveCharacterTextSplitter(
+      chunk_size=500,
+      chunk_overlap=50,
+  )
+
+  chunks = splitter.split_documents([doc])
+
+5. What does a retriever return in LangChain?
+
+  results = retriever.invoke("What is LangChain?")
+
+  Returns:  List[Document]
+
+  Each result contains:
+
+    page_content → text to inject into prompt
+
+    metadata → source, page, score, etc.
+
+6. What is a common mistake when using Document with LLMs?
+
+Passing the whole Document instead of the text.
+
+  ❌ Wrong:
+    llm.invoke(doc)
+
+
+  ✅ Correct:
+    llm.invoke(doc.page_content)
+
+  Models consume text, not Document objects.
+
+7. Can Document.metadata be modified after creation?
+
+  Yes — Document is mutable.
+
+    doc.metadata["score"] = 0.92
+    doc.metadata["chunk"] = 3
+
+  This is common in:
+    - retrievers
+    - rerankers
+    - evaluators
+
+8. What does this syntax mean in LangChain? (prompt | llm_client | parser).invoke({})
+  This is LangChain Expression Language (LCEL) syntax that builds and executes a Runnable pipeline.
+    The | operator composes Runnables into a sequence:
+
+      input → prompt → llm_client → parser → output
+
+      .invoke({})
+
+  Executes the pipeline synchronously.
+
+    {} is passed because all prompt variables are already filled using .partial()
+      prompt = ChatPromptTemplate.from_messages(messages=messages).partial(format_instructions=parser.get_format_instructions())
+
+    If variables were required, they’d be passed here
+
+  (prompt | llm_client | parser).invoke({}) is functional equivalent of this three calls:
+    prompt_value = prompt.invoke({})
+    llm_output = llm_client.invoke(prompt_value)
+    search_requests = parser.invoke(llm_output)
+
+9. What methods do LangChain Runnables have?
+  besides "|" piping it has:
+    - invoke(input) → run once (single input → single output)
+    - batch(list[input]) → run many inputs efficiently (parallelized)
+    - stream(input) → yield output chunks (for streaming LLMs)
+    - ainvoke / abatch / astream → async equivalents
+
+10. How to make a custom runnable?
+  use @chain on a function
+
+    from typing import List
+
+    from langchain_core.documents import Document
+    from langchain_core.runnables import chain
+
+
+    @chain
+    def retriever(query: str) -> List[Document]:
+        return vector_store.similarity_search(query, k=1)
+
+
+    retriever.batch(
+        [
+            "How many distribution centers does Nike have in the US?",
+            "When was Nike incorporated?",
+        ],
+    )
+
+11. Is there any build in methods to generate a Retriever, from vector store?
+  yes,use store's `as_retriever` method
+
+  retriever = vector_store.as_retriever(
+      search_type="similarity",
+      search_kwargs={"k": 1},
+  )
+
+  retriever.batch(
+      [
+          "How many distribution centers does Nike have in the US?",
+          "When was Nike incorporated?",
+      ],
+  )
+
+  VectorStoreRetriever supports search types of "similarity" (default), "mmr" (maximum marginal relevance, described above), and "similarity_score_threshold".
+
+12. What does PydanticOutputParser do?
+
+  PydanticOutputParser is a LangChain output parser that forces an LLM to return its answer in a format that can be validated and parsed into a Pydantic model.
+
+  so instead of:
+    "Yes, the user is 42 years old and likes Python."
+  you'll get
+    UserInfo(age=42, likes=["Python"])
+
+  example:
+
+    from langchain.output_parsers import PydanticOutputParser
+    from langchain.prompts import PromptTemplate
+    from langchain_openai import ChatOpenAI
+    from pydantic import BaseModel
+
+    class Answer(BaseModel):
+        answer: str
+        confidence: float
+
+    parser = PydanticOutputParser(pydantic_object=Answer)
+
+    prompt = PromptTemplate(
+        template="""
+        Answer the question.
+        {format_instructions}
+        Question: {question}
+        """,
+        input_variables=["question"],
+        partial_variables={
+            "format_instructions": parser.get_format_instructions()
+        }
+    )
+
+    llm = ChatOpenAI()
+    chain = prompt | llm | parser
+
+    result = chain.invoke({"question": "What is LangChain?"})
+
+    print(result.answer)
+    print(result.confidence)
+
+13. What is GroupingResults in a LangChain-based system, and why is it defined as a Pydantic model?
+
+  GroupingResults is a domain-specific Pydantic model that defines the exact structure of the LLM’s expected output. It acts as a strict contract between the model and the application, ensuring type safety, validation, and deterministic downstream behavior.
+
+    class GroupingResults(BaseModel):
+        groups: dict[str, list[str]]
+        confidence: float | None = None
+  It is used by PydanticOutputParser to reject malformed or incomplete LLM outputs instead of letting bad data propagate.
+
+14. What is grouping_results, and how is it used after the LLM call completes?
+
+  grouping_results is the validated runtime instance of GroupingResults returned after the LLM output is parsed and validated. It is application-ready data, not raw text or JSON.
+
+    grouping_results: GroupingResults = (
+        prompt | llm_client | parser
+    ).invoke({})
+
+
+  Because it is type-checked and validated, pydantic object it can be used directly in business logic without additional parsing:
+
+  if grouping_results.confidence and grouping_results.confidence < 0.6:
+      trigger_fallback()
+
+  persist(grouping_results.groups)

@@ -1,0 +1,67 @@
+
+RAG
+? https://www.youtube.com/watch?v=swvzKSOEluc
+
+https://fastapi.tiangolo.com/learn/
+
+https://qdrant.tech/documentation/quickstart/
+
+https://github.com/qdrant/qdrant-client
+
+What to Skip Initially:
+
+❌ Distributed deployment
+❌ Performance tuning/optimization
+❌ Cloud deployment options
+❌ Advanced filtering (learn basic first)
+❌ Blog posts (distracting at this stage)
+
+https://docs.langchain.com/oss/python/integrations/vectorstores
+
+import hashlib
+import os
+import asyncio
+from typing import Dict, List
+from langchain.docstore.document import Document
+from transformers import AutoTokenizer, AutoModel
+from src.config.project_config import settings
+
+from src.context.schemas.context_schema import CreateContextDTO
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+class EmbeddingUtil:
+    def __init__(self):
+        self.cache_dir = f"{settings.UPLOAD_FOLDER}/models--sentence-transformers--all-MiniLM-L6-v2"
+        self.model_name = "sentence-transformers/all-MiniLM-L6-v2"
+        # self.cache_dir = f"{settings.UPLOAD_FOLDER}/models--sentence-transformers--LaBSE"
+        # # self.model_name = "sentence-transformers/LaBSE"
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, cache_dir=self.cache_dir)
+        self.model = AutoModel.from_pretrained(self.model_name, cache_dir=self.cache_dir)
+
+    async def create_embeddings(self, text) -> List[float]:
+        def sync_task():
+            tokens = self.tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors="pt")
+            embeddings = self.model(**tokens)
+            vector: List[float] = embeddings.pooler_output.detach().tolist()[0]
+            return vector
+
+        return await asyncio.to_thread(sync_task)
+
+    async def create_embeddings_for_struct(self, data: List[Document], payload: CreateContextDTO) -> List[Dict]:
+        result = []
+        for doc in data:
+            embedding = await self.create_embeddings(doc.page_content)
+            doc_id = hashlib.md5(str(embedding).encode()).hexdigest()
+            result.append({
+                "payload": {
+                    **payload.model_dump(),
+                    "original_text": doc.page_content,
+                },
+                "id": doc_id,
+                "vector": embedding,
+            })
+        return result
+
+embedding_util = EmbeddingUtil()

@@ -1,0 +1,258 @@
+Event loop
+  microtask queues empties first
+  macro second
+  process.nextTick has higher priority micro task queue
+
+
+  https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
+    Each phase has a FIFO queue of callbacks to execute. While each phase is special in its own way, generally, when the event loop enters a given phase, it will perform any operations specific to that phase, then execute callbacks in that phase's queue until the queue has been exhausted or the maximum number of callbacks has executed. When the queue has been exhausted or the callback limit is reached, the event loop will move to the next phase, and so on.
+    These six phases create one cycle, or loop, which is known as a tick.
+    Phases Overview
+      timers: this phase executes callbacks scheduled by setTimeout() and setInterval().
+      pending callbacks: executes I/O callbacks deferred to the next loop iteration.
+      idle, prepare: only used internally.
+      poll: retrieve new I/O events; execute I/O related callbacks (almost all with the exception of close callbacks, the ones scheduled by timers, and setImmediate()); node will block here when appropriate.
+      check: setImmediate() callbacks are invoked here.
+      close callbacks: some close callbacks, e.g. socket.on('close', ...).
+
+      Between each run of the event loop, Node.js checks if it is waiting for any asynchronous I/O or timers and shuts down cleanly if there are not any.
+
+    timers
+      A timer specifies the threshold after which a provided callback may be executed rather than the exact time a person wants it to be executed.
+      To prevent the "poll" phase from starving the event loop, libuv also has a hard maximum (system dependent) before it stops polling for more events.
+
+    pending callbacks
+      This phase executes callbacks for some system operations such as types of TCP errors. For example if a TCP socket receives ECONNREFUSED when attempting to connect
+      This will be queued to execute in the "pending callbacks phase".
+
+    Poll:
+      The poll phase has two main functions:
+        Calculating how long it should block and poll for I/O, then
+        Processing events in the poll queue.
+
+      When the event loop enters the poll phase and there are no timers scheduled:
+        A)If the poll queue is not empty, the event loop will iterate through its queue of callbacks executing them synchronously until either the queue has been exhausted, or the system-dependent hard limit is reached.
+        OR
+        B) If the poll queue is empty:
+          B1) If scripts have been scheduled by setImmediate(), the event loop will end the poll phase and continue to the check phase
+          OR
+          B2) If scripts have not been scheduled by setImmediate(), the event loop will wait for callbacks to be added to the queue, then execute them immediately.
+
+      Once the poll queue is empty the event loop will check for timers whose time thresholds have been reached. If one or more timers are ready, the event loop will wrap back to the timers phase to execute those timers' callbacks.
+
+    check
+      This phase allows a person to execute callbacks immediately after the "poll" phase has completed. If the poll phase becomes idle and scripts have been queued with setImmediate(), the event loop may continue to the "check" phase rather than waiting.
+
+    close callbacks
+      If a socket or handle is closed abruptly (e.g. socket.destroy()), the 'close' event will be emitted in this phase. Otherwise it will be emitted via process.nextTick().
+
+    setImmediate() vs setTimeout()
+      The main advantage to using setImmediate() over setTimeout() is setImmediate() will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present.
+
+      The order in which the timers are executed will vary depending on the context in which they are called. If both are called from within the main module, then timing will be bound by the performance of the process.
+
+      if we run setTimeout() followed by setImmediate() and is non-deterministic, as it is bound by the performance of the process.
+      example:
+        setTimeout(() => {
+          console.log('timeout1');
+        }, 0);
+
+        setImmediate(() => {
+          console.log('immediate1');
+        });
+        // immediate1
+        // timeout1
+        OR
+        // timeout1
+        // immediate1
+      BUT
+        const fs = require('fs');
+
+        fs.readFile(__filename, () => {
+          setTimeout(() => {
+            console.log('timeout');
+          }, 0);
+          setImmediate(() => {
+            console.log('immediate');
+          });
+        });
+        //Order (deterministic):
+        // immediate
+        // timeout
+
+      process.nextTick()
+        Any time you call process.nextTick() in a given phase, all callbacks passed to process.nextTick() will be resolved before the event loop continues.
+        This can create some bad situations because it allows you to "starve" your I/O by making recursive process.nextTick() calls, which prevents the event loop from reaching the poll phase.
+
+        process.nextTick() allowing it to take any arguments passed after the callback to be propagated as the arguments to the callback. Example:
+          function apiCall(arg, callback) {
+            if (typeof arg !== 'string')
+              return process.nextTick(
+                callback,
+                new TypeError('argument should be string')
+              );
+          }
+
+          //By using process.nextTick() we guarantee that apiCall() always runs its "callback" after the rest of the user's code and before the event loop is allowed to proceed.
+          //The snippet does an argument check and if it's not correct, it will pass the error to the callback.
+
+              Why use process.nextTick()?
+          1) Allow users to handle errors, cleanup any then unneeded resources, or perhaps try the request again before the event loop continues.
+
+          2) At times it's necessary to allow a callback to run after the call stack has unwound but before the event loop continues.
+        example of emiting an event from the constructor immediately before callback attached:
+          const EventEmitter = require('events');
+          class MyEmitter extends EventEmitter {
+            constructor() {
+              super();
+
+              // use nextTick to emit the event once a handler is assigned
+              process.nextTick(() => {
+                this.emit('event');
+              });
+            }
+          }
+
+
+  https://www.youtube.com/watch?v=kZFLHCz2a30
+    microtasks queue is always checked before macrotasks queue
+    setImmediate - is macrotask but with it's own rules, when in I/O executes at check phase, otherwise - depend on process
+    I/O callback is a macrotask
+    Example:
+      Code:
+        const bar = () => console.log('bar');
+        const baz = () => console.log('baz');
+        const foo = () => {
+          console.log('foo');
+          setTimeout(bar, 0);
+          process.nextTick((arg) => {
+            console.log(arg)
+          }, 'arg for proccess.next');
+          new Promise((resolve, reject) => {
+            console.log('promise start');
+            resolve('should be right after baz, before bar');
+          })
+          .then(resolve => {
+            console.log(resolve);
+            return 'test'
+          })
+          .then((data) => {
+            console.log(data);
+          })
+          Promise.resolve(1).then(arg => console.log(arg));
+          baz();
+        }
+        foo();
+      Output:
+        foo // synchronous
+        promise start // synchronous
+        baz // synchronous
+        arg for proccess.next // executes process.nextTick
+        should be right after baz, before bar // executes 1st microtask
+        1 // 2nd microtask
+        test // 3rd microtask
+        bar // 1st macrotask
+
+    Example2
+      Code:
+        const foo = () => {
+          console.log('foo');
+          process.nextTick(() => {
+            console.log('process.nextTick from foo')
+          });
+        };
+        const baz = () => console.log('baz');
+        const zoo = () => console.log('zoo');
+        const start = () => {
+          console.log('start');
+          setTimeout(baz, 0);
+          new Promise((resolve, reject) => {
+            resolve('bar')
+          })
+          .then(resolve => {
+            console.log(resolve);
+            process.nextTick(zoo);
+          })
+
+          process.nextTick(foo);
+
+        }
+        start();
+      Output:
+        start
+        foo
+        process.nextTick from foo
+        bar
+        zoo
+        baz
+
+    Example3:
+      Code:
+        const fs = require('fs');
+        process.nextTick(() => {
+          console.log('tick1')
+        });
+        fs.readFile(__filename, () => {
+          console.log('file is read');
+          process.nextTick(() => {
+            console.log('tick2')
+          });
+        });
+        setTimeout(() => {
+          console.log('timeout');
+        }, 0);
+        setImmediate(() => {
+          console.log('immediate');
+        });
+      Output:
+        tick1
+        timeout //non-determenistic
+        immediate //non-determenistic
+        file is read
+        tick2
+
+    Example4:
+      Code:
+        const fs = require('fs');
+        process.nextTick(() => {
+          console.log('tick1')
+        });
+        fs.readFile(__filename, () => {
+          console.log('file is read');
+          setTimeout(() => {
+            console.log('timeout');
+          }, 0);
+          setImmediate(() => {
+            console.log('immediate');
+          });
+          process.nextTick(() => {
+            console.log('tick2')
+          });
+        });
+      Output:
+        tick1
+        file is read
+        tick2
+        immediate //determenistic
+        timeout //determenistic
+
+    Example 5:
+      code
+        setTimeout(() => {console.log('timer1')}, 0)
+        const fs = require('fs');
+        fs.open('./empty.txt', () => {
+          console.log('reading file')
+          setTimeout(() => {console.log('timer3')}, 0)
+        })
+        setTimeout(() => {console.log('timer2')}, 0)
+        fs.open('./empty.txt', () => {
+          console.log('reading file2')
+          setTimeout(() => {console.log('timer4')}, 0)
+        })
+      output
+        timer1
+        timer2
+        reading file
+        reading file2
+        timer4
+        timer3

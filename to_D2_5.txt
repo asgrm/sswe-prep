@@ -1,0 +1,252 @@
+https://kb.epam.com/pages/viewpage.action?pageId=1456526283
+https://github.com/trekhleb/javascript-algorithms
+
+https://betterprogramming.pub/cqrs-software-architecture-pattern-the-good-the-bad-and-the-ugly-e9d6e7a34daf
+https://medium.com/@stevedafer/in-a-nutshell-what-are-ddd-and-cqrs-domain-driven-design-and-command-query-responsibility-dd2460d9a89a
+
+
+1 async hooks
+
+  The node:async_hooks module provides an API to track asynchronous resources. It can be accessed using:
+
+
+  An asynchronous resource represents an object with an associated callback.
+
+  This callback may be called multiple times, such as the 'connection' event in net.createServer(), or just a single time like in fs.open(). A resource can also be closed before the callback is called. AsyncHook does not explicitly distinguish between these different cases but will represent them as the abstract concept that is a resource.
+
+  calbacks:
+
+    // init() is called during object construction. The resource may not have
+    // completed construction when this callback runs. Therefore, all fields of the
+    // resource referenced by "asyncId" may not have been populated.
+    function init(asyncId, type, triggerAsyncId, resource) { }
+
+    asyncId, - resoure id, once resoure died can be delegated to some other resource
+    type, - TLSWRAP, TCPWRAP, TCPSERVERWRAP, GETADDRINFOREQWRAP, FSREQCALLBACK, Microtask, and Timeout
+    triggerAsyncId, - parent async id inside which given resource was created
+    resource - resource itself, for example promise/callback/whatever
+
+    // before() is called just before the resource's callback is called. It can be
+    // called 0-N times for handles (such as TCPWrap), and will be called exactly 1
+    // time for requests (such as FSReqCallback).
+    function before(asyncId) { }
+
+    // after() is called just after the resource's callback has finished.
+    function after(asyncId) { }
+
+    // destroy() is called when the resource is destroyed.
+    function destroy(asyncId) { }
+
+    // promiseResolve() is called only for promise resources, when the
+    // resolve() function passed to the Promise constructor is invoked
+    // (either directly or through other means of resolving a promise).
+    function promiseResolve(asyncId) { }
+
+
+  const asyncHook = createHook({}) - Registers functions to be called for different lifetime events of each async operation.
+
+  asyncHooks.enable() - Enable the callbacks for a given AsyncHook instance.
+
+  asyncHook.disable() - oposite of enable Once a hook has been disabled it will not be called again until enabled.
+
+  link to resource (asyncId) should always stay in callback, otherwise gc would never destriy resourse and hook 'destroy would never be reached';
+
+  console.log is asynchronous so do not call it in async hooks
+
+2 asynclocalstorage nodejs
+  AsyncLocalStorage
+
+  This class creates stores that stay coherent through asynchronous operations.
+
+  While you can create your own implementation on top of the node:async_hooks module, AsyncLocalStorage should be preferred as it is a performant and memory safe implementation that involves significant optimizations that are non-obvious to implement.
+
+
+  example:
+
+    const { createServer } = require('node:http');
+    const { AsyncLocalStorage } = require('node:async_hooks');
+    const { scheduler } = require('node:timers/promises')
+
+    let sessionIdCounter = 0;
+
+    const sessionId = new AsyncLocalStorage();
+
+    const server = createServer((req, res) => {
+      sessionId.run(sessionIdCounter++, () => {
+        handleRequest(req, res);
+      })
+    })
+
+    async function handleRequest(req, res) {
+      res.end(await doSomethingElse());
+    }
+
+    async function doSomethingElse() {
+      console.log(`Waiting for ${sessionId.getStore()}`)
+      await scheduler.wait(1000);
+      return `Hello world - ${sessionId.getStore()}`;
+    }
+
+    server.listen(8080);
+
+3 memory leak (definition and examples)
+  A memory leak in Node.js refers to a situation where memory that is no longer needed by an application is not released or garbage-collected, leading to the application's memory consumption continuously increasing over time.
+
+  examples:
+  Unintended Closures: When functions retain references to variables or objects they don't need anymore, it can lead to memory leaks. For instance:
+  Event Listener Leaks: Not removing event listeners can cause memory leaks, especially when objects with event listeners are frequently created and destroyed.
+
+  Growing Arrays or Buffers: Continuously adding data to an array or buffer without ever removing elements can cause memory to be consumed excessively.
+
+4 n+1 db problem
+  N+1 queries are a performance problem in which the application makes database queries in a loop, instead of making a single query that returns or modifies all the information at once.
+
+5 что такое Buffer
+  Buffer objects are used to represent a fixed-length sequence of bytes.
+
+  When converting between Buffers and strings, a character encoding may be specified. If no character encoding is specified, UTF-8 will be used as the default.
+
+
+  Buffer instances are also JavaScript Uint8Array and TypedArray instances. All TypedArray methods are available on Buffers. There are, however, subtle incompatibilities between the Buffer API and the TypedArray API.
+
+    In particular:
+
+    While TypedArray.prototype.slice() creates a copy of part of the TypedArray, Buffer.prototype.slice() creates a view over the existing Buffer without copying. This behavior can be surprising, and only exists for legacy compatibility. TypedArray.prototype.subarray() can be used to achieve the behavior of Buffer.prototype.slice() on both Buffers and other TypedArrays and should be preferred.
+    buf.toString() is incompatible with its TypedArray equivalent.
+    A number of methods, e.g. buf.indexOf(), support additional arguments.
+
+6 ACID stands for:
+  Atomic – Each transaction is either properly carried out or the process halts and the database reverts back to the state before the transaction started. This ensures that all data in the database is valid.
+  Consistent – A processed transaction will never endanger the structural integrity of the database.
+    Другими словами, каждая успешная транзакция по определению фиксирует только допустимые результаты. Это условие является необходимым для поддержки четвёртого свойства.
+    Это свойство вытекает из предыдущего. Благодаря тому, что транзакция не допускает промежуточных результатов, база остается консистентной. Есть такое определение транзакции: «Упорядоченное множество операций, переводящих базу данных из одного согласованного состояния в другое». То есть до выполнения операции и после база остается консистентной (в переводе на русский — согласованной).
+  Isolated – Transactions cannot compromise the integrity of other transactions by interacting with them while they are still in progress.
+    Во время выполнения транзакции параллельные транзакции не должны оказывать влияния на её результат.
+  Durable – The data related to the completed transaction will persist even in the cases of network or power outages. If a transaction fails, it will not impact the manipulated data.Если пользователь получил подтверждение от системы, что транзакция выполнена, он может быть уверен, что сделанные им изменения не будут отменены из-за какого-либо сбоя. Обесточилась система, произошел сбой в оборудовании? На выполненную транзакцию это не повлияет.
+
+7 как получить флаги из окружения
+ process.execArgv вместо process.argv
+
+8 how to make npm package
+  npm link - This is handy for installing your own stuff, so that you can work on it and test iteratively without having to continually rebuild. Basically npm creates link for given package. And when You want to install it somewhere else it foing to install it from folder where you called 'npm link'. And when you plan to test it locally use 'npm link package-name'
+
+  npm unlink is an alias for npm uninstall
+
+  how to make npm package
+    login to npm
+    create project
+    npm publish (READMY.MD should signal description)
+
+    to unpublish - npm unpublish --force OR version (you cannot unpublish package it it used by another package in registry).
+    Name of deleted package can be reused after 24 hours
+
+    Be aware that when a package hits ~100 downloads you can NOT remove it anymore
+
+    scoped package: @username/package-name
+
+    npm publish --access restricted | public  - allow to publish scoped package
+
+    restricted package only allowed when using enterprise account
+
+
+    npm init --scope=@your-username
+
+      scope
+        Default: the scope of the current project, if any, or ""
+        Associate an operation with a scope for a scoped registry.
+        Useful when logging in to or out of a private registry:
+        # log in, linking the scope to the custom registry
+        npm login --scope=@mycorp --registry=https://registry.mycorp.com
+        # log out, removing the link and the auth token
+        npm logout --scope=@mycorp
+
+9 cqrs
+  The Command and Query Responsibility Segregation (CQRS). CQRS — это стиль архитектуры, в котором операции чтения отделены от операций записи.
+  CQRS реализуется в ограниченных контекстах (bounded context) приложений, проектируемых на основе DDD. Одна из естественных причин развития CQRS — не симметричное распределение нагрузки и сложности бизнес-логики на read и write — подсистемы
+
+  cqs - command query segregation . разделение может быть на уровне методов класса.
+
+  CQRS - принцип разделения поднимается до уровня модулей - один модуль читает, другой пишет. Теоретически могут быть даже разные базы.
+
+  https://betterprogramming.pub/cqrs-software-architecture-pattern-the-good-the-bad-and-the-ugly-e9d6e7a34daf
+  https://medium.com/@stevedafer/in-a-nutshell-what-are-ddd-and-cqrs-domain-driven-design-and-command-query-responsibility-dd2460d9a89a
+
+10 pub sub vs message queue
+  Publish-Subscribe (Pub-Sub) Architecture:
+    In the Pub-Sub architecture, communication is based on the concept of topics or channels. Publishers are responsible for sending messages to specific topics without knowing who the subscribers are. Subscribers express interest in specific topics and receive messages from those topics whenever a publisher sends a message to it. This creates a decoupled communication model where publishers and subscribers do not need to be aware of each other's existence.
+
+    Pub-Sub architecture is commonly used in scenarios where one-to-many or fan-out communication is needed. Examples include real-time updates, event-driven systems, and notifications.
+
+  Message Queue Architecture
+
+    Message Queue architecture involves the use of a message broker (or message queue) to mediate communication between different components or services in a system. In this approach, messages are sent by producers (similar to publishers) to the message queue, and consumers (similar to subscribers) retrieve and process messages from the queue.
+
+11. reddis
+  reddis - key-value in memmory db. Focused on achieving maximum performance on atomic operations, used as cache and message broker.
+  In-Memory Storage:  amount of data you can store is limited by the available RAM.
+
+  Although Redis offers options for data persistence (saving data to disk), it's important to set up and manage the persistence configuration carefully.
+
+  Single-Threaded Performance: Redis is single-threaded by default, which means that it can only use one CPU core for processing commands
+
+  Eventual Consistency: Redis doesn't provide strong consistency guarantees in some scenarios, which means it might not be the best fit for applications that require immediate and consistent data updates across all nodes.
+
+12. db replication purposes
+  1. High Availability: Database replication ensures that multiple copies of the database are available on different servers. If the primary database server becomes unavailable due to hardware failure or maintenance, one of the replicas can take over and serve the application, minimizing downtime and maintaining continuous availability.
+  2. Improved Read Performance / Load Balancing
+  3 Disaster Recovery
+  4. Geographical Distribution
+
+unhandledRejection
+uncaughtException
+
+refs in mongodb/ transactions  https://www.mongodb.com/docs/manual/reference/database-references/#:~:text=%24ref,field%20in%20the%20referenced%20document.
+
+garbage collector node.js  https://dev.to/_staticvoid/node-js-under-the-hood-7-the-new-v8-4gd6  https://medium.com/@yanguly/sparkplug-v8-baseline-javascript-compiler-758a7bc96e84  https://docs.google.com/presentation/d/1H1lLsbclvzyOF3IUR05ZUaZcqDxo7_-8f4yJoxdMooU/htmlpresent
+
+turbofan ast compilers
+
+cypress e2e
+
+api testing подвид интеграционного
+
+https://medium.com/preezma/node-js-event-loop-architecture-go-deeper-node-core-c96b4cec7aa4
+https://man7.org/linux/man-pages/man7/epoll.7.html
+https://www.npmjs.com/package/epoll
+
+db indexes
+
+  B-дерево
+    B-дерево — это структура данных самобалансирующегося дерева, которая часто используется в качестве алгоритма индексирования в базах данных. Каждый узел дерева состоит из набора ключей и указателей на дочерние узлы; хранение данных осуществляется в иерархической структуре. Деревья B-узлов упорядочены таким образом, что позволяют быстро выполнять поиск, вставку и удаление данных.
+  Bitmap-индекс
+    Bitmap-индексирование — это методика индексирования данных, использующая битовые карты (bitmap) для обозначения наличия или отсутствия значения в таблице. Это успешная техника индексирования для таблиц с низкой кардинальностью, где количество уникальных значений в столбце довольно мало по сравнению с общим количеством строк.
+    Для создания bitmap-индекса столбца для каждого уникального значения столбца создаётся отдельный bitmap. Каждый bitmap имеет длину, равную количеству строк в таблице.
+    Если значение присутствует в строке, соответствующему биту в bitmap присваивается значение 1, а если оно отсутствует, то присваивается значение 0. (Представьте таблицу, где столбец «Gender» имеет два уникальных значения, например, «Male» и «Female». Если этот столбец имеет bitmap-индекс, можно создать два bitmap, длина каждого из которых равна количеству строк в таблице. Когда в строке встречается «Male» или «Female», соответствующий бит в bitmap «Male» или «Female» получает значение 1, и наоборот. В случае отсутствия значения «Male» или «Female» соответствующему биту присваивается значение 0.)
+    Чтобы выполнить запрос при помощи bitmap-индекса, соответствующие в запросе значения bitmap комбинируются при помощи побитовых операторов AND, OR и NOT.
+  Хэш-индекс
+    Хэш-индекс — это разновидность методики индексирования баз данных, использующая хэш-функцию для сопоставления ключей индекса с местоположениями соответствующих записей данных. Это быстрый метод индексирования для запросов точного соответствия в одном столбце.
+
+    Сопоставление ключей индекса с местоположениями соответствующих записей данных позволяет выполнять быстрый поиск и вставки за постоянное время O(1). Однако этот метод плохо работает с запросами диапазонов или частичными совпадениями и может страдать от коллизий
+    При выполнении запроса к значению запроса применяется хэш-функция для генерации хэш-кода. Затем хэш-код используется для нахождения соответствующей корзины в файле хэш-индекса. Записи с одинаковым хэш-кодом хранятся в одной корзине, поэтому мы можем просто просканировать записи в этой корзине и найти совпадающую запись/записи.
+    хэш-индексы предназначены для обработки только поисков равенства
+  GiST (Generalized Search Tree, обобщённое поисковое дерево)
+    GiST (Generalized Search Tree, обобщённое поисковое дерево) — это техника индексирования баз данных, которая может использоваться для индексирования сложных типов данных, например, геометрических объектов, текста или массивов. Это сбалансированная древовидная структура, состоящая из узлов с множественными дочерними узлами. Каждый узел описывает диапазон или множество значений и связан с предикативной функцией, проверяющей, принадлежит ли значение диапазону или множеству. Предикативная функция зависит от типа индексируемых данных и может быть подстроена под разные типы данных.
+    При выполнении запроса значение в запросе преобразуется при помощи функции преобразования в набор ключей.
+    Поиск продолжается вниз по дереву и выбирает дочерний узел, содержащий значение из запроса.
+    Процесс повторяется, пока не будет достигнут узел-лист, содержащий элементы индекса, соответствующие значению в запросе.
+  Полнотекстовый индекс
+    Полнотекстовое индексирование — это методика индексирования баз данных, используемая для повышения эффективности поиска текстовых запросов.
+    В отличие от традиционных индексов, хранящих значения отдельных столбцов, полнотекстовый индекс хранит текстовое содержимое одного или нескольких столбцов как множества слов или токенов. Эти слова или токены используются при выполнении поискового запроса для быстрого нахождения релевантных строк.
+
+    Токенизация: текстовое содержимое индексируемого столбца разбивается на отдельные слова или токены, которые затем сохраняются в индекс. При создании полнотекстового индекса система базы данных сначала анализирует текстовое содержимое индексируемых столбцов, а затем разбивает его на отдельные слова или токены.
+
+    Индексирование: затем токены индексируются при помощи специальной структуры данных, например, B-дерева или инвертированного индекса.
+
+    Построение и выполнение запросов: система базы данных использует полнотекстовый индекс для поиска строк, содержащих релевантные токены.
+
+GOF patterns
+
+-- Indicate the end of node options.
+
+
+

@@ -1,0 +1,67 @@
+ADDITIONAL ARTICLES TO READ:
+ Embedding lookup
+    https://transformers-goto-guide.hashnode.dev/how-transformers-work-tokenization-embeddings-and-positional-encoding-explained-part-1
+
+    https://rahullokurte.com/understanding-token-and-positional-embeddings-in-transformers
+  Embedding Normalization
+    https://medium.com/@tellmetiger/embedding-normalization-dummy-learn-2ac8d816e776
+    https://milvus.io/ai-quick-reference/
+
+    how-do-i-know-if-i-need-to-normalize-the-sentence-embeddings-for-example-applying-l2-normalization-and-what-happens-if-i-dont-do-it-when-computing-similarities
+  Other RAG related:
+    https://www.youtube.com/watch?v=wjZofJX0v4M -Transformers with 3Blue1Brown
+    https://www.youtube.com/watch?v=wgfSDrqYMJ4 - What are Word Embeddings
+    https://developers.google.com/machine-learning/crash-course/embeddings/embedding-space - Embeddings, explanation from Google
+    https://www.baeldung.com/cs/dimensionality-word-embeddings - Dimensionality of Word Embeddings
+    https://poloclub.github.io/transformer-explainer/ - Transformers with interactions
+    https://www.youtube.com/watch?v=7xTGNNLPyMI - Deep Dive into LLMs with Andrej Karpathy
+
+    https://shayan-fazeli.medium.com/faiss-a-quick-tutorial-to-efficient-similarity-search-595850e08473 FAISS: A quick tutorial to efficient similarity search
+
+  entity extraction
+    https://cloud.google.com/discover/what-is-entity-extraction?hl=en
+
+agentic patterns:
+  https://www.philschmid.de/agentic-pattern - Short article about the most common Agentic patterns
+
+  https://www.amazon.com/Agentic-Design-Patterns-Hands-Intelligent/dp/3032014018 - Agentic Design Patterns: A Hands-On Guide to Building Intelligent Systems
+
+MCP:
+  https://modelcontextprotocol.io/docs/getting-started/intro what is MCP is all about
+  https://modelcontextprotocol.github.io/python-sdk/ - sdk
+
+  https://gofastmcp.com/servers/tools actual explanation how to create fast MCP server/client
+
+open ai sdk
+  https://pypi.org/project/openai/
+
+example of implemented python mcp interpreter
+  https://github.com/khshanovskyi/mcp-python-code-interpreter/tree/main
+
+
+Popular tools  & Services for AI Guardrail:
+  Microsoft Presidio - PII Detection - https://github.com/microsoft/presidio
+  NVIDIA NeMo Guardrails - Open-source safety toolkit - https://developer.nvidia.com/nemo-guardrails?sortBy=developer_learning_library%2Fsort%2Ffeatured_in.nemo_guardrails%3Adesc%2Ctitle%3Aasc&hitsPerPage=12
+  Guardrails AI - Commercial safety platform - https://www.guardrailsai.com/
+  Meta Llama Guard - AI-based safety checker - https://huggingface.co/meta-llama/Llama-Guard-3-8B
+  Amazon Bedrock Guardrails - AWS safety controls - https://aws.amazon.com/bedrock/guardrails/
+  Microsoft Azure AI Content Safety - Content filtering and moderation - https://azure.microsoft.com/en-us/products/ai-services/ai-content-safety
+  Google Vertex AI Safety - Safety filters and classifiers - https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
+
+
+Agent Memory
+  Agent long-term memory: https://hyperskill.org/learn/step/53164
+  Agents knowledge map: https://hyperskill.org/knowledge-map/5014?track=149
+
+
+Multi Agent Systems
+  Knowledge map for course AI Agents: Theory and Practice - https://hyperskill.org/knowledge-map/5024?track=149
+  Choose a design pattern for your agentic AI system - https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system
+
+libs to learn:
+https://numpy.org/
+https://www.sbert.net/
+https://docs.pydantic.dev/latest/
+https://pandas.pydata.org/
+https://www.langchain.com/
+

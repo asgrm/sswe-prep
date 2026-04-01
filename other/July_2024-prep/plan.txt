@@ -1,0 +1,47 @@
+архитектура нода
+микросервисы
+https://medium.com/hashmapinc/the-what-why-and-how-of-a-microservices-architecture-4179579423a9 - nope
+https://medium.com/design-microservices-architecture-with-patterns/microservices-architecture-2bec9da7d42a  - nope
+https://medium.com/capital-one-tech/10-microservices-design-patterns-for-better-architecture-befa810ca44e  - good
+https://medium.com/@mahammadbuludzada/what-is-microservice-architecture-0e0511d20d4c
+https://medium.com/microservicegeeks/an-introduction-to-microservices-a3a7e2297ee0
+https://medium.com/hprog99/microservices-architecture-adc013129f01
+https://medium.engineering/microservice-architecture-at-medium-9c33805eb74f
+https://medium.com/@spsarkar/understanding-microservices-beginners-guide-e0b76e64d869
+https://www.devskillbuilder.com/exploring-microservices-architecture-a-comprehensive-guide-fecb5f00be3b
+https://medium.com/@wearegap/a-brief-history-of-microservices-part-i-958c41a1555e
+
+как дебажить в микосервисы
+https://raygun.com/blog/best-practices-microservices/ - kinda good
+
+workers/process in node.js почему создать новый воркер а не процесс, воркер дешевле, кластеризация в ноде,
+
+https://medium.com/@manikmudholkar831995/worker-threads-multitasking-in-nodejs-6028cdf35e9d
+https://blog.logrocket.com/multithreading-node-js-worker-threads/
+https://www.freecodecamp.org/news/node-js-child-processes-everything-you-need-to-know-e69498fe970a/
+https://medium.com/@diego.coder/child-processes-in-node-js-37429fb54670
+https://nodejsdev.ru/api/cluster/#_2
+https://medium.com/@mjdrehman/implementing-node-js-cluster-for-improved-performance-f800146e58e1
+https://www.youtube.com/watch?v=K2bZ4alJUkA
+
+
+https://medium.com/@manikmudholkar831995/child-processes-multitasking-in-nodejs-751f9f7a85c8
+https://medium.com/@manikmudholkar831995/clustering-and-pm2-multitasking-in-nodejs-c6b10249cfd4
+
+optionally fs
+https://nodejsdev.ru/api/fs/#filehandle
+
+раскажи за свой опыт
+
+кеширование
+reddis get set expire invalidation
+
+https://www.youtube.com/watch?v=jgpVdJB2sKQ
+
+
+докер, в том числе api  - Udemy
+
+
+process is a running program in the operating system. It has its own memory and cannot see nor access the memory of other running programs.
+
+There are several ways to pass the data between two threads. By default this data is cloned i.e. both sender and receiver has their own copy of the data. And this data is cloned with ‘The Structured Cloned Algorithm’. If the data which is passed is deeply nesting within, then it’ll take a significant processing power to clone the data. So its not always optimal to have copies of data.

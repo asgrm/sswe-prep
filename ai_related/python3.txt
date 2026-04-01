@@ -1,0 +1,4172 @@
+1. How do you concatenate strings across multiple lines in Python (3 methods)?
+  - Backslash continuation
+  - Parentheses
+    text = ("First part "
+            "second part")
+  - Plus operator
+
+2. What are triple quotes (''' or """) used for in Python?
+  Create multiline strings that preserve formatting
+
+3. what's input function used for?
+  reads a line of text from the user
+
+  # call to input() with no arguments is syntactically correct
+  # input from user is always a string
+  name = input("What's your name? ")
+  print(f"Hello, {name}!")
+
+4.How to do string interpolation
+ - use f"some text {variable}" -best practice
+ - use "some text {variable}".format(variable=user_name)
+ - "Hello %s, you are %d years old" % (name, age) - old style
+ - Template strings:
+   from string import Template
+   template = Template("Hello $name, you are $age years old")
+   message = template.substitute(name="Dave", age=40)
+
+5. How do you define variables in Python?
+  name = "Alice"
+  # or multiple variables
+  x, y, z = 1, 2, 3
+  # may add optional type hints
+  price: float = 9.99
+
+6. Is there a constants in Python?
+  no each variable can be reassigned, but naming convention imply you use uppercase letters
+
+  PI = 3.14159
+
+7. What are variable naming rules in python?
+  Must start with letter or underscore: _name, name1 ✓
+  Can't start with number: 1name ✗
+  Case-sensitive: Name ≠ name
+  Convention: use snake_case
+
+8. Name common string methods for string case conversion.
+  text = "Hello World"
+  text.upper()          # "HELLO WORLD"
+  text.lower()          # "hello world"
+  text.capitalize()     # "Hello world"
+  text.title()          # "Hello World"
+  text.swapcase()       # "hELLO wORLD"
+
+9. Name common string methods for Stripping/Trimming
+  text = "  hello  "
+  text.strip()       # "hello" (removes whitespace from both ends)
+  text.lstrip()      # "hello  " (left side only)
+  text.rstrip()      # "  hello" (right side only)
+  text.strip("h")    # Removes specific characters.
+
+10. Name common string methods for Splitting & Joining
+  text = "apple,banana,orange"
+  text.split(",")         # ["apple", "banana", "orange"]
+  text.split(",", 1)      # ["apple", "banana,orange"] (max splits)
+
+  # Join list into string
+  "-".join(["a", "b"])     # "a-b"
+
+11. Name common string methods for Replacing
+  text = "Hello World"
+  text.replace("World", "Python")  # "Hello Python"
+  text.replace("l", "L", 1)        # "HeLlo World" (replace 1 occurrence)
+
+12. Name common string methods for string Type Checking
+  "123".isdigit()      # True
+  "abc".isalpha()      # True
+  "abc123".isalnum()   # True
+  "   ".isspace()      # True
+  "Hello".islower()    # False
+  "HELLO".isupper()    # True
+
+13. Name common string methods for Formatting
+  "hello".center(10)        # "  hello   "
+  "hello".ljust(10)         # "hello     "
+  "hello".rjust(10)         # "     hello"
+  "hello".zfill(10)         # "00000hello"
+
+14. Name common string methods for Encoding/Decoding
+  text = "Hello"
+  text.encode("utf-8")   # b'Hello' (bytes)
+  b'Hello'.decode()      # "Hello" (back to string)
+
+15. How to get string length?
+  text = "Hello World"
+  # would work with anything having length: string, list, tuple, range, bytes, dictionary, set, frozen set
+  len(text)              # 11 (property via function)
+
+16. How to get character(s) of string at certain position?
+  text = "Hello World"
+  text[0]                # "H" (indexing)
+  text[0:5]              # "Hello" (slicing)
+  text[-1]               # "d" (negative indexing)
+
+17. Can you modify string character at certain position?
+  No, strings are immutable
+
+18. How to convert types?
+  int(value)
+  float(value)
+  str()
+    # lists converted to '[value1, value2]' format
+    # boolean values converted to 'True' or 'False'
+  bool()
+    # empty array and None type are converted to False
+    # in python it's called 'True' not 'true'
+  list()
+    list("abc")           # ['a', 'b', 'c']
+    list((1, 2, 3))       # [1, 2, 3] (tuple to list)
+    list({1, 2, 3})       # [1, 2, 3] (set to list)
+    list(range(5))  # [0, 1, 2, 3, 4]
+  tuple()
+    tuple([1, 2, 3])      # (1, 2, 3)
+    tuple("abc")          # ('a', 'b', 'c')
+  set()
+    set([1, 2, 2, 3])     # {1, 2, 3} (removes duplicates)
+    set("hello")          # {'h', 'e', 'l', 'o'}
+  dict
+    dict([("a", 1), ("b", 2)])           # {'a': 1, 'b': 2}
+    dict(zip(["a", "b"], [1, 2]))        # {'a': 1, 'b': 2}
+
+  ASCII/Character Codes:
+    ord('A')          # 65 (char to ASCII code)
+    chr(65)           # 'A' (ASCII code to char)
+
+  Binary, Hex, Octal
+    bin(10)           # '0b1010' (int to binary string)
+    hex(255)          # '0xff' (int to hex string)
+    oct(8)            # '0o10' (int to octal string)
+
+  Bytes
+    bytes([65, 66, 67])        # b'ABC'
+    "hello".encode('utf-8')    # b'hello'
+    b'hello'.decode('utf-8')   # 'hello'
+
+19. Can you convert string "3.14" to int with int("3.14")?
+  No, you'll get (use float() first
+
+20. what's try catch syntax?
+  try:
+        num = int(input("Enter number: "))
+  except ValueError:
+        print("That's not a valid number!")
+  expect KeyError:
+      print("do something else")
+  else:
+        print("works as expected")
+  finally:
+    print("we are in final block")
+
+  # BTW you can use "catch" without specifying error class but it's not recommended
+
+  # if you opened some resource in try (like file) that would be a good idea to close it in finally block
+
+21. How to swap variables with 1 line?
+  glass1, glass2 = glass2, glass1
+
+22. What Basic Arithmetic Operators does python has?
+  +
+  -
+  *
+  **
+  %
+  / - always returns float
+  // - always returns int result is rounded down to closest int, so 8 // 3 is 2
+
+23. What Assignment Operators does python has?
+  +=
+  -=
+  *=
+  /=
+  //=
+  %=
+  **=
+
+24. What Comparison Operators does python has?
+  ==
+  !=
+  <
+  >
+  <=
+  >=
+
+25. What Logical Operators does python has?
+  and
+  or
+  not
+
+26. Does int and float has limits in python?
+  int - no
+  float - yes, around 10^308 price value:
+    import sys
+
+    sys.float_info.max  # ~1.7976931348623157e+308 (maximum)
+    sys.float_info.min  # ~2.2250738585072014e-308 (minimum positive)
+
+  # Beyond the limit
+    float('inf')   # Infinity
+    float('-inf')  # Negative infinity
+    OR
+    import math
+    pos_inf = math.inf
+    neg_inf = -math.inf
+
+27. how to find min/max number?
+  # pass values as array ar as individual arguments
+  max(5, 3.2, 1_008)
+  min([1, 2, 3])
+
+  BTW can be used as max(dict, key=dict.get), here key is custom comparator which takes function dict.get and passes to that function key, so you'll extract value by key and use it for comparison, return value would be the "key" that holds highest value not "value itself"
+
+28. Does python has negative zero?
+  for int - no
+  for float - yes
+
+29. How to check value is of specific type?
+  using type operator
+    # type(5) results in <class 'int'>
+    type(5) == int       # True
+    type(5) == float     # False
+
+  or using isinstance operator
+    isinstance(5, int)           # True
+    isinstance(5, (int, float))  # True (checks multiple types)
+
+30. What type does division "/" "//" operators returns?
+  '/' it is always float, 2/1 is 2.0
+  '//' always int 8/3 is 2
+
+31. How to round float?
+
+  round() - rounds to closes integer, but half is round down, so 2.5 is 2 but 2.51 is 3
+
+  round(8.559) # 9
+  round(8.556, 2) # 8.56
+  import math
+
+  math.floor(3.9) # 3
+  math.ceil(3.1)    # 4
+  math.ceil(-3.9)   # -3
+  math.trunc(3.9)   # 3
+
+32. What does .2f mean in Python f-strings like f"{x:.2f}"? Explain the syntax and show examples.
+
+  . = separates width from precision
+  2 = number of decimal places
+  f = float (fixed-point notation)
+
+  examples
+    x = 3.14159
+    f"{x:.2f}"   # '3.14' (2 decimals)
+    f"{x:.0f}"   # '3' (0 decimals)
+    f"{x:.4f}"   # '3.1416' (4 decimals)
+
+  Number types:
+    :d - integer
+    :f - float (default 6 decimals)
+    :e - scientific notation
+    :x - hexadecimal
+    :% - percentage (multiplies by 100)
+
+33. List priority of math operators from top to bottom (PEMDAS)
+  ()
+  **
+  * / //
+  + -
+
+  BTW: operators of same priority are evaluated left to right
+
+Note: regarding floating point
+  from decimal import Decimal
+
+  Decimal(0.1)+ Decimal(0.2) == Decimal(0.3) # True
+  0.1 + 0.2 == 0.3 # False
+
+34. Does python have ternary operator?
+  Yes, syntax: value_if_true if condition else value_if_false
+  examples:
+
+  age = 20
+  status = "adult" if age >= 18 else "minor"
+  print(status)  # "adult"
+
+  a = 5
+  b = 10
+  max = a if a > b else b # 10
+
+35. What would be result of 2 + "2"
+  TypeError (unlike in JS)
+
+Note: official python tutorial https://docs.python.org/3/tutorial/index.html
+
+36. What loops does python have?
+  1) for loop
+    for num in [1, 2, 3]:
+        print(num)
+  2) while loop
+    count = 0
+    while count < 5:
+        print(count)
+        count += 1
+
+37. How to leave loop or skip iteration?
+
+    while attempts < max_attempts:
+        password = input("Enter password: ")
+        attempts += 1
+
+        if password == "":
+            continue  # Skip the rest, ask again
+
+        if password == "secret123":
+            break  # Exit loop on success
+
+38. Name python flow control statement
+    1) if
+    score = 85
+
+    if score >= 90:
+        print("A")
+    elif score >= 80:
+        print("B")
+    elif score >= 70:
+        print("C")
+    else:
+        print("F")
+
+    2) match for python 3.10+
+
+    day = "123ertgfb"
+
+    match day:
+        case "Monday":
+            print("Start of week")
+        case "Friday":
+            print("End of week")
+        case "Saturday" | "Sunday":
+            # you cannot use "or" in match, only "|"
+            print("Weekend!")
+        case _:
+            print("Unknown day")
+
+    2.1) you could partially imitate match both by  dictionary
+        {
+            "Monday": "Start of week",
+            "Friday": "End of week",
+            "Saturday": "Weekend",
+            "Sunday": "Weekend"
+        }.get(day, "Midweek") # default value
+
+Note: chained and (45 <= age <= 55) is preferred over explicit (age >= 45 and age <= 55) in production apps
+
+39. if function returns nothing explicitly what would be returned?
+
+  None (that's the python type)
+
+40.What does 'r' before string do?
+  The r before a string creates a raw string - it treats backslashes '\' as literal characters instead of escape sequences.
+
+  print("C:\new\folder")
+    # C:
+    # ew\folder
+
+  print(r"C:\new\folder")
+    # C:\new\folder
+
+41. How to define and call a function in Python?
+  # Define
+    def function_name(parameter1, parameter2):
+        # code here
+        return result
+
+  # Call
+    function_name(arg1, arg2)
+
+42. How do you define and call an async function in Python? (Compare to JS)
+
+  import asyncio
+
+  async def fetch_data():
+      await asyncio.sleep(1)
+      return "data"
+
+  # Must use asyncio.run() to execute
+  asyncio.run(fetch_data())
+
+  Key difference: Python requires asyncio.run() to start the event loop, JS runs automatically.
+
+  asyncio.run - returns resolved task result, not a coroutine
+
+43. Multiple Async Operations
+
+  import asyncio
+
+  async def task1():
+      await asyncio.sleep(1)
+      return "Task 1"
+
+  async def task2():
+      await asyncio.sleep(2)
+      return "Task 2"
+
+  async def main():
+      results = await asyncio.gather(task1(), task2())
+      print(results)  # ['Task 1', 'Task 2']
+
+  asyncio.run(main())
+
+  # Python equivalent: asyncio.gather() = Promise.all()
+
+44. How do you add a delay in async Python code? (Compare to JS setTimeout)
+
+  import asyncio
+
+  async def delayed_task():
+      print("Starting...")
+      await asyncio.sleep(2)  # 2 seconds, like setTimeout but takes seconds unlike JS which takes ms
+      print("Done!")
+
+  asyncio.run(delayed_task())
+
+45. How do you run an async function from synchronous (non-async) Python code?
+
+  import asyncio
+
+  async def my_async_function():
+      await asyncio.sleep(1)
+      return "Done"
+
+  # From sync code - use asyncio.run()
+  result = asyncio.run(my_async_function())
+  print(result)  # "Done"
+
+  # WRONG - can't do this:
+  # result = await my_async_function()  # SyntaxError!
+
+46. How do you handle errors in async Python code?
+
+  import asyncio
+
+  async def risky_operation():
+      await asyncio.sleep(1)
+      raise ValueError("Something went wrong!")
+
+  async def main():
+      try:
+          result = await risky_operation()
+      except ValueError as e:
+          print(f"Caught error: {e}")
+
+47. What does the `with` statement do in Python?
+  Automatically handles setup and cleanup of resources (like files, connections, locks).
+
+  syntax:
+
+    with resource as variable:
+
+  Common Examples:
+    # Files
+    with open('file.txt', 'r') as f:
+        data = f.read()
+    # File automatically closes
+
+    # Multiple resources
+    with open('in.txt', 'r') as infile, open('out.txt', 'w') as outfile:
+        outfile.write(infile.read())
+    # Both close automatically
+    # if the same file opened in "r" as infile and "w" as outfile the content of file would be cleared by "w" first and it wouldn't be possible to read it
+
+    # Locks
+    import threading
+    lock = threading.Lock()
+
+    with lock:
+        # Critical section
+        shared_data += 1
+    # Lock automatically released
+
+    # db
+    import sqlite3
+
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users')
+        results = cursor.fetchall()
+
+    # Connection closes automatically
+
+48. What are async context managers in Python and how do you use them?
+  Purpose: Automatically handle setup and cleanup for async resources (network connections, database connections, async files).
+
+  Syntax: `async with` instead of `with`
+
+  example:
+
+  async def fetch_multiple():
+    async with aiohttp.ClientSession() as session:
+        # Reuse one session for multiple requests
+        async with session.get(url1) as resp1:
+            data1 = await resp1.json()
+
+        async with session.get(url2) as resp2:
+            data2 = await resp2.json()
+
+      # Session closes automatically
+        return data1, data2
+
+  OR
+
+  import asyncio
+  import aiohttp
+
+  async def fetch_url(url):
+      async with aiohttp.ClientSession() as session:
+          async with session.get(url) as response:
+              return await response.text()
+
+  asyncio.run(fetch_url("https://example.com"))
+
+49. How do you create a background task in Python async? (Similar to JS not awaiting a promise)
+
+  import asyncio
+
+  async def background_task():
+      await asyncio.sleep(5)
+      print("Background task done!")
+
+  async def main():
+      # Create task but don't wait for it
+      task = asyncio.create_task(background_task())
+
+      print("Doing other work...")
+      await asyncio.sleep(1)
+      print("Main work done!")
+
+      # Optional: wait for background task
+      await task
+
+  asyncio.run(main())
+
+50. How do you iterate over async operations in Python?
+  import asyncio
+
+  async def fetch_item(n):
+      await asyncio.sleep(0.1)
+      return f"Item {n}"
+
+  async def main():
+      # Sequential (one at a time)
+      for i in range(3):
+          item = await fetch_item(i)
+          print(item)
+
+      # Concurrent (all at once)
+      tasks = [fetch_item(i) for i in range(3)]
+      results = await asyncio.gather(*tasks)
+      print(results)  # ['Item 0', 'Item 1', 'Item 2']
+
+  asyncio.run(main())
+
+  # Sequential: Use for loop with await
+  # Concurrent: Create list of tasks, use asyncio.gather(*tasks)
+
+  NOTE: *tasks is example of unpack operator, because asyncio.gather takes positional arguments and not list!
+
+51. What's the Python Coroutines (in comparison to JS Promises)?
+  created only by 'async def'
+  execution started only when awaited/scheduled (unlike Promise that starts immediately)
+    coro = fetch_data()     # NOT running yet!
+    print("Created")        # Created
+    await coro              # NOW it runs
+
+  scheduling examples:
+
+  # Option 1: gather
+    await asyncio.gather(fetch(url1), fetch(url2))
+
+  # Option 2: create_task (eager)
+    t1 = asyncio.create_task(fetch(url1))  # Starts now
+    t2 = asyncio.create_task(fetch(url2))  # Starts now
+    await asyncio.gather(t1, t2)
+
+  NOTE: asyncio.gather gather started coroutines, in addition it starts them if they not already started
+
+  # here fetch for url1 and url2 started immediately but result is consumed only after some other actions
+  a = asyncio.gather(fetch(url1), fetch(url2))
+  # do something else
+  await a
+
+52. What are the most commonly used async scheduling methods in Python (90% of cases)?
+
+  Core methods (most used, 90% of async code):
+
+    asyncio.create_task() - Schedule a single task
+    asyncio.gather() - Run multiple tasks
+    await - Wait for task completion
+
+  Special cases:
+
+    call_soon/later/at() - For regular callbacks
+    wait() - Custom wait conditions
+    as_completed() - Process results as ready
+    wait_for() - Timeouts
+    shield() - Prevent cancellation
+
+53. What does asyncio.create_task() do and when should you use it?
+
+  Purpose: Schedule a coroutine to run on the event loop (most common method)
+
+    async def main():
+        # Schedule task (starts immediately)
+        task = asyncio.create_task(my_task())
+
+        print("Task scheduled")
+
+        # Wait for result
+        result = await task
+        print(result)
+
+  Use when: You want to run a coroutine in the background
+
+54. How do you run multiple coroutines concurrently and wait for all results?
+
+  Use asyncio.gather() - Schedule and wait for multiple coroutines
+
+    async def main():
+        # Schedule and wait for all
+        results = await asyncio.gather(
+            task1(),
+            task2(),
+            task3()
+        )
+        print(results)  # List of all results
+
+  Use when: You want to run multiple coroutines and get all results
+
+55. How do you schedule a regular (non-async) function to run on the next event loop iteration?
+
+  Use loop.call_soon() - Schedule callback for next iteration
+  import asyncio
+
+  def callback():
+      print("Callback executed")
+
+  async def main():
+      loop = asyncio.get_running_loop()
+      loop.call_soon(callback)
+
+      print("Callback scheduled")
+      await asyncio.sleep(0)  # Let it run
+
+  Use when: You need to schedule a regular (non-async) function
+
+56. How do you schedule a callback to run after a delay?
+
+  Use loop.call_later(seconds, callback) - Delayed callback
+
+  import asyncio
+
+  def callback():
+      print("Called after 2 seconds")
+
+  async def main():
+      loop = asyncio.get_running_loop()
+      print('scheduled task')
+      loop.call_later(2, callback)  # 2 seconds delay
+      print('before sleep')
+      await asyncio.sleep(3)
+      print('after sleep')
+
+  asyncio.run(main())
+    # console output:
+    # scheduled task
+    # before sleep
+    # Called after 2 seconds
+    # after sleep
+
+  Use when: You need to delay a regular function call
+
+57. How do you schedule a sync callback at a specific time in the event loop?
+
+  Use loop.call_at(when, callback) - Schedule at specific time
+
+    import asyncio
+
+    def callback():
+        print("Called at specific time")
+
+    async def main():
+        loop = asyncio.get_running_loop()
+
+        # Schedule 5 seconds from now
+        when = loop.time() + 5
+        loop.call_at(when, callback)
+        await asyncio.sleep(6)
+
+  Use when: You need precise timing control
+
+58. What is asyncio.ensure_future() and should you use it?
+
+  Legacy method - Similar to asyncio.create_task() DON'T USE
+
+59. What's the difference between loop.create_task() and asyncio.create_task()?
+
+  Same functionality, different levels
+
+    async def main():
+        loop = asyncio.get_running_loop()
+
+        # Low-level (requires getting loop first)
+        task = loop.create_task(my_task())
+
+        # High-level (preferred - gets loop automatically)
+        task = asyncio.create_task(my_task())
+
+        await task
+
+  Use low-level when: You already have the loop object for other reasons
+
+60. How do you wait for tasks with custom completion conditions (unlike gather())?
+
+  Use asyncio.wait() - Wait with control over when to return
+
+    import asyncio
+
+    async def fetch(name, delay):
+        await asyncio.sleep(delay)
+        return f"Result from {name}"
+
+    async def bad_task(name):
+        await asyncio.sleep(1)
+        raise ValueError(f"Error in {name}")
+
+    async def main():
+        tasks = [
+            asyncio.create_task(fetch("A", 3)),
+            asyncio.create_task(bad_task("B")),
+            asyncio.create_task(fetch("C", 2))
+        ]
+
+        done, pending = await asyncio.wait(
+            tasks,
+            return_when=asyncio.FIRST_EXCEPTION,
+            timeout=4 # optional timeout
+        )
+
+        for task in done:
+          try:
+              result = task.result()
+              print(f"Success: {result}")
+          except Exception as e:
+              print(f"Error: {e}")
+
+        for task in pending:
+            task.cancel() # it's important to cancel tasks if any
+
+    asyncio.run(main())
+
+  Options:
+
+    FIRST_COMPLETED - Return when first completes
+    FIRST_EXCEPTION - Return when first raises exception
+    ALL_COMPLETED - Wait for all (default)
+
+  done, pending are sets with complete/pending operation
+  asyncio.wait() works only with tasks, not coroutines
+
+  Use when: You need fine control over completion conditions
+
+61. How do you process task results as soon as they're ready (not in original order)?
+
+  Use asyncio.as_completed() - Iterate in completion order
+
+    async def main():
+        tasks = [
+            task("A", 2),
+            task("B", 1),
+            task("C", 3)
+        ]
+
+        # Process in completion order (B, A, C)
+        for coro in asyncio.as_completed(tasks):
+            result = await coro
+            print(result)  # B done, A done, C done
+
+  Use when: You want to process results as soon as they're ready
+
+62. How do you set a timeout for an async operation in Python?
+
+  Use asyncio.wait_for(coro, timeout=seconds)
+    import asyncio
+
+    async def main():
+        try:
+            result = await asyncio.wait_for(
+                slow_task(),
+                timeout=5  # 5 seconds max
+            )
+        except asyncio.TimeoutError:
+            print("Task took too long!")
+
+  Use when: You need to limit how long a task can run
+
+63. How do you protect a task from being cancelled in Python? (Can you cancel tasks in Python?)
+
+  Wrap a task into asyncio.shield().
+
+    async def main():
+        task = asyncio.create_task(
+            asyncio.shield(important_task())
+        )
+
+        await asyncio.sleep(1)
+        task.cancel()  # Try to cancel
+
+        try:
+            result = await task
+            print(result)  # Still completes!
+        except asyncio.CancelledError:
+            print("Was cancelled")
+
+  Use when: A task must complete even if parent is cancelled
+
+64. How to generate random number?
+    import random
+
+    # random int between 1 and 10 (inclusive both)
+    random.randint(1, 10)
+
+    # random float between 1.0 and 10.0 (inclusive both)
+    random.uniform(1, 10). value can vary on rounding
+
+    # random float between 0.0 (inclusive) and 1.0 (not inclusive)
+    random.random()
+
+65. how to shuffle list values do in Python?
+
+  random.shuffle(list) Shuffles a list in place (modifies the original list), returns None (result is stored in original variable)
+
+      import random
+
+      cards = ['A', 'K', 'Q', 'J']
+      a = random.shuffle(cards)
+      print(cards)  # ['Q', 'A', 'J', 'K'] (random order)
+      print(a) # None
+
+  Use it:
+    When you want to randomize the entire list in place
+    When you don't need the original order
+    More memory efficient (no new list created)
+
+  random.sample(population, k) - Returns a list of k unique random elements from the population (without replacement)
+
+      import random
+
+      # Pick 3 random cards from deck
+      cards = ['A', 'K', 'Q', 'J', '10', '9']
+      hand = random.sample(cards, 3)
+      print(hand)    # ['Q', '9', 'A'] (random selection)
+      print(cards)   # ['A', 'K', 'Q', 'J', '10', '9'] (unchanged!)
+
+      # Shuffle by sampling all elements
+      shuffled = random.sample(cards, len(cards))
+      print(shuffled)  # All cards in random order
+
+      # Works with strings
+      word = "HELLO"
+      random.sample(word, 3)  # ['L', 'H', 'E']
+
+      # Works with ranges
+      random.sample(range(100), 5)  # [23, 67, 2, 89, 45]
+
+      # Random lottery numbers (no duplicates)
+      lottery = random.sample(range(1, 50), 6)
+
+      # Select random winners
+      winners = random.sample(participants, 3)
+
+      # Random subset of data
+      subset = random.sample(dataset, 100)
+
+  Memory tip: sample() takes a "sample" of the population, like sampling in statistics - you get a subset without affecting the original!
+
+  Use it:
+    When you need to select a subset (k < n)
+    When you want to preserve the original
+    When working with immutable sequences (tuples, strings)
+
+66. How do you import modules in Python? How do you "export" items from a module?
+
+  No "export" keyword - just define items in the .py file! all variables/functions/classes exportable by default
+
+  # Import entire module
+  import mymodule
+
+  # Import specific items
+  from mymodule import greet, PI
+
+  # Import all (not recommended)
+  from mymodule import *
+
+  # Import with alias
+  import mymodule as mm
+  from random import randint as r_int
+
+  #import external with submodules
+
+    from langchain.docstore.document import Document
+    #    └───┬────┘└───┬───┘└───┬──┘        └──┬───┘
+    #   package  subpackage  module          class
+
+  # import nested file from root folder of local project
+
+    from src.config.project_config import settings
+    #    └┬┘ └─┬─┘ └──────┬─────┘         └──┬──┘
+    #   folder subfolder module           variable
+
+67. What are the key requirements for a Python file to be importable as a module?
+
+  1) Must have .py extension
+
+    mymodule.py  ✅
+    mymodule.txt ❌
+
+  2) Must be in Python's search path
+
+    Same directory as your script
+    In PYTHONPATH
+    In site-packages
+    In standard library location
+
+  3) Valid Python identifier as filename
+
+    mymodule.py      ✅
+    my_module.py     ✅
+    my-module.py     ❌ (hyphens not allowed)
+    123module.py     ❌ (can't start with number)
+
+    Must contain valid Python code
+
+  4) Syntax errors prevent import
+    Code executes on first import
+
+  5) File must be readable (permissions)
+
+68. What are some commonly used Python built-in (standard library) modules?
+
+  Math & Numbers:
+    import math       # sqrt(), sin(), pi, etc.
+    import random     # randint(), choice(), shuffle()
+    import statistics # mean(), median(), stdev()
+
+  Data & Time:
+    import datetime   # date, time, datetime classes
+    import time       # sleep(), time()
+
+  File & System:
+    import os         # File paths, directories
+    import sys        # System-specific parameters
+    import pathlib    # Object-oriented file paths
+
+  Data Formats:
+    import json       # JSON encoding/decoding
+    import csv        # CSV file reading/writing
+
+  Text & Strings:
+    import re         # Regular expressions
+    import string     # String constants and functions
+
+  Others:
+    import collections # deque, Counter, defaultdict
+    import itertools   # Combinatoric iterators
+
+69. Where does Python look for modules when importing? How can you check or modify the search path?
+  Python Search Order:
+
+    Current directory (where script is running)
+    PYTHONPATH environment variable directories
+    Standard library installation directory
+    Site-packages (pip installed packages)
+
+70. What does if __name__ == "__main__": do and why use it?
+
+  Run code only when file is executed directly, NOT when imported. It's useful for Module testing/demos
+
+  # mymodule.py
+  print(__name__)
+
+  # When run directly: python mymodule.py
+  # Output: __main__
+
+  # When imported: import mymodule
+  # Output: mymodule
+
+71. What are the Python list methods for adding/removing elements at the beginning and end of a list?
+
+  add to start
+    my_list.insert(0, item)
+
+    insert(index, item) - Inserts an item at a specific position, takes negative indexes as well, if index >= length of list - inserts into the end
+
+  add to the end
+    my_list.append(item)
+
+  remove from start
+    removed_al = my_list.pop(0)
+
+  remove from end
+    removed_al = my_list.pop()
+
+  insert/append returns None
+  pop returns element (or Raise Error if failed)
+
+  and/remove at custom position
+    element = pop(position: int)
+    insert(postion: int, element)
+
+  add 1+ element to the end
+    my_list.extend(list)
+
+72. Can Lists store mixed data types string with numbers and dictionaries?
+  yes
+
+73. How to copy list?
+  # slicing
+  states_of_america_copy = states_of_america[:]
+
+  # with list constructor
+  states_of_america_copy = list(states_of_america)
+
+  # copy method
+  states_of_america_copy = states_of_america.copy()
+
+  #deep copy
+  import copy
+  states_of_america_copy = copy.deepcopy(states_of_america)  # Deep copy
+
+74. How to slice a list/tuple?
+  [start:stop:step] or [start:stop] all optios are optional.
+  stop - is not included
+  negative numbers are allowed
+
+  items = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+  items[2:5]    # [2, 3, 4] - from index 2 to 5 (excluding 5)
+
+  items[0:3]    # [0, 1, 2] - first 3 elements
+
+  items[:3]    # [0, 1, 2] - first 3 elements
+
+  items[-3:] # [7, 8, 9] - last 3 elements
+
+  items[:-3]    # [0, 1, 2, 3, 4, 5, 6] - all except last 3
+
+  items[-5:-2]  # [5, 6, 7] - from 5th from end to 2nd from end
+
+  items[-1]     # 9 - last element (not a slice, single item) !! THAT'S NOT SLICING
+
+  items[5:]     # [5, 6, 7, 8, 9] - from index 5 to end
+
+  items[:] # copy list
+
+  items[::3]    # [0, 3, 6, 9] - every 3rd element
+
+  items[1::2]   # [1, 3, 5, 7, 9] - every 2nd, starting at index 1
+
+  items[2:8:2]  # [2, 4, 6] - from index 2 to index 8, every 2nd
+
+  # Reverse a list
+  items[::-1]   # [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+
+  items[::-2]   # [9, 7, 5, 3, 1] - every 2nd element, reversed
+
+  items[5:2:-1] # [5, 4, 3] - from 5 to 2 backwards
+
+75. How to distingush 0 from -0, sinse 0 == -0 is True
+  #best
+  math.copysign(1, n) == -1 # if yes that's -0, otherwise that would be a 1
+  # less optimal
+  str(n) == '-0'
+
+76. What's the purpose of list.count(el)?
+  returns int of how many times element occurred in a list
+
+77. How to check if element  is in array?
+  #best O(1) - O(n)
+    element in list
+
+  #suboptimal O(n)
+    list.count(elem) > 0
+
+78. How to pick a random item from a list
+  random.choice(seq)
+
+79. What is collections.deque and when should you use it instead of a list?
+  "Double-ended queue" - optimized for fast operations at BOTH ends
+
+  from collections import deque
+  d = deque([1, 2, 3, 4, 5])
+  d.popleft()       # O(1) - fast removal from beginning
+  d.appendleft(0)   # O(1) - fast addition to beginning
+  d.extend([6, 7])  # [5, 1, 2, 3, 4, 6, 7] - extend right
+  d.extendleft([0]) # [0, 5, 1, 2, 3, 4, 6, 7] - extend left
+
+  l = deque([1, 2, 3, 4, 5])
+  l.rotate(-1)  # [2, 3, 4, 5, 1] - rotate left
+  OR
+  l.rotate(2)       # [4, 5, 1, 2, 3] - rotate right
+
+
+  d.reverse() - reverse in place like list[::-1]
+
+   Use deque when:
+    Implementing queues (FIFO)
+    Need frequent operations at both ends
+    Building sliding windows
+    Implementing breadth-first search (BFS)
+    Need a circular buffer
+
+  DO NOT USE when:
+    Only need stack operations (append/pop from end)
+    Need frequent random access by index
+    Need list comprehensions or slicing
+
+80. What does random.choices(population, weights=None, k=1) do ?
+  It returns a list of k random elements from population WITH REPLACEMENT (repeats allowed) and optional weighted probability.  Always returns a LIST (even if k=1).  Repeats are allowed
+
+    import random
+
+    colors = ['red', 'blue', 'green']
+    result = random.choices(colors, k=5)
+    print(result)  # ['blue', 'red', 'red', 'green', 'blue']
+    #                  ↑ 'red' and 'blue' repeat - that's allowed!
+
+    # Make 'red' 5x more likely
+    random.choices(['red', 'blue', 'green'],
+                  weights=[50, 10, 10],
+                  k=10)
+
+81. What does "IndexError: list index out of range" mean?
+  You are trying to access non existing index on a list
+
+82. How to get min/max/sum of ints or floats from range/list/tuple/sets?
+  min(iterable)
+  max(iterable)
+  sum(iterable)
+
+83. Explain difference between sets and tuples?
+  Syntax:
+    tuple: (1, 2, 3)
+    set: {1, 2, 3}
+  empty:
+    tuple: () or tuple()
+    set: set() only! {} is dict
+  single element:
+    tuple: (5,) - comma required!
+    set: {5}
+  Ordering/Indexing/Slicing - allowed for tuples only
+  Duplicates
+    tuple: allowed
+    set: auto removed
+  Mutable: only sets are mutable, elements can be added and removed
+  Hashable: only tuples are hashable and can be dict key
+  'in' operator complexity
+    tuple: O(n)
+    set: O(1)
+  Iteration:
+    tuple: predictable order
+    set: random order
+  Usage:
+    tuple: coordinates, fixed data, multiple values, dictionary keys
+    set: Unique items, fast lookup
+
+84. What does the range function do?
+
+  range(stop)
+  range(start, stop[, step = 1])
+    optional generate list on demand including 'start' and not including 'stop'. It does it lazily  so:
+    print(huge)  # range(1, 1000000000) - just stores start/stop/step
+
+  NOTE: if you pass step -1 you can iterate backwards, so range(2, -1, -1) creates sequence 2 -> 1 -> 0
+
+85. What does the * symbol mean in a Python function definition, and how does it affect parameters?
+
+  The * in a function definition marks a boundary between positional and keyword-only parameters. It forces explicit, readable code. Prevents confusion about what arguments mean.
+
+  Parameters before *: can be passed positionally or by name
+  Parameters after *: must be passed by name (keyword-only)
+
+    Example:
+      def func(a, b, *, c, d):
+          pass
+
+      ✅ func(1, 2, c=3, d=4) — works
+      ❌ func(1, 2, 3, 4) — error, c and d must use names
+
+86. How does unpacking/spreading with * work in Python? Show examples with function calls and list creation.
+  items = [1, 2, 3, 4, 5]
+  print(*items)  # 1 2 3 4 5 (separate arguments)
+  print(items)   # [1, 2, 3, 4, 5] (single argument)
+
+  # in list/tuples
+  list1 = [1, 2, 3]
+  list2 = [4, 5, 6]
+
+  combined = [*list1, *list2]
+  print(combined)  # [1, 2, 3, 4, 5, 6]
+
+  # For dicts, use ** instead
+
+87.  How do *args and **kwargs work in Python function definitions?
+  *args and **kwargs allow functions to accept variable numbers of arguments
+  - *args: collects extra POSITIONAL arguments into a TUPLE
+  - **kwargs: collects extra KEYWORD arguments into a DICTIONARY
+
+    def my_function(required, *args, **kwargs):
+        print(f"Required: {required}")
+        print(f"Args (tuple): {args}")
+        print(f"Kwargs (dict): {kwargs}")
+
+    my_function(1, 2, 3, 4, name="Alice", age=30)
+    # Output:
+    # Required: 1
+    # Args (tuple): (2, 3, 4)
+    # Kwargs (dict): {'name': 'Alice', 'age': 30}
+
+  # *args collects extra positional arguments into a TUPLE INSTEAD OF LIST
+
+88. What is extended unpacking in Python? How can you use * to capture "the rest" of a sequence?
+
+  numbers = [1, 2, 3, 4, 5]
+
+  # Works with any iterable (lists, tuples, strings, etc.)
+  # * can be used in end/start/middle, by convention unused is called  "*_"
+  # *var_name returns LIST INSTEAD OF TUPLE
+
+  first, *middle, last = numbers
+  print(first)   # 1
+  print(middle)  # [2, 3, 4]
+  print(last)    # 5
+
+89. How do you concisely create a string of repeated characters in Python instead of using a loop?
+
+  String multiplication repeats a string n times:
+
+    placeholder = "_" * 5
+    # placeholder is "_____"
+
+  Or multiply by string itself (then multiplication pick string length on it's own)
+
+    placeholder = "_" * "world"
+    # placeholder is "____"
+
+90. How do you pass arguments into a function in a different order than they're defined?
+
+  Use keyword arguments by passing arguments as name=value.
+
+    def foo(a, b):
+        print(f"a:{a}, b:{b}")
+
+    # All three calls produce the same result:
+    foo(1, 2)
+    foo(a=1, b=2)
+    foo(b=2, a=1)
+
+91. Given "def foo(a)" and call "foo(123)". What's parameter and what's the argument?
+  a - function parameter
+  123 - argument passed to function
+
+92. How do I find index of element in a list?
+  use .index()
+
+  syntax: list.index(x[, start[, end]]) , Raises a ValueError if there is no such item. The returned index is computed relative to the beginning of the full sequence rather than the start argument.
+
+    ["a","b", "c"].index("c") # 2
+
+93. How to get absolute value of int (always positive)?
+  abs(int)
+
+94. How to loop over dictionary?
+  same as for list
+
+    for key in dict:
+
+95. How to define/access fields of dictionary?
+  like in c-like language, but explicitly mention that key is string/integer/tuple/boolean or other immutable data type
+
+  when initiating
+    # right
+    a = {"key": "val"}
+    # wrong, raises error
+    a = {key: "val"}
+
+  when modifying
+    a["key"] = "val"
+
+  when accessing
+  # right
+    a["key"]
+  # wrong, raises error
+    a.key
+
+  Note: techically you can use variable as a key:
+    key = "abc"
+    a = {key: "val"}
+    # accessing
+    a[key] -> "val"
+
+    common use case - building dictionary dynamically in a loop
+
+Note: trailing coma in dictionary is a common practice
+
+96. How to wipe all dictionary properties?
+  usually you just assign empty object to variables that used to hold dictionary you want to clean
+
+97. How to get all keys/values/items of a dictionary?
+  my_dict = {"a": 1}
+
+  my_dict.keys() -> dict_keys(['a'])
+  my_dict.values() -> dict_values([1])
+  my_dict.items() -> dict_items([('a', 1)])
+
+  all 3 optputs can be converted to list with function list()
+
+  alternatives - for loop
+    1) for key in my_dict:
+    2) for key, value in my_dict.items():
+
+98. What is a docstring and how do you write one?
+  A docstring is a string that documents what a function, class, or module does.
+
+  It's the first statement after the definition line.
+
+  use :param - for params, and :return: for return value
+
+  Use triple quotes (""" or ''').
+
+  def format_name(f_name, l_name):
+      """
+      takes first and last name and formats them
+      :param f_name: first name
+      :param l_name: last name
+      :return: formated name
+      """
+      formated_f_name = f_name.title()
+      formated_l_name = l_name.title()
+      return f"{formated_f_name} {formated_l_name}"
+
+Note: python docs suggest you never write multiline comment
+
+99. If function is defined inside another fuction could it be accessed it outside external function?
+  No, internal function would be local scoped
+
+100. Could function be inside an if/elif/else block or a loop.
+  Yes, and would exist inside that block/iteration, but accessible outside such block (unless condition is false, when it's simply not created)
+
+Note: it's common to use "_" in loop if iteretion number or key not used, example: for _ in range(2):
+
+101. What does list.remove() method do?
+  takes element, finds it and removes from list (removes first elem only). As other list operations (except pop) returns None
+
+  l = [1,2,3,1]
+  l.remove(1)
+  # [2,3,1]
+
+102. Break down the syntax: next(x for x in lst if x > 3)
+  Template: [output] for [variable] in [iterable] if [condition]
+  next returns only first element,
+  examples
+
+  pythonlst_a = [1, 2, 3, 4, 5]
+  next(x for x in lst if x > 3)  # Output: 4
+
+  pythonlst_b = [1, 2, 3, 4, 5]
+  gen = (x for x in lst if x > 3)
+  next(gen) # 4
+  next(gen) # 5
+
+  pythonlst_c = [x for x in pythonlst_b if x > 3] # [4,5]
+
+103. What is Python's equivalent of JavaScript's find() method?
+
+  Use next() with a generator expression to get the first matching element:
+    lst = [1, 2, 3, 4, 5]
+    result = next(x for x in lst if x > 3)
+    print(result)  # Output: 4
+
+  With default value (if not found):
+    result = next((x for x in lst if x > 10), None)
+    print(result)  # Output: None
+
+  Alternative: List comprehension returns all matches (different behavior) equivalent of JavaScript's filter()
+    result = [x for x in lst if x > 3]
+
+104.  What are Python's 4 scopes? (LEGB Rule)
+  Local (L) - Inside current function
+
+      def func():
+          x = 10  # Local
+
+  Enclosing (E) - In outer functions (nested)
+
+    def outer():
+        x = 10  # Enclosing
+        def inner():
+            print(x)  # Access enclosing
+
+  Global (G) - At module/top level
+
+    x = 10  # Global
+    def func():
+        print(x)  # Access global
+
+  Built-in (B) - Python's built-ins
+
+    print(len)  # Built-in function
+    print(int)  # Built-in type
+
+105. How to modify outer scope?
+
+  Modify outer scopes:
+    # Modify global
+      global x
+      x = 20
+
+    # Modify enclosing
+    nonlocal x
+    x = 20
+
+  Key: Python searches Local → Enclosing → Global → Built-in. First match wins.
+
+106. Does python has block scope?
+  No. Only def and class create new scopes (and lambdas) + Module scope
+
+    if True:
+        x = 10
+
+    print(x) # 10
+
+    for i in range(5):
+        y = i
+
+    print(y)  # Output: 4 - y is still accessible
+    print(i)  # Output: 4 - i is still accessible
+
+Note: as a rule it's a bad idea to assign local and grobal variables the same name
+
+Note: it's usually a bad practice to modify a global scope
+
+107. What are the main re module methods for regular expressions in Python?
+
+  import re
+
+  re.search(pattern, text) - Find first match
+    re.search(r"World", "Hello World").group()  # "World"
+
+  re.findall(pattern, text) - Find all matches
+    re.findall(r"a\w+", "apple apricot")  # ['apple', 'apricot']
+
+  re.match(pattern, text) - Match at beginning
+    re.match(r"Hello", "Hello World").group()  # "Hello"
+
+  re.sub(pattern, replace, text) - Replace matches
+    re.sub(r"World", "Python", "Hello World")  # "Hello Python"
+
+  re.split(pattern, text) - Split by pattern
+    re.split(r"[,;]", "a,b;c")  # ['a', 'b', 'c']
+
+  # Note: use r"" for raw string to avoid escaping backslashes.
+
+108. What is the difference between re.search() and re.match()?
+
+  re.match() - Matches at the beginning of the string only
+  re.search() - Searches anywhere in the string
+
+  import re
+
+    # search() finds "c" anywhere
+    re.search("c", "abcdef")     # Match at index 2
+    # re.match("c", "abcdef")    # No match (c is not at start)
+
+    # Use ^ with search() to restrict to beginning
+    re.search("^c", "abcdef")    # No match
+    re.search("^a", "abcdef")    # Match at index 0
+
+109. How do you convert Python objects to JSON string and back?
+
+  json.dumps -> to string
+  json.loads -> from string
+
+  examples:
+
+    import json
+
+    data = {"name": "Alice", "age": 25}
+    json_string = json.dumps(data)
+    # Output: {"name": "Alice", "age": 25}
+
+    json_string = '{"name": "Alice", "age": 25}'
+    data = json.loads(json_string)
+    # Output: {'name': 'Alice', 'age': 25}
+
+  With files:
+    # Write to file
+    json.dump(data, file, [indent])
+    # you may pass exra argument indent=4 for better readability
+
+    # Read from file
+    data = json.load(file)
+
+    # note: the file should been open to do dump/load, it must be the file, not path to it
+
+  dumps() and loads() work with strings
+  dump() and load() work with files
+
+110. What is unpacking in Python and how do you use it?
+
+  From lists/tuples:
+    lst = [1, 2, 3]
+    a, b, c = lst
+    # a = 1, b = 2, c = 3
+
+  From dictionaries (values):
+    obj = {"name": "Alice", "age": 25}
+    name, age = obj.values()
+    # name = "Alice", age = 25
+
+  From dictionaries (keys):
+    name, age = obj.keys()
+    # name = "name", age = "age"
+
+  Unpack with * (rest operator):
+    a, *rest = [1, 2, 3, 4, 5]
+    # a = 1, rest = [2, 3, 4, 5]
+
+  NOTE: unpack of object property happened in order they appear, so my_a, my_b = {my_b: 1, my_a = 2}.values() would lead to my_a == 1 to my_b == 2 event though in dictionary it's vise versa
+
+111. What is the difference between dict[key] and dict.get(key)?
+
+  dict[key] - Direct access
+
+    Raises KeyError if key doesn't exist
+    Faster
+
+  dict.get(key) - Safe access
+
+    Returns None if key doesn't exist (no error)
+    Slightly slower
+    allow passing default value
+
+    d = {"name": "Alice"}
+    d["follower_count"]  # KeyError
+
+    d.get("follower_count")  # Output: None
+
+    d.get("follower_count", 0)  # Returns 0 if key doesn't exist
+
+112. What is the basic syntax for defining a class in Python?
+
+  class ClassName:
+      # Class variable (shared by all instances)
+      class_var = "value"
+
+      # Constructor
+      def __init__(self, param1, param2):
+          # Instance variables (unique to each object)
+          self.param1 = param1
+          self.param2 = param2
+
+      # Method
+      def method_name(self):
+          return self.param1
+
+  # Create instance
+  obj = ClassName("value1", "value2")
+  obj.method_name()
+  # accessing syntax in js-like and different from dictionaries
+
+
+  KEY NOTES:
+    class ClassName: - Define class
+    __init__(self, ...) - Constructor
+    self - Refers to current instance
+    Instance variables: self.variable
+    Methods take self as first parameter
+
+  Note:
+    in Python class instances are called Objects instead of dictionaries or instances
+    class names are written in PascalCase (like in js) instead snake case
+
+113. How does inheritance work in Python?
+
+  class Parent:
+      def __init__(self, name):
+          self.name = name
+
+      def greet(self):
+          print(f"Hello, {self.name}")
+
+  class Child(Parent):  # Child inherits from Parent
+      def __init__(self, name, age):
+          super().__init__(name)  # Call parent constructor
+          self.age = age
+
+      def greet(self):  # Override parent method
+          super().greet()  # Call parent method
+          print(f"I'm {self.age} years old!")
+
+  child = Child("Alice", 10)
+  child.greet() # Output: Hi, Alice! I'm 10 years old!
+
+114. What is an abstract class and how do you create one in Python?
+  from abc import ABC, abstractmethod
+
+  class Animal(ABC):  # Abstract class
+
+      @abstractmethod
+      def make_sound(self):
+          pass  # Subclasses MUST implement
+
+      def sleep(self):
+          print("Zzz...")
+
+  class Dog(Animal):
+      def make_sound(self):
+          print("Woof!")
+
+  dog = Dog()
+  dog.make_sound()  # Works
+
+  # animal = Animal()  # TypeError: Can't instantiate
+
+  Key points:
+
+    Import: from abc import ABC, abstractmethod
+    class Name(ABC): - Define abstract class
+    @abstractmethod - Method subclasses must implement
+    Can't create instances of abstract classes
+    Subclasses must implement all abstract methods
+
+115. How python implements private/protected method/attributes?
+  Everything is de facto public yet there is a naming convention
+
+  public - No underscore, access anywhere
+  _protected - One underscore, signals "internal use", but still accessible
+  __private - Double underscore, uses name mangling, harder to access
+
+  In practice: Most Python code uses _protected since Python philosophy is "we're all consenting adults." Private (__) is rarely used.
+
+  example:
+
+  class A:
+    def __x(self):
+        print("hi")
+
+    def _y(self):
+        print("hallo")
+
+  a = A()
+  a._A__x() # Note that method accessible via pattern _<class_name>__<method_name>
+  a._y
+
+116. How does multiple inheritance work in Python? What is MRO?
+
+  class Animal:
+      def eat(self):
+          print("Eating...")
+
+  class Flyer:
+      def fly(self):
+          print("Flying...")
+
+  class Bird(Animal, Flyer):  # Inherits from both
+      pass
+
+  bird = Bird()
+  bird.eat()  # From Animal
+  bird.fly()  # From Flyer
+
+  Method Resolution Order (MRO):
+    Order matters! Python checks parents left to right.
+
+  class A:
+    def sound(self):
+        print("A")
+
+  class B:
+      def sound(self):
+          print("B")
+
+  class C(A, B):  # A is checked first
+      pass
+
+  C().sound()  # Output: A
+
+  # Check order:
+  print(C.__mro__)  # C -> A -> B -> object
+
+
+  # Order matters - leftmost parent checked first
+  # MRO (Method Resolution Order) determines which method is called
+  # Use super() to follow MRO
+
+NOTE: python packages can be found at https://pypi.org/
+
+117. how to install dependencies?
+  cli:
+    python -m pip install -U  package_name
+
+    -m - Runs a module as a script (instead of running a file)
+    pip - kinda like python's npm
+    -U -  Flag meaning "upgrade"
+
+Note: You may create with ansii tables using package "prettytable"
+
+118. What are static methods and class attributes in Python?
+  class Machine:
+      total = 0  # Shared across all instances
+
+  Machine.total += 1
+
+
+  class Machine:
+      @staticmethod
+      def calculate(a, b):
+          return a + b
+
+  Machine.calculate(5, 10)  # No self/cls needed
+
+Note: in Pycharm you can add auto indentation by selecting code, selecting in top menu Code -> auto OR code -> reformat code
+
+119. What is a lambda function in Python and when do you use it?
+  Lambda is an anonymous function for simple, one-line operations.
+  syntax
+    lambda arguments: expression
+
+
+  Basic example:
+  # Regular function
+  def add(a, b):
+      return a + b
+
+  # Lambda equivalent
+  add = lambda a, b: a + b
+  print(add(5, 3))  # Output: 8
+
+
+  usage example:
+    numbers = [1, 2, 3, 4]
+    doubled = list(map(lambda x: x * 2, numbers))
+
+  Key points:
+
+    Multiple arguments allowed, but only ONE EXPRESSION
+    Automatically returns the expression result
+    Use for simple operations only
+    For complex logic, use def instead
+
+120. If .vevn is used where  packages installed into?
+
+  your-project/.venv/Lib/site-packages/custom-package-name
+
+Side note: colorgram.py may be used to extract color pallets from file
+
+121. What is a named tuple in Python and how do you create one?
+
+  Named Tuple = A tuple with named fields for better readability
+
+  Creation:
+    from collections import namedtuple
+
+    Person = namedtuple('Person', ['name', 'age', 'job'])
+    person = Person("John", 30, "Engineer")
+  Access:
+    person.name      # "John" - by name
+    person[0]        # "John" - by index
+
+  alternative syntax 1
+    Point = namedtuple('Point', 'x y')
+    p = Point(10, 20)
+    print(p.x, p.y)  # 10 20
+
+  alternative syntax 2
+    Point = namedtuple('Point', 'x', 'y')
+    p = Point(10, 20)
+    print(p.x, p.y)  # 10 20
+
+  additional features:
+    Convert to dictionary:
+      p = Point(10, 20)
+      print(p._asdict())  # {'x': 10, 'y': 20}
+
+    Create from iterable:
+      coords = [10, 20]
+      p = Point._make(coords)
+      print(p)  # Point(x=10, y=20)
+
+    Replace values (creates new tuple):
+      p = Point(10, 20)
+      p2 = p._replace(x=15)
+      print(p2)  # Point(x=15, y=20)
+
+Note: it's a good practice to use keyword arguments for method calls you didn't create by yourself OR when position by itself has no meaning
+
+122. How to delete all elements in a list?
+  use clear method OR reassign new list to variable if applicable
+
+123. How do you read and write TXT files in Python?
+  # write/read
+    with open("data.txt", "w") as file:
+        file.write("Hello World\n")
+        file.write("Second line\n")
+
+    with open("data.txt", "r") as file:
+    content = file.read()
+
+  # Read line by line
+    with open("data.txt", "r") as file:
+        for line in file:
+            print(line.strip())  # Remove \n
+
+  # Read all lines into list
+    with open("data.txt", "r") as file:
+        lines = file.readlines()  # ['Line 1\n', 'Line 2\n']
+
+  #Append to File
+    with open("data.txt", "a") as file:  # "a" = append
+        file.write("New line\n")
+
+  #error handling
+
+    try:
+      with open("data.txt", "r") as file:
+          content = file.read()
+    except FileNotFoundError:
+        print("File not found")
+
+  # without `with`keyword and with explicit reading into single line:
+
+    file = open("./my_file.txt", "r")
+    content = file.read()
+    print(content)
+    file.close()
+
+124. How do you read and write JSON files in Python?
+  import json
+
+  data = {
+      "name": "John",
+      "age": 30,
+      "scores": [95, 87, 92],
+      "active": True
+  }
+
+  # Write to file
+    with open("data.json", "w") as file:
+        json.dump(data, file, indent=4)  # indent=4 for pretty format
+
+  #Read JSON File
+    with open("data.json", "r") as file:
+        data = json.load(file)
+        print(data["name"])    # John
+        print(data["scores"])  # [95, 87, 92]
+
+  # Dict to JSON string
+    json_string = json.dumps(data, indent=2)
+
+  # JSON string to dict
+    data = json.loads(json_string)
+
+  # Error Handling
+    try:
+        with open("data.json", "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        print("File not found")
+    except json.JSONDecodeError:
+        print("Invalid JSON")
+
+125. What happened if non-existing file is opened in 'w'/'a'/'r' mode?
+  'w'/'a' - creates a new file
+  'r' - FileNotFoundError
+
+Side Note: see panda docs https://pandas.pydata.org/docs/index.html
+
+126. How to extract rows from csv file:
+
+  import csv
+
+  with open("./file_path_here.csv", "r") as file:
+      data = csv.reader(file)
+
+      for row in data:
+          print(row) # 1 dimentional list representing row, the firs row are headings
+
+127. how to get average/median from a list using build in "statistics" lib
+    from statistics import mean, median
+
+    somelist =  [1,12,2,53,23,6,17]
+    avg_value = mean(somelist)
+    median_value = median(somelist)
+
+128. How to get max/min/mean/median on pandas' dataseries?
+  that's literally the name of the methods for example: data.column_name.mean()
+
+129. how to find rows by condition in pandas?
+   data[data.column_name == "some_value"] # return dataframe where property column_name is equal to "some_value"
+
+130. How to create pandas dataframe from scratch:
+  data_dict = {
+      "students": ["Amy", "James", "Jane"],
+      "score": [71, 72, 80]
+  }
+
+  data_frame =pandas.DataFrame(data_dict)
+
+131. How to read/write csv with pandas
+
+  data = pandas.read_csv("./2018_Central_Park_Squirrel_Census_-_Squirrel_Data.csv")
+
+  my_dataframe.to_csv("./my_custom_name.csv")
+
+132. How to extract single item in panda series?
+    use pandas.Series.item which return the first element of the underlying data as a Python scalar.
+
+    Example:
+
+      state_data = data_df[data_df.state == answer_state]
+      x = state_data.x.item()
+
+      # data_df - custom dataframe
+      # x  one of column of such dataframe basically index and item
+      # item() method returning actual item
+
+133. What is list comprehension in Python? Provide syntax and examples.
+  List comprehension is a concise way to create lists in Python using a single line of code. List comprehention can use different iterables(sequences) such as lists, strings, ranges and tuples
+
+  syntax:
+  [expression for item in iterable if condition]  # "if condition" is optional
+
+  examples:
+
+    # Square only odd numbers
+    odd_squares = [x**2 for x in range(10) if x % 2 != 0]
+    # Result: [1, 9, 25, 49, 81]
+
+    # Create a matrix
+    matrix = [[i*j for j in range(3)] for i in range(3)]
+    # Result: [[0, 0, 0], [0, 1, 2], [0, 2, 4]]
+
+    # Convert to uppercase
+    words = ['hello', 'world', 'python']
+    upper = [word.upper() for word in words]
+    # Result: ['HELLO', 'WORLD', 'PYTHON']
+
+  TL;TR so basically list comprehension is a map but in presence if condition it's a filter
+
+  IMPORTANT: "if condition" runs before "expression" so if may also cut out edge cases
+
+134. What's dictionary comprehention in python syntax?
+  {key_expression: value_expression for item in iterable if condition}
+
+  # could iterate not only over dict but other iterables as well
+
+  # the "if" part is optional
+
+  # examples
+
+  original = {'a': 1, 'b': 2, 'c': 3}
+  doubled = {k: v*2 for k, v in original.items()}
+  # Result: {'a': 2, 'b': 4, 'c': 6}
+  # it's often when k v writen in brackets "()" for easier comprehention
+
+  words = ['hello', 'world']
+  lengths = {word: len(word) for word in words}
+  # Result: {'hello': 5, 'world': 5}
+
+135. How to properly iterate over pandas dataframes and sequences?
+  even though dataframes and sequesnces can be comprehended/iterated like a regular dict/list the correct way is to use .itterrows()
+
+  for (index, row) in my_df.iterrows():
+    print(row.column_name)
+
+136. Name common python exceptions
+  TypeError - type mismatches
+  ValueError - invalid values
+  KeyError - missing dictionary keys
+  IndexError - list out of bounds
+  AttributeError - wrong attributes
+  NameError - undefined variables
+  FileNotFoundError - missing files
+  ZeroDivisionError - division by zero
+
+137. How to raise an exception?
+  raise TypeError("This is an error that I made up.")
+  # you can use your own exception but need to define it as a class first
+
+138. How to merge dictionaries?
+
+  dict.update() merges another dictionary (or key-value pairs) into the original dictionary.
+    Adds new keys
+    Overwrites existing keys
+    Modifies in-place (returns None)
+
+  user = {"name": "Alice", "age": 25}
+  user.update({"age": 26", city": "Kyiv"})
+
+  print(user)
+  # {'name': 'Alice', 'age': 26, 'city': 'Kyiv'}
+
+Note: there is a common pattern of json file update:
+  with open("data.json", "r") as data_file:
+      data = json.load(data_file)
+      data.update(new_data)
+
+  with open("data.json", "w") as data_file:
+      json.dump(data, data_file, indent=4)
+
+139. How to check key exists in dictionary?
+  the same syntax as for lists:
+
+    key in dictionary
+
+140. How do you get the current date and time in Python using datetime?
+  from datetime import datetime
+
+  # Current date and time
+  now = datetime.now()
+  print(now)  # 2025-12-09 14:30:45.123456
+
+  # Current date only
+  from datetime import date
+  today = date.today()
+  print(today)  # 2025-12-09
+
+  # Current time only
+  from datetime import datetime
+  current_time = datetime.now().time()
+  print(current_time)  # 14:30:45.123456
+
+141. How do you create a specific date or datetime object in Python?
+
+  from datetime import datetime, date, time
+
+  # Create specific date
+  my_date = date(2025, 12, 9)  # year, month, day
+  print(my_date)  # 2025-12-09
+
+  # Create specific datetime
+  my_datetime = datetime(2025, 12, 9, 14, 30, 45)
+  # year, month, day, hour, minute, second
+  print(my_datetime)  # 2025-12-09 14:30:45
+
+  # Create specific time
+  my_time = time(14, 30, 45)  # hour, minute, second
+  print(my_time)  # 14:30:45
+
+142. How do you convert datetime to a custom string format using strftime?
+
+  from datetime import datetime
+
+  now = datetime.now()
+
+  # Common formats
+  now.strftime("%Y-%m-%d")           # 2025-12-09
+  now.strftime("%d/%m/%Y")           # 09/12/2025
+  now.strftime("%B %d, %Y")          # December 09, 2025
+  now.strftime("%Y-%m-%d %H:%M:%S")  # 2025-12-09 14:30:45
+  now.strftime("%I:%M %p")           # 02:30 PM
+  now.strftime("%A, %B %d, %Y")      # Tuesday, December 09, 2025
+
+  Common format codes:
+
+    %Y → Year (4 digits): 2025
+    %m → Month (01-12)
+    %d → Day (01-31)
+    %H → Hour 24h (00-23)
+    %I → Hour 12h (01-12)
+    %M → Minute (00-59)
+    %S → Second (00-59)
+    %p → AM/PM
+    %A → Weekday full: Monday
+    %a → Weekday short: Mon
+    %B → Month full: January
+    %b → Month short: Jan
+
+143. How do you convert a string to a datetime object using strptime?
+
+  from datetime import datetime
+
+  # Parse string to datetime
+  date_string = "2025-12-09"
+  date_obj = datetime.strptime(date_string, "%Y-%m-%d")
+  print(date_obj)  # 2025-12-09 00:00:00
+
+  # Parse with time
+  datetime_string = "09/12/2025 14:30:45"
+  dt_obj = datetime.strptime(datetime_string, "%d/%m/%Y %H:%M:%S")
+  print(dt_obj)  # 2025-12-09 14:30:45
+
+
+  # Different formats
+  date1 = datetime.strptime("December 09, 2025", "%B %d, %Y")
+  date2 = datetime.strptime("09-Dec-2025", "%d-%b-%Y")
+  date3 = datetime.strptime("2025/12/09 02:30 PM", "%Y/%m/%d %I:%M %p")
+
+143. How do you add or subtract time using timedelta?
+
+  from datetime import datetime, timedelta
+
+  now = datetime.now()
+
+  # Add time
+  tomorrow = now + timedelta(days=1)
+  next_week = now + timedelta(weeks=1)
+  next_hour = now + timedelta(hours=1)
+  in_30_minutes = now + timedelta(minutes=30)
+
+  # Subtract time
+  yesterday = now - timedelta(days=1)
+  last_week = now - timedelta(weeks=1)
+  hour_ago = now - timedelta(hours=1)
+
+  # Combine multiple units
+  future = now + timedelta(days=7, hours=3, minutes=30)
+
+  # Calculate difference between dates
+  date1 = datetime(2025, 12, 9)
+  date2 = datetime(2025, 12, 1)
+  difference = date1 - date2
+  print(difference.days)  # 8
+  print(difference.total_seconds())  # 691200.0
+
+  # check whether it's the same date
+  date1 = datetime(2025, 12, 9, 4)
+  date2 = datetime(2025, 12, 9, 17)
+  date1.date() == date2.date() # True
+
+144. How do you compare datetime objects in Python?
+
+  from datetime import datetime, date
+
+  date1 = datetime(2025, 12, 9)
+  date2 = datetime(2025, 12, 10)
+  date3 = datetime(2025, 12, 9)
+
+  # Comparison operators
+  print(date1 < date2)   # True
+  print(date1 > date2)   # False
+  print(date1 == date3)  # True
+  print(date1 != date2)  # True
+  print(date1 <= date3)  # True
+
+  # Check if date is in range
+  start = datetime(2025, 12, 1)
+  end = datetime(2025, 12, 31)
+  check_date = datetime(2025, 12, 15)
+
+  if start <= check_date <= end:
+      print("Date is in December 2025")
+
+  # Find latest/earliest date
+  dates = [
+      datetime(2025, 12, 9),
+      datetime(2025, 11, 15),
+      datetime(2026, 1, 1)
+  ]
+  latest = max(dates)
+  earliest = min(dates)
+
+  # All comparison operators work: <, >, ==, !=, <=, >=
+
+145. How do you extract individual components (year, month, day, etc.) from datetime?
+
+  from datetime import datetime
+
+  dt = datetime(2025, 12, 9, 14, 30, 45)
+
+  # Date components, integers
+  print(dt.year)    # 2025
+  print(dt.month)   # 12
+  print(dt.day)     # 9
+
+  # Time components, integers
+  print(dt.hour)    # 14
+  print(dt.minute)  # 30
+  print(dt.second)  # 45
+
+  # Day of week (0=Monday, 6=Sunday)
+  print(dt.weekday())     # 1 (Tuesday)
+  print(dt.isoweekday())  # 2 (Tuesday, 1=Monday, 7=Sunday)
+
+  # Get just date or time
+  print(dt.date())  # 2025-12-09
+  print(dt.time())  # 14:30:45
+
+  # Day name
+  print(dt.strftime("%A"))  # Tuesday
+
+146. How do you convert between datetime and Unix timestamps?
+  from datetime import datetime, timezone
+
+  # Get current timestamp
+  now = datetime.now()
+  timestamp = now.timestamp()
+  print(timestamp)  # 1733751045.123456
+
+  # Create datetime from timestamp
+  dt_from_timestamp = datetime.fromtimestamp(timestamp)
+  print(dt_from_timestamp)  # 2025-12-09 14:30:45.123456
+
+  # Specific timestamp
+  specific_time = datetime.fromtimestamp(1700000000)
+  print(specific_time)  # 2023-11-14 22:13:20
+
+  # UTC timestamp
+  utc_specific = datetime.fromtimestamp(1700000000, timezone.utc)
+  print(utc_time)
+
+147. What is ISO format and how do you work with it in datetime?
+  from datetime import datetime
+
+  # Convert to ISO format string
+  dt = datetime(2025, 12, 9, 14, 30, 45)
+  iso_string = dt.isoformat()
+  print(iso_string)  # 2025-12-09T14:30:45
+
+  # Parse ISO format string
+  iso_str = "2025-12-09T14:30:45"
+  dt_from_iso = datetime.fromisoformat(iso_str)
+  print(dt_from_iso)  # 2025-12-09 14:30:45
+
+  # ISO format variations
+  dt.isoformat()              # 2025-12-09T14:30:45
+  dt.date().isoformat()       # 2025-12-09
+  dt.time().isoformat()       # 14:30:45
+
+148. How do you work with timezones in Python datetime?
+
+  from datetime import datetime, timezone, timedelta
+
+  # UTC timezone - RECOMMENDED WAY
+  utc_now = datetime.now(timezone.utc)
+  print(utc_now)  # 2025-12-09 12:30:45.123456+00:00
+
+  # Alternative: datetime.UTC (Python 3.11+)
+  utc_now = datetime.now(datetime.UTC)
+  print(utc_now)  # 2025-12-09 12:30:45.123456+00:00
+
+  # Custom timezone (e.g., UTC+2 for Kyiv in winter)
+  kyiv_tz = timezone(timedelta(hours=2))
+  kyiv_time = datetime.now(kyiv_tz)
+  print(kyiv_time)  # 2025-12-09 14:30:45.123456+02:00
+
+  # Add timezone to naive datetime
+  naive_dt = datetime(2025, 12, 9, 14, 30, 45)
+  aware_dt = naive_dt.replace(tzinfo=timezone.utc)
+  print(aware_dt)  # 2025-12-09 14:30:45+00:00
+
+  # Convert between timezones
+  utc_time = datetime.now(timezone.utc)
+
+  minsk_tz = timezone(timedelta(hours=3))
+  kyiv_tz = timezone(timedelta(hours=2))
+
+  minsk_time = utc_time.astimezone(minsk_tz)
+  kyiv_time=minsk_time.astimezone(kyiv_tz)
+
+  # Check if datetime is timezone-aware
+  dt = datetime.now()
+  print(dt.tzinfo)  # None (naive)
+
+  dt_aware = datetime.now(timezone.utc)
+  print(dt_aware.tzinfo)  # UTC (aware)
+
+Side note: latitude ranges ranges -90 to 90 (North Pole), longitude ranges from -180° to +180°
+
+149. How do you make an HTTP POST request with "request module"?
+
+  import requests
+
+  url = "https://api.example.com/endpoint"
+  payload = {"name": "John"}
+  headers = {"Authorization": "Bearer TOKEN"}
+
+  try:
+      response = requests.post(url, json=payload, headers=headers, timeout=5)
+      response.raise_for_status() # throws lib specific exception
+      data = response.json()
+      print("Success:", data)
+  except requests.exceptions.RequestException as e:
+      print(f"Error: {e}")
+
+150. How do you make a POST request with aiohttp?
+  import aiohttp
+  import asyncio
+
+  async def post_data():
+      url = "https://example.com/api"
+      payload = {"key": "value"}
+      headers = {"Content-Type": "application/json"}
+
+      try:
+          async with aiohttp.ClientSession() as session:
+              async with session.post(url, json=payload, headers=headers) as response:
+                  response.raise_for_status()
+                  data = await response.json()
+                  print(data)
+
+      except aiohttp.ClientError as e:
+          print(f"Network error: {e}")
+      except asyncio.TimeoutError:
+          print("Timeout")
+      except ValueError as e:
+          print(f"Bad JSON: {e}")
+
+  asyncio.run(post_data())
+
+Side Note: you may use PythonAnywhere to run scripts in cloud , run script as "python3 main.py" from terminal or past it as a command in task section. use "export ENV_VAR_1=123; export ENV_VAR_2=456; python3 main.py" if you need to pass env variables
+
+Note: env (mac) OR Env: (Windows) can be used to view terminal variables
+
+151. How to load env variables from .env file into the app
+  in .env file:
+    DATABASE_URL=postgresql://user:password@host:port/dbname
+    API_KEY=your_secret_api_key
+    DEBUG=True
+
+  in main.py
+
+    from dotenv import load_dotenv
+    import os
+
+    load_dotenv()  # This loads the variables from .env into the environment, you may pass custom file name
+
+    database_url = os.getenv("DATABASE_URL")
+    api_key = os.getenv("API_KEY")
+    debug_mode = os.getenv("DEBUG") == "True" # Environment variables are always strings
+
+    # in case more that 1 file required
+    config = {
+        **dotenv_values(".env.shared"),  # load shared development variables
+        **dotenv_values(".env.secret"),  # load sensitive variables
+        **os.environ,  # override loaded values with environment variables
+    }
+    # later on you can use config dictionary
+
+152. Could you assign float type value for variable with type hint 'str'?
+  yes, hints are for documentation purposes only
+
+153. How to encode/decode base64
+  import base64
+
+  # Encode (like btoa)
+  text = "Hello World"
+
+  # you cannot simply call b64encode(text) because it requires byte like object
+  # base64.b64encode in turn also returns bytes, so "decode" is required to convert in back to string
+  encoded = base64.b64encode(text.encode('utf-8')).decode('utf-8')
+  print(encoded)  # SGVsbG8gV29ybGQ=
+
+  # Decode (like atob)
+  # b64decode required bytes-like object or ASCII string, so text.encode is optional here
+  decoded = base64.b64decode(encoded).decode('utf-8')
+  print(decoded)  # Hello World
+
+154. How to check number is finite?
+  import math
+
+  x = float('inf')
+
+  # Check if infinite
+  math.isinf(x)        # True
+  math.isinf(-x)       # True
+
+  # Check if positive/negative infinite
+  x == float('inf')    # True
+  x == float('-inf')   # False
+
+  # Check if finite
+  math.isfinite(x)     # False
+
+155. How do you add/discard/check  element(s) to a set in Python?
+  my_set = {1, 2, 3}
+
+  my_set.add(4)  # {1, 2, 3, 4}
+
+  my_set.remove(2)  # {1, 3, 4} (raises KeyError if not found)
+
+  my_set.discard(10)  # No error, set unchanged
+  my_set.discard(3)   # {1, 4}
+
+  if 1 in my_set:
+      print("Found!")  # True
+
+  if 99 not in my_set:
+      print("Not found!")  # True
+
+  len(my_set)  # 2
+
+156. How do you find Union, Intersection , Difference (in A not B), Symmetric difference (in either, not both) for sets?
+  set_a = {1, 2, 3, 4}
+  set_b = {3, 4, 5, 6}
+
+  # 1. UNION | (or .union())
+  set_a | set_b  # {1, 2, 3, 4, 5, 6}
+
+  # 2. INTERSECTION & (or .intersection())
+  set_a & set_b  # {3, 4}
+
+  # 3. DIFFERENCE - (or .difference())
+  set_a - set_b  # {1, 2} (in A, not in B)
+  set_b - set_a  # {5, 6} (in B, not in A)
+
+  # 4. SYMMETRIC DIFFERENCE ^ (or .symmetric_difference())
+  set_a ^ set_b  # {1, 2, 5, 6}
+
+157. How to Subset and Superset Comparisons?
+    admins = {1, 2}
+    users = {1, 2, 3, 4}
+
+    # 1. SUBSET (all elements of A in B)
+    admins.issubset(users)  # True
+    admins <= users         # True
+
+    # 2. SUPERSET (A contains all elements of B)
+    users.issuperset(admins)  # True
+    users >= admins           # True
+
+    # 3. PROPER subset/superset (not equal)
+    admins < users   # True (proper subset)
+    users > admins   # True (proper superset)
+
+    {1, 2} < {1, 2}  # False (equal sets)
+    {1, 2} <= {1, 2} # True (allows equal)
+
+    # 4. EQUALITY
+    {1, 2, 3} == {3, 2, 1}  # True (order doesn't matter)
+
+158. What are Python’s bitwise operators and what do they do?
+  Python bitwise operators operate on integers at the binary level:
+
+    & — bitwise AND
+
+    | — bitwise OR
+
+    ^ — bitwise XOR
+
+    ~ — bitwise NOT
+
+    << — left shift
+
+    >> — right shift
+
+  & | ^  also can operate on sets
+  examples:
+
+  5 → 0101
+  3 → 0011
+
+  5 & 3 = 0001 = 1
+  5 | 3 = 0111 = 7
+  5 ^ 3 = 0110 = 6
+
+  5 = 00000101
+  ~5 = 11111010 = -6
+
+
+  5 = 00000101
+  5 << 1 =  00001010 = 10
+  So, (for non-negative integers) x << n == x * (2 ** n)
+
+  >> -  is opposite
+  10 = 00001010
+  10 >> 1 = 00000101 = 5
+  So, (for non-negative integers) x >> n == x // (2 ** n)
+
+159. Provide example of custom python decorator
+  def debug(func):
+      def wrapper(*args, **kwargs):
+          print("Calling:", func.__name__)
+          return func(*args, **kwargs)
+      return wrapper
+
+  @debug
+  def run():
+      print("run")
+
+160. Why do decorators usually use *args and **kwargs?
+  So the decorator can wrap any function signature and pass all arguments through unchanged.
+
+161. How to join list into a string with a separator?
+
+  l = ["a", "s", "d"]
+  s = ";".join(l) # a;s;d
+
+162. How to map list with lambda?
+  result = list(map(lambda x: x * 2, numbers))
+  # lambda x: x * 2 - lambda
+  # map creates map object
+  # list - converts back to list
+
+163. What does bisect.insort(list, item) do?
+
+  Inserts item into a sorted list while maintaining the sorted order. Uses binary search to find the insertion point then inserts .
+
+    from bisect import insort
+    numbers = [1, 3, 7, 9]
+    insort(numbers, 5)
+    # numbers is now [1, 3, 5, 7, 9]
+
+164.  What's the difference between insort_left() and insort_right() when inserting duplicate values?
+
+  insort_left(list, item) - Inserts BEFORE existing equal elements
+  insort_right(list, item) - Inserts AFTER existing equal elements
+  insort() is an alias for insort_right()
+
+  Example:
+    numbers = [1, 3, 3, 3, 7]
+    insort_left(numbers, 3)   # [1, 3, 3, 3, 3, 7] (inserted at index 1)
+    insort_right(numbers, 3)  # [1, 3, 3, 3, 3, 7] (inserted at index 4)
+
+165. How do you use insort() with custom sorting logic (Python 3.10+)?
+
+  Use the key parameter to specify a function that extracts the comparison value:
+    from bisect import insort
+
+    tasks = []
+    insort(tasks, Task("Email", 2), key=lambda t: t.priority)
+    insort(tasks, Task("Bug", 1), key=lambda t: t.priority)
+    # Tasks sorted by priority: [Task("Bug", 1), Task("Email", 2)]
+
+166. What's the difference between bisect() and insort()?
+
+  bisect(list, item) - Returns the insertion index (doesn't modify list)
+  insort(list, item) - Finds index AND inserts the item (modifies list)
+
+  Example:
+    numbers = [1, 3, 7, 9]
+    index = bisect(numbers, 5)  # returns 2, list unchanged
+    insort(numbers, 5)           # inserts at index 2, list is now [1, 3, 5, 7, 9]
+
+167. What do the lo and hi parameters do in insort(list, item, lo, hi)?
+
+  They limit the search and insertion to a slice of the list [lo:hi]:
+
+    numbers = [1, 3, 5, 7, 9, 11, 13]
+    insort(numbers, 6, lo=2, hi=5)
+    # Only searches positions 2-5
+    # Result: [1, 3, 5, 6, 7, 9, 11, 13]
+
+168. Write a simple priority queue using bisect.insort() where lower numbers = higher priority.
+
+  from bisect import insort
+
+  class PriorityQueue:
+      def __init__(self):
+          self.items = []
+
+      def add(self, item, priority):
+          insort(self.items, (priority, item))
+
+      def pop(self):
+          return self.items.pop(0)[1] if self.items else None
+
+  pq = PriorityQueue()
+  pq.add("Low priority", 5)
+  pq.add("High priority", 1)
+  pq.pop()  # Returns "High priority"
+
+169. Does Python has build-in timezones?
+  Starting with Python 3.9, the datetime module includes the zoneinfo
+    from zoneinfo import ZoneInfo
+    from datetime import datetime
+
+    # Create datetime with specific timezone
+    ny_time = datetime.now(ZoneInfo("America/New_York"))
+    tokyo_time = datetime.now(ZoneInfo("Asia/Tokyo"))
+
+Note: extra video on event loop (already watched) https://www.youtube.com/watch?v=Ww2HBNpu98g
+
+=== FAST API DOCS === https://fastapi.tiangolo.com/learn/
+
+170. What would be returned by "return a, b" inside the function
+  tuple (a,b)
+
+171. provide example for typing of list/tuple/dict, provide example of function typing
+  >= 3.9
+    l: list[int]
+    t: tuple[float, float, float]
+    d: dict[str, int | float]
+
+
+  < 3.9
+  from typing import List, Set, Tuple, Dict
+  l: List[int]
+
+  > = 3.5 return type
+
+  def my_divide(a: int, b: int) -> float:
+    return a / b
+
+172. How to define type alias?
+  v >= 3.10
+    type Vector = list[float]
+    type Matrix = list[Vector]
+
+  v < 3.10
+    from typing import TypeAlias
+
+    Vector: TypeAlias = list[float]
+    # or simply:
+    Vector = list[float]
+
+173. How to make union type
+  >= 3.10
+
+    int | float
+  < 3.10 & >= 3.8
+    from typing import Union
+    Union[int, float]
+
+174. How to specify optional argument
+  a: str | None = None # BEST FOR >= 3.10
+  or
+  Optional[str] = None # Alternative FOR < 3.10
+  or
+  Union[srt, | None] = None # BEST FOR < 3.10
+  * both Optional and Union imported from "typing"
+
+Note: class names can be used as types
+
+175. How to validate DTO with pydantic
+
+  from datetime import datetime
+
+  from pydantic import BaseModel
+
+  class User(BaseModel):
+      id: int
+      name: str = "John Doe"
+      signup_ts: datetime | None = None
+      friends: list[int] = []
+
+  external_data = {
+      "id": "123", # of required argument not passed - instantiating causes AttributeError
+      "signup_ts": "2017-06-01 12:22", # converted to date
+      "friends": [1, "2", b"3"], # list would be converted to [1, 2, 3],
+      "asd": "11" # extra arguments would be cut off
+  }
+  user = User(**external_data)
+
+  print(isinstance(user, User)) # true
+  print(user) # id=123 name='John Doe' signup_ts=datetime.datetime(2017, 6, 1, 12, 22) friends=[1, 2, 3]
+  print(user.signup_ts.date()) # 2017-06-01
+
+Note: All the data validation in FastAPI is performed under the hood by Pydantic
+
+176. What do the Python built-in functions all() and any() do?
+  all(iterable) - Returns True if all elements are truthy, Returns True for an empty iterable
+    all([True, True, True])      # True
+    all([True, False, True])     # False
+    all([])                      # True
+
+  any(iterable) - Returns True if at least one element is truthy, Returns False for an empty iterable
+    any([False, False, True])    # True
+    any([False, False, False])   # False
+    any([])                      # False
+
+  Common use with conditions
+    nums = [2, 4, 6]
+
+    all(n % 2 == 0 for n in nums)   # True
+    any(n % 2 == 1 for n in nums)   # False
+
+177. What is a Type Guard in Python and how is it used?
+  A Type Guard is a function that tells static type checkers (like mypy or pyright) that a value is a more specific type when the function returns True.
+
+    from typing import TypeGuard
+
+    def is_str_list(val: list[object]) -> TypeGuard[list[str]]:
+        return all(isinstance(x, str) for x in val)
+
+    items: list[object]
+
+    if is_str_list(items):
+        reveal_type(items)  # list[str]
+
+    # Inside the if block, the type checker narrows the type.
+
+178. Why are Metadata Annotations (typing.Annotated) useful in Python?
+  Annotated lets you attach extra metadata to a type hint without changing the actual type.
+  Python itself ignores the metadata.
+  Editors and type checkers still see the type as str.
+  It allows frameworks (e.g. FastAPI) to add behavior using metadata
+
+    from typing import Annotated
+
+    def say_hello(name: Annotated[str, "this is just metadata"]) -> str:
+        return f"Hello {name}"
+
+Note: fast API  async def / def
+  async def → called directly and awaited by the event loop; Prefer async def unless the function performs blocking I/O
+  def → executed in an external threadpool and then awaited; Using def for trivial, compute-only endpoints is slower in FastAPI
+
+179. How to create/activate venev?
+  create:
+    python -m venv .venv
+
+  activate:
+    Linux, macOS
+      source .venv/bin/activate
+    Windows PowerShell
+      .venv\Scripts\Activate.ps1
+    Windows Bash
+      source .venv/Scripts/activate
+
+  activating .venv would add .venv/Scripts OR .venv/bin to the PATH in front, so once you thy to run pip or python it would precede global one
+
+  check:
+    which python # should output local .vevn directory
+
+    Get-Command python # the same but for powershell
+
+Note: .venv or venv folder should be ignored by github
+
+180. How to install dependencies from requirements file?
+  pip install -r requirements.txt
+    OR if uv is installed
+  uv pip install -r requirements.txt
+
+  # the requirements.txt itself
+  requests==2.28.0
+  aiohttp==3.13.2
+  aidial-client==0.3.0
+
+Note: You can find out mode details on how to set up virtual env in VS Code here https://code.visualstudio.com/docs/python/environments#_select-and-activate-an-environment
+
+Note: syntax for installing package of specific version: pip install "harry==1"
+
+Note: it's sometimes a good practice to deactivate (just type "deactivate" into terminal) and activate .venv when swithicng projects
+
+181. How to start fastapi app?
+  fastapi dev - for local development
+  fastapi run - for prod like envs
+
+182. Does fastapi performs data conversion?
+  Yes, following code returns item_id as int, but dy default that would be a string
+  @app.get("/items/{item_id}")
+  async def read_item(item_id: int):
+      return {"item_id": item_id}
+
+183. How to validate parameter of enum type in FastAPI?
+  define enum
+
+    from enum import Enum
+
+    class ModelName(Enum):
+        alexnet = "alexnet"
+        resnet = "resnet"
+        lenet = "lenet"
+
+  specify that as an argument type:
+    @app.get("/models/{model_name}")
+    async def get_model(model_name: ModelName):
+        # model_name is one of ModelName properties, you can access it by model_name.value
+        if model_name is ModelName.alexnet:
+            return {"model_name": model_name, "message": "Deep Learning FTW!"}
+
+        if model_name.value == "lenet":
+            return {"model_name": model_name, "message": "LeCNN all the images"}
+
+        return {"model_name": model_name, "message": "Have some residuals"}
+
+184. Explain "is" vs "=="
+  == compares VALUES
+  is compares IDENTITY (same object in memory)
+
+  a = [1, 2]
+  b = [1, 2]
+  a == b  # True (same values)
+  a is b  # False (different objects)
+
+  Use is for: None, True, False, enum members
+  Use == for: values, strings, numbers
+
+  mostly common is used for enums
+
+Note: fastapi login + fastapi deploy allows fastapi deploy
+
+185. How to pass path parameter containing a path? For example file/tech/text.txt and the param passed to handler (Path operation function) as "tech/text.txt"
+
+  # use :path syntax
+
+  @app.get("files/{file_path:path}")
+  def server_file(file_path):
+    print(file_path)
+
+186. How to specify query parameters?
+
+  Any function parameter not included in the path template is treated as a query parameter.
+
+  Query parameters arrive as strings, but are automatically converted and validated using Python type annotations.
+
+  Providing a default value makes a query parameter optional.
+
+  If omitted, FastAPI uses the default value.
+
+  Setting the default to None (e.g. str | None) makes the parameter optional, with value None when missing.
+
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/items/")
+    async def read_items(skip: int = 0, q: str | None = None):
+        return {"skip": skip, "q": q}
+
+187. How does FastAPI handle boolean query parameters?
+
+  Declare them using type bool with a default (e.g. short: bool = False)
+
+  FastAPI automatically converts query values to True or False
+
+  Values interpreted as True include ( Any case variation):  1, true, True, on, yes
+
+  Any other value (or missing parameter) results in False
+
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/items/{item_id}")
+    async def read_item(item_id: str, short: bool = False):
+        if short:
+            return {"item_id": item_id}
+        return {
+            "item_id": item_id,
+            "description": "This is a long description"
+        }
+
+188. Required query parameters and validation errors?
+  A query parameter is required if no default value is declared
+    for example:
+    async def read_item(a: str | None = None): # optional
+    async def read_item(a: str | None): # required
+
+  If a required query parameter is missing the request fails validation and  FastAPI returns an error
+
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/items/{item_id}")
+    async def read_item(item_id: str, needy: str):
+        return {"item_id": item_id, "needy": needy}
+    Behavior:
+
+    /items/foo → ❌ validation error (missing needy)
+
+    /items/foo?needy=abc → ✅ valid response
+
+189. How to parse multiquery string params?
+  @app.get("/items/")
+  async def read_items(ids: list[int]): # specify as list
+      return {"ids": ids}
+
+  To declare a query parameter with a type of list,it's better to explicitly use Query,
+  @app.get("/items/")
+  async def read_items(ids: Annotated[list[int], Query()]): # specify as list
+      return {"ids": ids}
+
+190. How to parse body from request?
+
+  The function parameters will be recognized as follows:
+
+    If the parameter is also declared in the path, it will be used as a path parameter.
+    If the parameter is of a singular type (like int, float, str, bool, etc) OR enum it will be interpreted as a query parameter.
+    If the parameter is declared to be of the type of a Pydantic model, it will be interpreted as a request body.
+
+    from fastapi import FastAPI
+    from pydantic import BaseModel
+
+    class Item(BaseModel):
+        name: str
+        description: str | None = None
+        price: float
+        tax: float | None = None
+
+    app = FastAPI()
+
+    @app.put("/items/{item_id}")
+    async def update_item(item_id: int, item: Item, q: str | None = None):
+        result = {"item_id": item_id, **item.dict()}
+        if q:
+            result.update({"q": q})
+        return result
+
+191. How to add query validation?
+  - import Annotated and query
+
+    from fastapi import FastAPI, Query
+    from typing import Annotated
+
+  use in params section
+    @app.get("/items/")
+    async def read_items(q: Annotated[str | None, Query(max_length=50)] = None):
+
+  # Annotated allows to add metadata to type; Query generate such exta metadata
+
+  # also available  min_length max_digits multiple_of
+
+  # min/max length checks string/list lenght
+
+  # max_digits counts max number of digits Annotated[Decimal, Query(max_digits=5)] means 123.45 and 1234.5 ok but 1234.56 is not
+
+  # multiple_of Value must be an exact multiple of the given number; count: Annotated[int, Query(multiple_of=2)] - 4 is ok (4 % 2 == 0) but 3 is not (3 % 2 != 0). often used for pagination
+
+192. What Query(...) validation parameters exist?
+  min_length
+  max_length
+  pattern for example "^fixedquery$"
+  gt	Greater than
+  ge	Greater than or equal
+  lt	Less than
+  le	Less than or equal
+  multiple_of	numbers
+  max_digits
+  decimal_places	Decimal	Digits after decimal
+  default  - Keep in mind that when using Query inside of Annotated you cannot use the default parameter for Query.
+
+193. What additional metadata can be passed to Query?
+  title
+  description
+
+194. How to parse query params with "-", for example "item-query"?
+  sinse you cannot use "item-query" as fucntion parameter ("-" is not a valid symbol for python variable name) you should use alias:
+
+    @app.get("/items/")
+    async def read_items(q: Annotated[str | None, Query(alias="item-query")] = None):
+
+  so url param ?item-query=abc would lead to storing "abc" in function argument "q"
+
+195. Ho to specify query param is depricated (for the sake of backward compatabulity)?
+  use depricated=True in Query() :
+
+    async def read_items(
+      q: Annotated[
+          str | None,
+          Query(
+              alias="item-query",
+              title="Query string",
+              description="Query string for the items to search in the database that have a good match",
+              min_length=3,
+              max_length=50,
+              pattern="^fixedquery$",
+              deprecated=True,
+          ),
+      ] = None,
+    ):
+
+  the deprication warning would be reflected in docs
+
+196. How to exclude param on generated OpenAPI Schema?
+
+  pass include_in_schema=False
+
+  you usually need that if plan not to explose parametr for end user when debugging or working on a new feature, introducing Secret/Admin Features or hiding  deprecated parameters from new users
+
+197. How to add custom validation for query?
+  use pydantic's AfterValidator + your own validation function.
+  The important point is just using AfterValidator with a function inside Annotated
+
+    from pydantic import AfterValidator
+
+    def check_valid_id(id: str):
+      if not id.startswith(("isbn-", "imdb-")):
+          raise ValueError('Invalid ID format, it must start with "isbn-" or "imdb-"')
+      return id
+
+    @app.get("/items/")
+    async def read_items(
+        id: Annotated[str | None, AfterValidator(check_valid_id)] = None,
+    ):
+
+198. what's the signature of str.startswith() ?
+  str.startswith(prefix[, start[, end]])
+  prefix can be STRING or TUPLE of strings (then each value would be checked)
+
+199. How to provide random-ish default value?
+
+  data = {
+      "isbn-9781529046137": "The Hitchhiker's Guide to the Galaxy",
+      "imdb-tt0371724": "The Hitchhiker's Guide to the Galaxy",
+      "isbn-9781439512982": "Isaac Asimov: The Complete Stories, Vol. 2",
+  }
+
+  @app.get("/items/")
+  async def read_items(
+      id: Annotated[str | None, AfterValidator(check_valid_id)] = None,
+  ):
+      if id:
+          item = data.get(id)
+      else:
+          id, item = random.choice(list(data.items()))
+  # get items data.items() -> convert to list -> choice one random -> assign to variables "id, item"
+
+200. How to validate path?
+  the same as query but you should be using Path() instead of Query(). It has the same signarute
+
+201. How to get rid of python warn 'value with a "default" before a value that doesn't have a "default"' ?
+  add "*" before each fucntion param, all params would be considered as keyword-parameters, in that case the order has no meaning
+
+  BUT you'll probabily never get into that problem if use
+  q: Annotated[str, Query]
+    instead of
+  q: str = Query()
+
+202. What asyncio.to_thread() does?
+  moves sync operation to thread + returns coroutine
+
+    import asyncio
+    import time
+    import requests
+
+    # Problem: Blocks everything
+    async def bad():
+        time.sleep(5)  # ❌ Freezes event loop
+
+    # Solution: Run in thread
+    async def good():
+        await asyncio.to_thread(time.sleep, 5)  # ✅
+
+    # Common use: Blocking libraries
+    async def fetch():
+        response = await asyncio.to_thread(
+            requests.get, "https://api.example.com"
+        )
+        return response.json()
+
+  Use for: CPU work, file I/O, blocking libraries (requests, sqlite3)
+
+203. How to use Query Parameter Models of pydantic?
+  # import 'Literal' for pydantic enumes and 'Annotated' for the use on fuction validation
+
+  from typing import Annotated, Literal
+
+  from fastapi import FastAPI, Query
+
+  from pydantic import BaseModel, Field
+
+  app = FastAPI()
+
+
+  class FilterParams(BaseModel):
+      # forbid model extention (allowed by default)
+      model_config = {"extra": "forbid"}
+
+      limit: int = Field(100, gt=0, le=100)
+      offset: int = Field(0, ge=0)
+      order_by: Literal["created_at", "updated_at"] = "created_at"
+      tags: list[str] = []
+
+
+  @app.get("/items/")
+  # pass pydantic model inside Annotated with Query
+  async def read_items(filter_query: Annotated[FilterParams, Query()]):
+      # all filteres are stored as properties of filter_query dictionary
+      return filter_query
+
+204. How to pass multiple body params?
+  class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+  class User(BaseModel):
+      username: str
+      full_name: str | None = None
+
+  @app.put("/items/{item_id}")
+  async def update_item(item_id: int, item: Item, user: User):
+      results = {"item_id": item_id, "item": item, "user": user}
+      return results
+
+  Note: It's expected that payloads property item goes to "item" variable and user to "user" variable , had it been the only body param that would take the root of the json body
+
+205. How to parse primitive value out of body?
+
+  from typing import Annotated
+  from fastapi import Body, FastAPI
+
+  @app.put("/items/{item_id}")
+  async def update_item(
+      item_id: int, item: Item, user: User, importance: Annotated[int, Body()]
+  )
+
+  Note: unless it's in  Annotated[int, Body()] syntax that would be treated as query param
+
+206. How to parse single body param?
+  use Body function with embed=True
+
+    @app.put("/items/{item_id}")
+    async def update_item(item_id: int, item: Annotated[Item, Body(embed=True)]):
+
+  That would parse  "item" from the following body params:
+    {
+      "item": {
+          "name": "Foo",
+          "description": "The pretender",
+      }
+    }
+
+207. How to validate field of pydantic model ?
+  use Field function, expected params are the same as for Query()
+
+    from pydantic import BaseModel, Field
+
+    class Item(BaseModel):
+        name: str
+        description: str | None = Field(
+            default=None, title="The description of the item", max_length=300
+        )
+        price: float = Field(gt=0, description="The price must be greater than zero")
+        tax: float | None = None
+
+208. Provide example of Pydantic's nested model
+  from pydantic import BaseModel, HttpUrl
+
+  class Image(BaseModel):
+      url: HttpUrl
+      name: str
+
+  class Item(BaseModel):
+      name: str
+      description: str | None = None
+      price: float
+      tax: float | None = None
+      tags: set[str] = set()
+      images: list[Image] | None = None
+
+209. Provide example of parsing json body which is an array
+
+  from pydantic import BaseModel, HttpUrl
+
+  class Image(BaseModel):
+      url: HttpUrl
+      name: str
+
+
+  @app.post("/images/multiple/")
+  async def create_multiple_images(images: list[Image]):
+
+Note: "weights: dict[int, float]" is a valid type for json body for fast api even though json can only has strings as keys. That's happenes due to the fact pydantic can check and convert the values to int
+
+210. How would you add example to pydantic model (so would be reflected in docs)?
+
+  class Item(BaseModel):
+      name: str
+      description: str | None = None
+      price: float
+      tax: float | None = None
+
+      model_config = {
+          "json_schema_extra": {
+              "examples": [
+                  {
+                      "name": "Foo",
+                      "description": "A very nice Item",
+                      "price": 35.4,
+                      "tax": 3.2,
+                  }
+              ]
+          }
+      }
+
+  OR for a single value pass examples=[] to Field function
+
+  class Item(BaseModel):
+    name: str = Field(examples=["Foo"])
+    description: str | None = Field(default=None, examples=["A very nice Item"])
+    price: float = Field(examples=[35.4])
+    tax: float | None = Field(default=None, examples=[3.2])
+
+  OR you can pass it as a dict into examples=[] for the following fuctions: Path() Query() Header() Cookie() Body() Form() File()
+
+Note: When you use Header() it converts underscore _ to hyphen - AND is case-insensitive, so the Python parameter "amz_auth" will match incoming headers "Amz-Auth", "amz-auth", or "AMZ-AUTH". You can forbid underscore conversion with convert_underscores=False
+
+211. How to catch multivalue header?
+
+  @app.get("/items/")
+  async def read_items(x_token: Annotated[list[str] | None, Header()] = None):
+      return {"X-Token values": x_token}
+
+  # X-Token: A
+  # X-Token: B
+  # x_token == ["A","B"]
+
+212. How and why should be used Return Type of a path function?
+  To filter limit and covert output data
+
+  from typing import Any
+
+  example:
+    @app.get("/items/", response_model=list[Item])
+    async def read_items() -> Any:
+    # If you have strict type checks in your editor, mypy, etc, you can declare the function return type as Any.
+
+  OR (note that input extends output)
+    class BaseUser(BaseModel):
+      username: str
+      email: EmailStr
+      full_name: str | None = None
+
+    class UserIn(BaseUser):
+        password: str
+
+    @app.post("/user/")
+    async def create_user(user: UserIn) -> BaseUser:
+        return user
+
+213. Provide example of returning non pydantic model from function handler
+
+  from fastapi import FastAPI, Response
+  from fastapi.responses import JSONResponse, RedirectResponse
+
+  app = FastAPI()
+
+  @app.get("/portal")
+  async def get_portal(teleport: bool = False) -> Response:
+      if teleport:
+          return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+      return JSONResponse(content={"message": "Here's your interdimensional portal."})
+
+214. how to disable Response Model?
+
+  @app.get("/portal", response_model=None)
+  async def get_portal(teleport: bool = False) -> Response | dict:
+  # no errors, if were not response_model=None that would cause an error because dict isn't a valid model
+
+215. How to add / skip default response model parameters?
+  # added default values
+  class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+    tags: list[str] = []
+
+  items = {
+      "foo": {"name": "Foo", "price": 50.2},
+      "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+      "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+  }
+
+  # with response_model_exclude_unset=True prevent not set default values to be returned
+  @app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+  async def read_item(item_id: str):
+      return items[item_id]
+
+  # call to GET /items/foo returns {"name": "Foo", "price": 50.2} and exclude other params like "tax" or "tags"
+  # you may also see response_model_exclude_defaults=True
+  # response_model_exclude_none=True
+
+NOTE: You can also use the path operation decorator parameters response_model_include and response_model_exclude. They take a set of str with the name of the attributes to include (omitting the rest) or to exclude (including the rest).
+
+Note: see detailed example of entityIn-EntityOut-Entity-inDB here https://fastapi.tiangolo.com/tutorial/extra-models/#multiple-models
+
+216. How to define response which should be one of possible N types?
+  from typing import Union
+
+  @app.get("/items/{item_id}", response_model=Union[PlaneItem, CarItem])
+  async def read_item(item_id: str):
+      return items[item_id]
+  # you should use Union because it's inside Annotated
+  # OR
+  @app.get("/items/{item_id}")
+  async def read_item(item_id: str) -> PlaneItem | CarItem:
+      return items[item_id]
+
+217. How to specify response status code
+  from fastapi import FastAPI, status
+
+  app = FastAPI()
+
+
+  @app.post("/items/", status_code=status.HTTP_201_CREATED)
+  async def create_item(name: str):
+      return {"name": name}
+
+218. How to handle Errors in path operation functions?
+
+
+  from fastapi import FastAPI, HTTPException
+
+  app = FastAPI()
+
+  items = {"foo": "The Foo Wrestlers"}
+
+
+  @app.get("/items-header/{item_id}")
+  async def read_item_header(item_id: str):
+      if item_id not in items:
+          raise HTTPException(
+              status_code=404,
+              detail="Item not found",
+              headers={"X-Error": "There goes my error"},
+          )
+      return {"item": items[item_id]}
+
+  Note: 1) You raise exception, don't return 2) headers are optional 3) if downstream function was called with raise HTTPException that would stop execution of path operation function as well
+
+219. How to use custom exception handlers?
+  # use @app.exception_handler with custom class
+
+  from fastapi import FastAPI, Request
+  from fastapi.responses import JSONResponse
+
+  class UnicornException(Exception):
+      def __init__(self, name: str):
+          self.name = name
+
+  app = FastAPI()
+
+  @app.exception_handler(UnicornException)
+  async def unicorn_exception_handler(request: Request, exc: UnicornException):
+      return JSONResponse(
+          status_code=418,
+          content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+      )
+
+  @app.get("/unicorns/{name}")
+  async def read_unicorn(name: str):
+      if name == "yolo":
+          raise UnicornException(name=name)
+      return {"unicorn_name": name}
+
+220. how to override the default exception handlers
+  build in: RequestValidationError, StarletteHTTPException, RequestValidationError
+
+  @app.exception_handler(RequestValidationError)
+  async def validation_exception_handler(request, exc: RequestValidationError):
+
+  @app.exception_handler(StarletteHTTPException)
+  async def http_exception_handler(request, exc):
+
+
+  @app.exception_handler(RequestValidationError)
+  async def validation_exception_handler(request: Request, exc: RequestValidationError):
+
+  see more details at https://fastapi.tiangolo.com/tutorial/handling-errors/#override-request-validation-exceptions
+
+221. How to add tags for endpoint (for grouping in open api document)?
+
+  class Tags(Enum):
+    items = "items"
+    users = "users"
+
+  # endpoint moved into section items
+  @app.get("/items/", tags=[Tags.items])
+
+  # endpoint moved into section users
+  @app.get("/users/", tags=[Tags.users])
+
+222. How to add summary and description to endpoint?
+  @app.post(
+      "/items/",
+      response_model=Item,
+      summary="Create an item",
+      description="Create an item with all the information, name, description, price, tax and a set of unique tags",
+  )
+
+223. How to specify multiline endpoint description in markdown format?
+  specify multiline with markdown format
+
+  @app.post("/items/", response_model=Item, summary="Create an item")
+  async def create_item(item: Item):
+      """
+      Create an item with all the information:
+
+      - **name**: each item must have a name
+      - **description**: a long description
+      - **price**: required
+      - **tax**: if the item doesn't have tax, you can omit this
+      - **tags**: a set of unique tag strings for this item
+      """
+      return item
+
+224. How to specify response description for endpoint?
+  pass response_description to decarator:
+
+  @app.post(
+      "/items/",
+      response_model=Item,
+      summary="Create an item",
+      response_description="The created item",
+  )
+
+225. How to specify endpoint is depricated
+  @app.get("/elements/", tags=["items"], deprecated=True)
+
+226. What the purpose of jsonable_encoder
+
+  To convert time/pydantic model/ anithing else into structure wich can be converted to JSON. Typically to dict or list
+
+    from datetime import datetime
+
+    from fastapi import FastAPI
+    from fastapi.encoders import jsonable_encoder
+    from pydantic import BaseModel
+
+    fake_db = {}
+
+    class Item(BaseModel):
+        title: str
+        timestamp: datetime
+        description: str | None = None
+
+    app = FastAPI()
+
+    @app.put("/items/{id}")
+    def update_item(id: str, item: Item):
+        json_compatible_item_data = jsonable_encoder(item)
+
+        # item converted to dictionaty
+        # datetime converted to iso string
+
+        fake_db[id] = json_compatible_item_data
+
+227. How do you process data in patch flow
+
+  @app.patch("/items/{item_id}", response_model=Item)
+  async def update_item(item_id: str, item: Item):
+      stored_item_data = items[item_id]
+      stored_item_model = Item(**stored_item_data)
+
+      # cut out unset data
+      update_data = item.model_dump(exclude_unset=True)
+
+      # update the model
+      updated_item = stored_item_model.model_copy(update=update_data)
+
+      # convert to dict
+      items[item_id] = jsonable_encoder(updated_item)
+      return updated_item
+
+228. How to use dependencies in path operation fucntion?
+  You only give Depends a single parameter.
+
+  This parameter must be callable (function or class)
+
+  You don't call it directly (don't add the parenthesis at the end), you just pass it as a parameter to Depends().
+
+  And that function takes parameters in the same way that path operation functions do.
+
+  Example:
+
+    from typing import Annotated
+
+    from fastapi import Depends, FastAPI
+
+    app = FastAPI()
+
+    async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+        return {"q": q, "skip": skip, "limit": limit}
+
+    # alternativelly as a class
+    # class CommonQueryParams:
+    # def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+    #    self.q = q
+    #    self.skip = skip
+    #    self.limit = limit
+
+    CommonsDep = Annotated[dict, Depends(common_parameters)]
+
+    # alternativelly as a class
+    # CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]
+
+    # Shorter syntax
+    # CommonsDep = Annotated[CommonQueryParams, Depends()]
+
+    @app.get("/items/")
+    async def read_items(commons: CommonsDep):
+        return commons
+
+    @app.get("/users/")
+    async def read_users(commons: CommonsDep):
+        return commons
+
+229. FastAPI dependencies: when should you use async def vs def in FastAPI dependencies?
+
+  Dependencies can be async def or def, regardless of whether the path operation is async or not.
+  You can mix them freely—FastAPI handles it automatically.
+
+Note: Other common terms for this same idea of "dependency injection" are: resources, providers, services, injectables, components.
+
+230. Provide example of sub dependency.
+
+  def query_extractor(q: str | None = None):
+      return q
+
+  def query_or_cookie_extractor(
+      # DEPENDS ON query_extractor
+      q: Annotated[str, Depends(query_extractor)],
+      last_query: Annotated[str | None, Cookie()] = None,
+  ):
+      if not q:
+          return last_query
+      return q
+
+  @app.get("/items/")
+  async def read_query(
+     # DEPENDS ON query_or_cookie_extractor
+      query_or_default: Annotated[str, Depends(query_or_cookie_extractor)],
+  ):
+      return {"q_or_cookie": query_or_default}
+
+231. Are sub dependencies cached by default?
+  Yes, if  dependencies is declared multiple times for the same path operation it will be caslled once per request and result will be cached.
+
+  But when you need the dependency to be called at every step in the same request pass use_cache=False when using Depends:
+
+    async def needy_dependency(fresh_value: Annotated[str, Depends(get_value, use_cache=False)]):
+        return {"fresh_value": fresh_value}
+
+232. How and why to specify dependencies of the path operation decorator?
+
+  In some cases you don't really need the return value of a dependency inside your path operation function.
+
+  Or the dependency doesn't return a value.
+
+  But you still need it to be executed/solved.
+
+  For those cases, instead of declaring a path operation function parameter with Depends, you can add a list of dependencies to the path operation decorator.
+
+  Example:
+
+    from typing import Annotated
+
+    from fastapi import Depends, FastAPI, Header, HTTPException
+
+    app = FastAPI()
+
+    # conditionally raise the exception
+    async def verify_token(x_token: Annotated[str, Header()]):
+        if x_token != "fake-super-secret-token":
+            raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+    # conditionally raise the exception
+    async def verify_key(x_key: Annotated[str, Header()]):
+        if x_key != "fake-super-secret-key":
+            raise HTTPException(status_code=400, detail="X-Key header invalid")
+        # returned value is discarded
+        return x_key
+
+    # each item of dependencies list should be wrapped into "Depends"
+
+    @app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+    async def read_items():
+        return [{"item": "Foo"}, {"item": "Bar"}]
+
+233. How to apply dependencies to app level so it would be executed for each path?
+  Add dependencies list to FastAPI while instantiating. Example:
+
+    from typing import Annotated
+
+    from fastapi import Depends, FastAPI, Header, HTTPException
+
+    async def verify_token(x_token: Annotated[str, Header()]):
+        if x_token != "fake-super-secret-token":
+            raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+    app = FastAPI(dependencies=[Depends(verify_token)])
+
+    @app.get("/items/")
+    async def read_items():
+        return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+    @app.get("/users/")
+    async def read_users():
+        return [{"username": "Rick"}, {"username": "Morty"}]
+
+234. How and why use dependencies with yield?
+
+  async def get_db():
+      db = DBSession()
+      try:
+          yield db
+      finally:
+          db.close()
+
+  The yielded value is what is injected into path operations and other dependencies.
+
+  The code following the yield statement is executed after the response.
+
+  code before yield executed -> yield executed and injected -> request finished -> code in dependency after yield executed
+
+  If some code at some point in the middle, in another dependency or in a path operation, made a database transaction "rollback" or created any other exception, you would receive the exception in your dependency.
+
+  So, you can look for that specific exception inside the dependency with except SomeException.
+
+  In the same way, you can use finally to make sure the exit steps are executed, no matter if there was an exception or not.
+
+235. Explain flow of execution if multiple (3) dependency depends on each other (subdependencies)?
+
+  if path operation function depends on `dep_c` which depends on `dep_b` which depends on `dep_a` the order is following:
+
+  pre yield + yield of dep_a
+  pre yield + yield of dep_b
+  pre yield + yield of dep_c
+
+  path operation function
+
+  finally of dep_c
+  finally of dep_b
+  finally of dep_a
+
+  if path operation function raised exception dep_c except block would be triggered, if none specified or exception not handled of explicitly throw dep_b except block used and so on.
+
+  If you catch an exception in a dependency with yield, unless you are raising another HTTPException or similar, you should re-raise the original exception.
+
+  def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("We don't swallow the internal error here, we raise again 😎")
+        raise
+
+  @app.get("/items/{item_id}")
+  def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+
+  # Now the client will get the same HTTP 500 Internal Server Error response, but the server will have our custom InternalError in the logs.
+
+236. What are dependencies scope?
+  In Depends by default scope="request" is used, the only other option is scope="function".
+
+  Order of execution:
+    for "request": yield of dependency -> path operastion function -> response send to the client -> finally of dependency
+    for "function": yield of dependency -> path operastion function -> finally of dependency -> response send to the client
+
+  If dependency has scope "request" all subdependencies should be of scope "request" as well to be executed in proper order.
+  If dependency has scope "function" dependencies may have  "request" | "function" scope
+
+Note: When you create a dependency with yield, FastAPI will internally create a context manager for it, and combine it with some other related tools.
+
+Note: In Python, you can create Context Managers by creating a class with two methods: __enter__() and __exit__().  Another way to create a context manager is with python's @contextlib.contextmanager or @contextlib.asynccontextmanager
+
+Note: "OpenID Connect" based on OAuth2 , but "OpenID" is a different specification
+
+Note: you could generate renadom secure string with "openssl rand -hex 32"
+
+237. What's a middleware in fastAPI? provide actual example
+
+  It's a function, it takes each request, optionaly modify it pass to the rest of application and optionaly modify the response. you mak also run any arbitruarry code before any path operation.
+  It can be defined with @app.middleware("http") decorator
+
+    import time
+
+    from fastapi import FastAPI, Request
+
+    app = FastAPI()
+
+    @app.middleware("http")
+    async def add_process_time_header(request: Request, call_next):
+        start_time = time.perf_counter()
+        response = await call_next(request)
+        process_time = time.perf_counter() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+
+238. How to implement time benchmark in python?
+  use  time.perf_counter() it provides nanosecond-level accuracy and not affected by system clock change
+  Example:
+
+    import time
+
+    start = time.perf_counter()
+
+    # Code you want to measure
+    time.sleep(2)
+    some_function()
+
+    end = time.perf_counter()
+    elapsed = end - start
+
+    print(f"Took {elapsed:.4f} seconds") # e.g., "Took 2.0015 seconds"
+
+239. What's FastAPI middleware execution order when multiple middlewares are added?
+
+  Middlewares form a stack
+
+  Last added = outermost, first added = innermost
+
+  Request: outermost → innermost → route
+
+  Response: route → innermost → outermost
+
+  Example:
+
+    app.add_middleware(MiddlewareA)
+    app.add_middleware(MiddlewareB)
+
+
+  Request: B → A → route
+  Response: route → A → B
+
+240. How to hangle CORS?
+  use build-in CORSMiddleware
+
+  from fastapi import FastAPI
+  from fastapi.middleware.cors import CORSMiddleware
+
+  app = FastAPI()
+
+  origins = [
+      "http://localhost.tiangolo.com",
+      "https://localhost.tiangolo.com",
+      "http://localhost",
+      "http://localhost:8080",
+  ]
+
+  app.add_middleware(
+      CORSMiddleware,
+      allow_origins=origins,
+      allow_credentials=True,
+      allow_methods=["*"],
+      allow_headers=["*"],
+  )
+
+
+  @app.get("/")
+  async def main():
+      return {"message": "Hello World"}
+
+241. Explain __init__.py pattern
+  It makes directory a Python package + controls imports
+
+  # Basic structure
+  my_project/
+  └── utils/
+      ├── __init__.py  ← Makes 'utils' importable
+      ├── math.py
+      └── text.py
+
+  # Common patterns:
+
+  1. Empty (just marks as package)
+    # __init__.py is empty
+
+    #Usage
+    from utils.math import add
+
+  2. Control imports (clean API)
+    # utils/__init__.py
+    from .math import add
+    from .text import clean
+    # Usage: from utils import add, clean
+
+242. Provide an example of usage of APIRouter
+  # in /app/routers/items.py
+
+  from fastapi import APIRouter, Depends, HTTPException
+
+  router = APIRouter(
+      prefix="/items",
+      tags=["items"],
+      dependencies=[Depends(get_token_header)],
+      responses={404: {"description": "Not found"}},
+  )
+  # both routes has the same dependencies executed and their path starts with '/items'
+  @router.get("/")
+  async def read_items():
+      return fake_items_db
+
+
+  @router.get("/{item_id}")
+  async def read_item(item_id: str):
+      if item_id not in fake_items_db:
+          raise HTTPException(status_code=404, detail="Item not found")
+      return {"name": fake_items_db[item_id]["name"], "item_id": item_id}
+
+
+      app = FastAPI(dependencies=[Depends(get_query_token)])
+
+  # in app/main.py
+  app = FastAPI()
+  # modules users, items, admin each has they own variable "router"
+  app.include_router(users.router)
+  app.include_router(items.router)
+
+  # you may provide extra configuration for router both when it's created and when it's included into the app
+  app.include_router(
+      admin.router,
+      prefix="/admin",
+      tags=["admin"],
+      dependencies=[Depends(get_token_header)],
+      responses={418: {"description": "I'm a teapot"}},
+  )
+
+  # You can also use .include_router() multiple times with the same router using different prefixes. This could be useful, for example, to expose the same API under different prefixes, e.g. /api/v1 and /api/latest.
+
+  #The same way you can include an APIRouter in a FastAPI application, you can include an APIRouter in another APIRouter using:
+  #router.include_router(other_router)
+
+243. Explain relative dependencies import "from ..dependencies import get_token_header"
+  .dependencies - search for file "dependencies" in the same folder
+  ..dependencies - go 1 folder up and look for file "dependencies"
+  ...dependencies - go 2 folder up and look for file "dependencies"
+
+  OR
+  from .routers import items, users
+  go to folder routers find files items, users and import them
+
+244. What are BackgroundTasks in FastAPI and when should you use them?
+  BackgroundTasks let you run functions after returning a response. Use them for non-critical, post-response work (e.g., sending emails, logging, light processing) so the client doesn’t wait. Tasks can be def or async def. Example:
+
+    from fastapi import BackgroundTasks, FastAPI
+
+    app = FastAPI()
+
+    def write_notification(email: str, message=""):
+        with open("log.txt", mode="w") as email_file:
+            content = f"notification for {email}: {message}"
+            email_file.write(content)
+
+    @app.post("/send-notification/{email}")
+    async def send_notification(email: str, background_tasks: BackgroundTasks):
+        background_tasks.add_task(write_notification, email, message="some notification")
+        return {"message": "Notification sent in the background"}
+
+245. How do BackgroundTasks work with FastAPI dependencies?
+
+  BackgroundTasks can be injected into path operations, dependencies, and sub-dependencies. FastAPI reuses the same instance, merges all added tasks, and executes them together after the response is sent. Example:
+
+    from typing import Annotated
+
+    from fastapi import BackgroundTasks, Depends, FastAPI
+
+    app = FastAPI()
+
+    def write_log(message: str):
+        with open("log.txt", mode="a") as log:
+            log.write(message)
+
+    def get_query(background_tasks: BackgroundTasks, q: str | None = None):
+        if q:
+            message = f"found query: {q}\n"
+            background_tasks.add_task(write_log, message)
+        return q
+
+    @app.post("/send-notification/{email}")
+    async def send_notification(
+        email: str, background_tasks: BackgroundTasks, q: Annotated[str, Depends(get_query)]
+    ):
+        message = f"message to {email}\n"
+        background_tasks.add_task(write_log, message)
+        return {"message": "Message sent"}
+
+246. How do you serve static files in FastAPI and what does "mounting" mean?
+  Use StaticFiles and mount it at a path. Mounting adds an independent sub-application that handles all subpaths under that prefix (not included in main OpenAPI/docs).
+
+    from fastapi import FastAPI
+    from fastapi.staticfiles import StaticFiles
+
+    app = FastAPI()
+
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+  /static → URL prefix
+
+  directory="static" → folder with files
+
+  StaticFiles comes from Starlette (re-exported by FastAPI)
+
+247. How to run tests?
+  pip install pytest # once
+  pytest
+
+248. Why is TOML important for consolidating Python configuration?
+
+  pyproject.toml acts as a single source of truth for:
+
+    Project metadata
+
+    Dependencies
+
+    Build system
+
+    Tool configuration
+
+  # pyproject.toml
+
+  [project]
+  dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29"
+  ]
+
+  dependencies can be installed with "pip install ."
+
+249. How are optional dependencies (extras) defined in TOML?
+  [project.optional-dependencies]
+  dev = ["pytest", "black", "mypy"]
+  docs = ["mkdocs"]
+
+  Install with: "pip install .[dev]"
+
+250. How does Poetry use pyproject.toml for dependencies?
+  Poetry defines dependencies under [tool.poetry.dependencies].
+
+  [tool.poetry.dependencies]
+  python = "^3.11"
+  fastapi = "^0.110"
+
+  Install with: "poetry install"
+
+=== FAST API DOCS END ===
+
+251. What does Python’s := (walrus operator) do?
+    It assigns a value to a variable inside an expression, letting you reuse the value without a separate assignment.
+
+    if (n := len(items)) > 0:
+        print(n)
+
+252. What does async for do in Python?
+  It iterates over an asynchronous iterable, awaiting each item as it becomes available (commonly used for streams).
+
+  async for chunk in completion:
+      handle(chunk)
+
+253. print(x, end="") VS print(x) explain dirrerence
+  print(x) is equivalent to print(x, end="\n"). So every call appends a newline.
+  print(x, end="") would print on the same line, like a typing effect, often used in streaming response of chat bots
+
+254. How to generate venv with particular python version?
+  uv venv --python python3.11
+
+255. What is @dataclass in Python and why is it used in projects?
+  @dataclass is a decorator that automatically generates boilerplate code for classes that primarily store data.
+
+  Auto-generates __init__, __repr__, __eq__
+
+  Makes data models concise and readable
+
+  Reduces bugs from manual initialization
+
+  Clearly signals "this class is a data container"
+    Example (without @dataclass)
+
+      class User:
+        def __init__(self, name: str, age: int):
+            self.name = name
+            self.age = age
+
+  Same example (with @dataclass)
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class User:
+        name: str
+        age: int
+
+  nested example:
+  @dataclass
+  class ContentedMessage(Message):
+      role = Role
+      content: list[ImgContent | TxtContent]
+
+  msg = ContentedMessage(
+      role=Role.USER,
+      content=[TxtContent("Hello"), ImgContent(ImgUrl("..."))]
+  )
+
+256. What does "rb" stands for when reding file and wen it's used?
+  read binary, use when file don't need to (cannot be) decoded using a text encoding,
+
+  for example (read image and convert to base64):
+    def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+257. How do you make a Python class that supports custom context management, both sync (with) and async (async with)? What methods are required and when are they used?
+
+  To make a class support context management, implement special “dunder” methods.
+
+
+  Definition:
+    class Resource:
+        def __enter__(self):
+          # setup logic
+            print("open resource")
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+          # cleanup logic
+          # return True to suppress exceptions
+            print("close resource")
+  Usage:
+    with Resource() as r:
+        pass
+
+  for async methods would be
+    async def __aenter__(self):
+      # async setup logic
+      return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        # async cleanup logic
+
+  It's mostly used as http client/ db layer
+
+  __aenter__ → runs when entering the async with block
+
+  __aexit__ → runs when exiting the block (even if an error occurs)
+
+    async def __aenter__(self):
+      self._client = httpx.AsyncClient(
+          base_url=self.base_url,
+          headers={'Api-Key': self.api_key},
+      )
+      return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        if self._client:
+            await self._client.aclose()
+
+258. What is io.BytesIO in Python? When should you use it, and how does it behave compared to files on disk?
+
+  io.BytesIO is an in-memory binary stream that behaves like a file opened in binary mode (rb / wb).
+
+    from io import BytesIO
+
+    with open(image_path, "rb") as f:
+        #Reads an image from disk as raw bytes
+        image_bytes = f.read()
+    # Wraps those bytes in a file-like object, Acts like a real binary file in memory
+    image_content = BytesIO(image_bytes)
+
+
+  Many libraries (e.g. httpx, requests, PIL, zipfile) expect an object that:
+
+  - Has .read(), .seek(), .tell()
+  - Behaves like an open file
+  - They cannot work with raw bytes alone.
+
+  Example (HTTP upload):
+
+  files = {
+      "image": ("banner.png", image_content, "image/png")
+  }
+
+  Why not pass bytes directly?
+    bytes != file; bytes has no cursor, no .read(), no .seek(); File-based APIs break without a file-like interface
+
+  If you write to a BytesIO, you must rewind before reading:
+    buf = BytesIO()
+    buf.write(image_bytes)
+    buf.seek(0)  # REQUIRED
+
+  This is not needed when using:
+    BytesIO(image_bytes)
+
+259. How to check folder exists?
+  os.path.exists("{folder_name}")
+
+260. What does `TRUNCATE TABLE vectors` do in PostgreSQL, and how does it differ from DELETE FROM vectors?
+  TRUNCATE TABLE vectors removes all rows instantly
+
+  Very fast because PostgreSQL, drops data pages and recreates empty ones.
+
+  Unlike DELETE: No WHERE, much faster, performs re-indexing, cannot be rolled back, Does not fire DELETE triggers.
+
+261. How do you establish a PostgreSQL connection (session) and cursor in psycopg2, and why would you use RealDictCursor?
+
+  import psycopg2
+  from psycopg2.extras import RealDictCursor
+
+  conn = psycopg2.connect(
+      host="localhost",
+      port=5435,
+      database="vectordb",
+      user="postgres",
+      password="postgres"
+  )
+
+  with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+      cursor.execute("SELECT text, embedding FROM vectors")
+      rows = cursor.fetchall()
+
+    Why use RealDictCursor?
+
+      Default cursor → rows returned as tuples: ("some text", [0.1, 0.2])
+
+      RealDictCursor → rows returned as dictionaries: {"text": "some text", "embedding": [0.1, 0.2]}
+
+262. explain return_exceptions argument in asyncio.gather
+  default - False
+
+  if False - first exception is immediately propagated to the task that awaits on gather(). Other awaitables in the aws sequence won’t be cancelled and will continue to run.
+
+  if True - exceptions are treated the same as successful results, and aggregated in the result list.
+
+263. How to define class getter?
+  with @property decorator:
+
+    @property
+    def name(self) -> str:
+        return 'get_user_by_id'
+
+264. How ro convert pydantic model to python object/ or json string?
+
+  model_dump() -  to python object
+  model_dump_json() - to json string
+
+265. What is Python’s defaultdict and how does it work?
+  `defaultdict` is a dictionary subclass from collections that automatically creates a default value for missing keys using a default factory function.
+  When a missing key is accessed, factory() is called to create its value.
+
+
+    from collections import defaultdict
+    d = defaultdict(factory)
+
+    counts = defaultdict(int)
+    counts["apple"] += 1
+    # counts["apple"] is 1 because int by default used `int` which created 0 and now increased by 1
+
+266. What are class methods (@classmethod) in Python?
+
+  class MCPClient:
+      default_timeout = 30
+
+      def __init__(self, url: str):
+          self.url = url
+          self.timeout = self.default_timeout
+
+      @classmethod
+      def create(cls, url: str):
+          # cls(url) calls __init__(url)
+          instance = cls(url)
+          return instance
+
+      @classmethod
+      def with_custom_timeout(cls, url: str, timeout: int):
+          instance = cls(url)
+          instance.timeout = timeout
+          return instance
+
+  # Usage
+  client = MCPClient.create("http://api.example.com")
+
+  # Key points:
+  # - First parameter is 'cls' (the class itself)
+  # - cls(args) calls __init__(args) to create instance
+  # - Can access class attributes: cls.default_timeout
+  # - Common use: alternative constructors
+
+267. How to delete property from object
+  use `del` keyword
+
+
+Note: optional in future: https://fastapi.tiangolo.com/advanced/

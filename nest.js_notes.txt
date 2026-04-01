@@ -1,0 +1,4946 @@
+1. How can you quickly create a CRUD controller with built-in validation in NestJS?
+  Use the CLI's CRUD generator with nest g resource [name].
+
+2. What does @HttpCode(204) do when used in a controller method?
+  It sets the HTTP status code for the response to 204 (No Content).
+
+3. What is the purpose of @Res() in NestJS?
+  It injects a library-specific response object (e.g., Express) to use native response handling methods.
+
+4. What happens if both @Res() and the standard response approach are used simultaneously in a handler?
+  The standard approach is automatically disabled for that route unless you enable it by setting @Res({ passthrough: true }).
+
+5. How can you enable both @Res() and the standard response approach for the same route?
+  Use @Res({ passthrough: true }).
+
+6. Why should you install the @types/express package in a NestJS project?
+  To leverage the Express typings, such as for the Request parameter in controller methods.
+
+7. What does the route path 'abcd/*' match in NestJS?
+  It matches abcd/ and anything under it like abcd/123.
+
+8. List some useful NestJS controller decorators.
+  @Headers(name?: string)
+  @Header(headerName: string, headerValue: string) (for setting a header)
+  @HostParam()
+  @Session() (access req.session)
+  @Redirect('https://nestjs.com', 301)
+
+9. What happens if both @Res() or @Next() and the standard response approach are used in the same NestJS route handler?
+  The standard approach is disabled for that route unless @Res({ passthrough: true }) is used.
+
+10. How does the @Redirect() decorator work in NestJS?
+  It redirects to a specified URL and status code but allows the handler to override the URL dynamically by returning a new one. Example
+  @Get('docs')
+  @Redirect('https://docs.nestjs.com', 302)
+  getDocs(@Query('version') version) {
+    if (version === '5') {
+      return { url: 'https://docs.nestjs.com/v5/' };
+    }
+  }
+
+11. How can you enable sub-domain routing (processing requests from specific subdomain) in NestJS?
+  Use the @Controller({ host: 'subdomain.example.com' }) decorator to match requests with a specific host.
+
+12. How can you capture dynamic host parameters in sub-domain routing?
+  Use tokens in the host field of @Controller() like :account.example.com and access them using @HostParam().
+
+  @Controller({ host: ':account.example.com' })
+  export class AccountController {
+    @Get()
+    getInfo(@HostParam('account') account: string) {
+      return account;
+    }
+  }
+
+13. Can NestJS handle RxJS observable streams as route handler return values?
+  Yes, it subscribes internally and resolves the final emitted value when the stream completes.
+
+  @Get()
+  findAll(): Observable<any[]> {
+    return of([]);
+  }
+
+14. What is an alternative way to dynamically set response headers in NestJS?
+  Use @Header(headerName: string, headerValue: string) before the handler or @Res() to directly modify the response.
+
+15. Why is it recommended to define DTOs as classes in NestJS instead of objects?
+  Classes persist after compilation to JavaScript, allowing features like Pipes to access the metatype of variables at runtime.
+
+16. How do you handle complex query parameters like nested objects or arrays in Express?
+  Use the extended query parser with the following configuration:
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('query parser', 'extended');
+
+17. How can you implement a library-specific response handling approach in NestJS?
+  Use the @Res() decorator to inject the response object (e.g., Express) and handle the response manually.
+
+  import { Controller, Get, Post, Res, HttpStatus } from '@nestjs/common';
+  import { Response } from 'express';
+
+  @Controller('cats')
+  export class CatsController {
+    @Post()
+    create(@Res() res: Response) {
+      res.status(HttpStatus.CREATED).send();
+    }
+
+    @Get()
+    findAll(@Res() res: Response) {
+      res.status(HttpStatus.OK).json([]);
+    }
+  }
+
+18. How to pass injectable service into a specific class in NestJS?
+  Pass the injectable service to the class constructor.
+
+  import { Injectable } from '@nestjs/common';
+
+  @Injectable()
+  export class MyService {}
+
+  @Controller('example')
+  export class MyController {
+    constructor(private readonly myService: MyService) {}
+  }
+
+19. How can you handle optional dependencies in a NestJS service class?
+  Use the @Optional() decorator in the constructor's signature.
+
+  import { Injectable, Optional, Inject } from '@nestjs/common';
+
+  @Injectable()
+  export class HttpService<T> {
+    constructor(@Optional() @Inject('HTTP_OPTIONS') private httpClient: T) {}
+  }
+
+20. What is the purpose of the @Optional() decorator in NestJS?
+  It marks a dependency as optional, meaning the absence of the provider won't result in an error.
+
+21. What is property-based injection in NestJS?
+  A technique where a provider is injected directly into a class property using the @Inject() decorator instead of the constructor. If your class doesn't extend another class, it's generally better to use constructor-based injection.
+
+  import { Injectable, Inject } from '@nestjs/common';
+
+  @Injectable()
+  export class HttpService<T> {
+    @Inject('HTTP_OPTIONS')
+    private readonly httpClient: T; // httpClient is 'HTTP_OPTIONS' now
+  }
+
+22. How can you dynamically retrieve existing provider instances in NestJS?
+  Use the Module reference to resolve or retrieve providers dynamically with ModuleRef
+
+23. What are the properties of the @Module() decorator in NestJS, and what are their purposes?
+
+  providers: Services to be instantiated by the Nest injector and shared within the module.
+
+  controllers: Defines which controllers are instantiated in the module.
+
+  imports: Lists external modules whose exported providers are required by this module.
+
+  exports: the subset of providers that are provided by this module and should be available in other modules which import this module. You can use either the provider itself or just its token (provide value)
+
+24. How does module encapsulation work in NestJS?
+  The module encapsulates providers by default, meaning you can only inject providers that are either part of the current module or explicitly exported from other imported modules.
+
+25. If module A exported ServiceA and service B imported module A, does module B has acccess to ServiceA?
+  Yes,  no need to specify ServiceA in providers
+
+26. Is it possible to directly import into module B service from module A via `providers`? Is it optimal?
+  It would work but create it's own instance of A`s service, so it's  not optimal
+
+27. Provide example of Module re-exporting
+  @Module({
+    imports: [CommonModule],
+    exports: [CommonModule],
+  })
+  export class CoreModule {}
+
+28. Can module class  inject providers as well? What for?
+  Yes, e.g. for configuration purposes.
+
+29. Can module classes be injected as providers
+  No, due to circular dependency
+
+30. Are nest modules/providers globally available by default (the same as Angular) or extra work required.
+
+  to make provider globbaly available use @Global() and exports like this:
+    @Global()
+    @Module({
+      providers: [CatsService],
+      exports: [CatsService],
+    })
+    export class CatsModule {}
+
+  In the above example, the CatsService provider will be ubiquitous, and modules that wish to inject the service will not need to import the CatsModule in their imports array.
+
+  Making everything global is not recommended as a design practice.
+
+31. What are dynamic modules in NestJS?
+  Dynamic modules are modules that can be configured at runtime, allowing flexible, customizable providers based on options or configurations.
+
+32. How do you define a dynamic module in NestJS?
+ By using a static method (forRoot() or forRootAsync()) that returns a DynamicModule object containing runtime-specific providers.
+  Definition
+
+    @Module({
+      providers: [Connection],
+      exports: [Connection],
+    })
+    export class DatabaseModule {
+      static forRoot(entities = [], options?): DynamicModule {
+        const providers = createDatabaseProviders(options, entities);
+        return {
+          module: DatabaseModule,
+          providers: providers,
+          exports: providers,
+        };
+      }
+    }
+
+  Usage
+
+  @Module({
+    imports: [DatabaseModule.forRoot([User])],
+  })
+  export class AppModule {}
+
+33. What is the difference between forRoot() and forRootAsync() in a dynamic module?
+  forRoot(): Used for static or immediately available configuration.
+  forRootAsync(): Fetches configuration asynchronously, e.g., from APIs or environment variables.
+
+34. Provide example of middleware defined as class.
+  import { Injectable, NestMiddleware } from '@nestjs/common';
+  import { Request, Response, NextFunction } from 'express';
+
+  @Injectable()
+  export class LoggerMiddleware implements NestMiddleware {
+    use(req: Request, res: Response, next: NextFunction) {
+      console.log('Request...');
+      next();
+    }
+  }
+
+35. Provide example of middleware defined as function.
+  import { Request, Response, NextFunction } from 'express';
+
+  export function logger(req: Request, res: Response, next: NextFunction) {
+    console.log(`Request...`);
+    next();
+  };
+
+36. How to use middleware in module?
+  Use configure function to apply middleware(s)
+
+    @Module({
+      imports: [CatsModule],
+    })
+    export class AppModule implements NestModule {
+      configure(consumer: MiddlewareConsumer) {
+        consumer
+          .apply(LoggerMiddleware) // takes 1+ middleware classes/functions
+          .forRoutes({ path: 'cats', method: RequestMethod.GET }); // reg exp for path is allowed
+      }
+    }
+
+37. What can be passed to MiddlewareConsumer forRoutes?
+  - RouteInfo object with 'path' and 'method' fields
+  - string
+  - controller class
+
+38. Is json and urlencoded from the package body-parser enabled by default? what should be done to enable/disable?
+  It is enabled by default. if you want to customize that middleware via the `MiddlewareConsumer`, you need to turn off the global middleware by setting the `bodyParser` flag to `false` when creating the application with NestFactory.create().
+
+39. Is reg exp allowed in RouteInfo object?
+  yes:
+    forRoutes({
+      path: 'abcd/{*splat}',
+      method: RequestMethod.ALL,
+    });
+
+    see path-to-regexp package
+
+40. How to apply multiple middlewares?
+  apply allows multiple arguments.
+
+
+  // consumer is an argument of type MiddlewareConsumer used in `configure` function (the standart way of using middlewares in modules)
+  consumer.apply(cors(), helmet(), logger).forRoutes(CatsController);
+
+41. How to exclude particular routes from being used with middlewares?
+  with exclude function. takes string/RouteInfo object
+
+  // consumer is an argument of type MiddlewareConsumer used in `configure` function (the standart way of using middlewares in modules)
+  consumer
+  .apply(LoggerMiddleware)
+  .exclude(
+    { path: 'cats', method: RequestMethod.GET },
+    { path: 'cats', method: RequestMethod.POST },
+    'cats/{*splat}',
+  )
+  .forRoutes(CatsController);
+
+42. What is reccomended approach to middleware. To define it as class or as function?
+  Consider using the simpler functional middleware any time your middleware doesn't need any dependencies.
+
+43. How to apply middleware globally for each route?
+  with app.use() Example:
+
+    const app = await NestFactory.create(AppModule);
+    app.use(logger);
+    await app.listen(process.env.PORT ?? 3000);
+
+44. How can you access the DI container in global middleware in NestJS?
+  Accessing the DI container is not possible with global middleware applied using app.use(). To access the DI container:
+
+  Use class-based middleware and apply it with .forRoutes('*') in the AppModule or another module.
+  Alternatively, use functional middleware if dependency injection is not required.
+
+45. What is the role of the built-in exceptions layer in NestJS?
+  The built-in exceptions layer in NestJS processes all unhandled exceptions. It catches these exceptions and automatically sends an appropriate, user-friendly response to the client.
+
+46. what exeptions are handled by built-in global exception filter?
+  HttpException type exceptions (and subclasses of it). When an exception is unrecognized (is neither HttpException nor a class that inherits from HttpException), the built-in exception filter generates the following default JSON response:
+    {
+      "statusCode": 500,
+      "message": "Internal server error"
+    }
+
+47. How to throw standard exceptions?
+  import { HttpException, HttpStatus } from '@nestjs/common';
+
+  //in controller or service method
+  throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+48. Provide example of extending HttpException class
+
+  import { HttpException, HttpStatus } from '@nestjs/common';
+
+  export class CustomException extends HttpException {
+    constructor(error: object, status: HttpStatus) {
+      super(HttpException.createBody(error), status); // or just pass string as first argument
+    }
+  }
+
+49. How do you override the default HttpException response body in NestJS?
+  To override just the message field, pass a string as the response argument.
+  To override the entire JSON response body, pass an object as the response argument.
+  Nest will serialize the object and return it as the response body.
+
+  throw new HttpException('Custom error message', 400); // Overrides message only
+
+  throw new HttpException({ error: 'Invalid input', details: 'ID is required' }, 400); // Overrides entire response
+
+50. What is the optional third argument in the HttpException constructor, and how is it used?
+  The optional third argument (options) allows you to provide an error cause, which is not serialized in the response but can be used for logging or debugging to understand the underlying error. Also you may provide `description` in options section
+
+51. Does Nest logs WsException/RpcException/HttpException by default?
+  No since they are part of the normal application flow
+
+sidenote: https://docs.nestjs.com/exception-filters#built-in-http-exceptions - list of build in http exceptions
+
+52 What is the purpose of exception filters in Nest.js?
+  Exception filters give full control over the exception handling layer, enabling logging, dynamic JSON responses, or other custom logic.
+
+53. What does the @Catch() decorator do?
+  The @Catch() decorator binds metadata to an exception filter, specifying which exception types the filter handles.
+
+54. How can an exception filter access the Request and Response objects?
+  By using the ArgumentsHost object and methods like host.switchToHttp(), .getRequest<Request>(), and .getResponse<Response>().
+
+55. Why is ArgumentsHost used in the catch() of exception filters method?
+  ArgumentsHost abstracts the execution context, enabling exception filters to work across different contexts like HTTP, WebSockets, or Microservices
+
+56. What method should exception filters implement?
+  The catch(exception: T, host: ArgumentsHost) method, where T is the exception type.
+
+57. Write the code for a custom exception filter for HttpException.
+  @Catch(HttpException)
+  export class HttpExceptionFilter implements ExceptionFilter {
+    catch(exception: HttpException, host: ArgumentsHost) {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const request = ctx.getRequest<Request>();
+      const status = exception.getStatus();
+
+      response
+        .status(status)
+        .json({
+          statusCode: status,
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+    }
+  }
+
+58. How do you apply an exception filter to a single route handler?
+  Use the @UseFilters() decorator:
+
+  @Post()
+  @UseFilters(new HttpExceptionFilter())
+  async create(@Body() createCatDto: CreateCatDto) {
+    throw new ForbiddenException();
+  }
+
+59. How can filters be reused and reduce memory usage?
+  Apply filters using their class directly instead of creating instances:
+
+  @UseFilters(HttpExceptionFilter)
+
+60. How can an exception filter be applied to all route handlers in one controller?
+  Use the @UseFilters() decorator at the controller level:
+
+  @Controller()
+  @UseFilters(new HttpExceptionFilter())
+  export class CatsController {}
+
+61. How do you set up a global exception filter in a Nest.js application?
+  Use useGlobalFilters() in main.ts:
+
+  async function bootstrap() {
+    const app = await NestFactory.create(AppModule);
+    app.useGlobalFilters(new HttpExceptionFilter());
+    await app.listen(process.env.PORT ?? 3000);
+  }
+
+62. How can exception filters operate across multiple contexts (e.g., HTTP, WebSockets)?
+  By utilizing ArgumentsHost, which abstracts the execution context and provides helper methods for accessing platform-specific objects.
+
+63. How can multiple exception filters be applied at the same time?
+  Pass a comma-separated list of filter instances or classes to the @UseFilters() decorator:
+
+  @UseFilters(FilterA, FilterB)
+
+64. Why is it usefull to register global filters within a module?
+  It allows for dependency injection, which is not possible when registering filters outside the module context.
+  Example:
+
+  1) Dependency to be used:
+  @Injectable()
+  export class LoggingService {
+    private readonly logger = new Logger(LoggingService.name);
+
+    logException(exception: unknown) {
+      this.logger.error(
+        `Logging exception: ${JSON.stringify(exception)}`
+      );
+    }
+  }
+
+  2) Exception Filter
+
+  @Catch(HttpException)
+  export class HttpExceptionLoggerFilter implements ExceptionFilter {
+    constructor(private readonly loggingService: LoggingService) {}
+
+    catch(exception: HttpException, host: ArgumentsHost) {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const request = ctx.getRequest<Request>();
+      const status = exception.getStatus();
+
+      this.loggingService.logException({
+        statusCode: status,
+        path: request.url,
+        message: exception.message,
+        timestamp: new Date().toISOString(),
+      });
+
+      response
+        .status(status)
+        .json({
+          statusCode: status,
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+    }
+  }
+
+  3) enable global usage of the filter and inject the LoggingService in root module
+  @Module({
+    providers: [
+      LoggingService,   // Ensure the LoggingService is injectable
+      {
+        provide: APP_FILTER,  // Register the global filter using dependency injection
+        useClass: HttpExceptionLoggerFilter,
+      },
+    ],
+  })
+  export class AppModule {}
+
+65. How and why should you extend default exception filter:
+  Use it override the behavior based on certain factors. Do it by extending BaseExceptionFilter. Example:
+
+  import { Catch, ArgumentsHost } from '@nestjs/common';
+  import { BaseExceptionFilter } from '@nestjs/core';
+
+  @Catch()
+  export class AllExceptionsFilter extends BaseExceptionFilter {
+    catch(exception: unknown, host: ArgumentsHost) {
+      super.catch(exception, host);
+    }
+  }
+
+66. What are the two typical use cases for pipes in Nest.js?
+  Transformation: Convert input data to the desired form (e.g., from string to integer).
+  Validation: Evaluate input data and either pass it through unchanged if valid or throw an exception if invalid.
+
+67. When do pipes operate in Nest.js during a request lifecycle?
+  Pipes operate before a controller route handler is invoked, processing the arguments destined for the method. Nest interposes a pipe just before a method is invoked, and the pipe receives the arguments destined for the method and operates on them. Any transformation or validation operation takes place at that time, after which the route handler is invoked with any (potentially) transformed arguments.
+
+68. What happens when a pipe throws an exception in Nest.js, and why is this considered a best practice for data validation?
+  Pipes run inside the exceptions zone. This means that when a Pipe throws an exception it is handled by the exceptions layer (global exceptions filter and any exceptions filters that are applied to the current context). An exception is thrown in a Pipe, no controller method is subsequently executed. This gives you a best-practice technique for validating data coming into the application from external sources at the system boundary.
+
+69. Provide Method specific decorator example.
+  @Catch(Error, (err) => ({ __error: err }))
+  private async requestEEF() {
+    const eef = new EEF(this.logger);
+
+    return await eef.send();
+  }
+
+70. What does the ValidationPipe do?
+  The ValidationPipe evaluates incoming request data according to specified class-validator rules and throws an exception if the data is invalid.
+
+71. What does the ParseDatePipe do?
+  The ParseDatePipe parses a string argument into a valid JavaScript Date object. If the input can't be parsed into a valid date, it throws a BadRequestException.
+
+72. What does the ParseIntPipe do?
+  The ParseIntPipe attempts to parse a string argument into an integer. If parsing fails, it throws a BadRequestException.
+
+73. What does the ParseFloatPipe do?
+  The ParseFloatPipe parses a string argument into a floating-point number. If the input is not a valid float, it throws a BadRequestException.
+
+74. What does the ParseBoolPipe do?
+  The ParseBoolPipe parses a string argument into a boolean. Acceptable values include "true" and "false". Invalid inputs result in a BadRequestException.
+
+75. What does the ParseArrayPipe do?
+  The ParseArrayPipe validates and parses incoming data into an array format. Options such as element validation can be specified for stricter checks.
+
+76. What does the ParseUUIDPipe do?
+  The ParseUUIDPipe validates that a string argument is a valid UUID format (v1, v4, etc.). Invalid UUIDs result in a BadRequestException.
+
+77. What does the ParseEnumPipe do?
+  The ParseEnumPipe validates that an argument belongs to a predefined enum. If the value doesn't match any enum member, it throws a BadRequestException.
+
+78. What does the DefaultValuePipe do?
+  The DefaultValuePipe provides a default value for an argument if the argument is undefined or missing in the request.
+
+79. What does the ParseFilePipe do?
+  The ParseFilePipe processes and validates uploaded files and ensures they meet specified constraints, such as file size or type.
+
+80. In what context do pipes operate in a Nest.js application?
+  Pipes all work in the context of validating route parameters, query string parameters and request body values.
+
+81. Provide an example of pipe being used
+
+  @Get()
+  async findOne(@Query('id', ParseIntPipe) id: number) {
+    return this.catsService.findOne(id);
+  }
+
+  // pipe can be passed as new ParseIntPipe here to futher configuration
+
+82. How to create custom validation pipe?
+  it should extend `PipeTransform<T, R> ` interface.
+
+  PipeTransform<T, R> is a generic interface that must be implemented by any pipe. The generic interface uses T to indicate the type of the input value, and R to indicate the return type of the transform() method.
+  class should implement transform method, which take two params `value` and `metadata`
+  metadata is of following type:
+  export interface ArgumentMetadata {
+    type: 'body' | 'query' | 'param' | 'custom';
+    metatype?: Type<unknown>;
+    data?: string;
+  }
+
+  `type` indicates whether it's a body, query, param   or a custom parameter
+
+  simple example:
+  @Injectable()
+  export class ValidationPipe implements PipeTransform {
+    transform(value: any, metadata: ArgumentMetadata) {
+      return value;
+    }
+  }
+
+83. What are the four scopes available for pipes in NestJS?
+  Global-Scoped: Applied application-wide via app.useGlobalPipes().
+  Controller-Scoped: Applied to an entire controller via @UsePipes() at the class level.
+  Method-Scoped: Applied to a specific method (e.g., pipes passed in decorator arguments like @Post()).
+  Parameter-Scoped: Applied to specific parameters in a method (e.g., @Body(new ValidationPipe())).
+
+84. Are all pipes synchronous?
+  No, nest.js supports async pipes, to difine, create class implementing PipeTransform, mark `transform` as async method.
+
+85. How can you solve the dependency injection limitation for global pipes in NestJS?
+  Register the pipe within a module using the APP_PIPE token:
+
+  @Module({
+    providers: [
+      {
+        provide: APP_PIPE,
+        useClass: ValidationPipe,
+      },
+    ],
+  })
+  export class AppModule {}
+
+86. How can you handle missing query parameters when using Parse* pipes in NestJS? Provide examples.
+
+  To handle missing query parameters with Parse* pipes (like ParseBoolPipe or ParseIntPipe), use the DefaultValuePipe. It injects a default value when the parameter is null or undefined, preventing exceptions.
+
+    @Get()
+    async findAll(
+      @Query('activeOnly', new DefaultValuePipe(false), ParseBoolPipe) activeOnly: boolean,
+      @Query('page', new DefaultValuePipe(0), ParseIntPipe) page: number,
+    ) {
+      return this.catsService.findAll({ activeOnly, page });
+    }
+
+87. What is a guard in NestJS?
+  A guard in NestJS is a class annotated with the @Injectable() decorator that implements the CanActivate interface.
+
+  Guards have a single responsibility. They determine whether a given request will be handled by the route handler or not, depending on certain conditions (like permissions, roles, ACLs, etc.) present at run-time.
+
+  This is often referred to as authorization.
+
+  guard class shorl have method canActivate taking ExecutionContext (extengs ArgumentsHost) as single argument and returning boolean value (indicating whether to allow request).
+
+88.  What are the key differences between middleware and guards in NestJS?
+
+  Middleware: "Dumb" by nature, tied to the request/response cycle without an awareness of execution context. Does not know which route handler will be executed after next().
+
+  Guards: Accesses the ExecutionContext instance, knowing which route handler will run next.
+
+89. In which order related to pipes and middlewares guards are executed?
+  Guards are executed after all middleware, but before any interceptor or pipe.
+
+90. What are scope of guards?
+  global/controller/method
+
+91. How to attach guard?
+  with UseGuards decorator or app.useGlobalGuards(intance) - for global one
+
+92. How to use dependency injection with global guard?
+  @Module({
+    providers: [
+      {
+        provide: APP_GUARD,
+        useClass: RolesGuard,
+      },
+    ],
+  })
+  export class AppModule {}
+
+93. How do you create a custom authorization guard using roles in NestJS? Provide an example.
+
+  Guard Implementation:
+
+    @Injectable()
+    export class RolesGuard implements CanActivate {
+      constructor(private reflector: Reflector) {}
+
+      canActivate(context: ExecutionContext): boolean {
+        const roles = this.reflector.get('roles', context.getHandler()); // Retrieve roles metadata
+        if (!roles) {
+          return true; // If no roles are specified, allow access
+        }
+        const request = context.switchToHttp().getRequest();
+        const user = request.user; // Assume the user object is attached to the request
+        return matchRoles(roles, user.roles); // Check if user roles match required roles
+      }
+    }
+
+  Roles Decorator:
+
+    import { SetMetadata } from '@nestjs/common';
+    export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
+  Using the Roles Guard and Decorator:
+
+    @Post()
+    @Roles(['admin']) // Attach required roles
+    async create(@Body() createCatDto: CreateCatDto) {
+      this.catsService.create(createCatDto); // Only 'admin' can access this endpoint
+    }
+
+94. What is the default behavior of Nest.js if guard returned false? How to override it?
+  by default ForbiddenException is thrown
+  can be overriden by throwing custom error in guard
+
+95. What Interceptors are used for?
+  - bind extra logic before / after method execution
+  - transform the result returned from a function
+  - transform the exception thrown from a function
+  - extend the basic function behavior
+  - completely override a function depending on specific conditions (e.g., for caching purposes)
+
+96. Explain NestInterceptor interface.
+  method intercept takes 2 params: ExecutionContext instance and CallHandler
+
+  The CallHandler interface implements the handle() method, which you can use to invoke the route handler method at some point in your interceptor.
+
+  If you don't call the handle() method in your implementation of the intercept() method, the route handler method won't be executed at all. Once handle() is called (and its Observable has been returned), the method's handler will be triggered.
+
+  handle() method returns an Observable, as a result, you may implement custom logic both before and after the execution of the final route handler.
+  Once the response stream is received via the Observable, additional operations can be performed on the stream, and a final result returned to the caller.
+
+97. Can Interceptors inject dependencies?
+  Yes as well as controllers, providers, guards, and so on, they can inject dependencies through their constructor.
+
+98. Provide example of Timeout Interceptor.
+  @Injectable()
+  export class TimeoutInterceptor implements NestInterceptor {
+    constructor(private readonly timeoutMs: number = 5000) {} // Default timeout is 5000ms
+
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+      return next.handle().pipe(
+        timeout(this.timeoutMs), // Apply timeout
+        catchError((err) => {
+          // Throw a specific exception for timeout events
+          if (err.name === 'TimeoutError') {
+            throw new RequestTimeoutException('Request timed out');
+          }
+          throw err; // Re-throw other errors
+        }),
+      );
+    }
+  }
+
+99. Provide example of Logging interceptor.
+  @Injectable()
+  export class LoggingInterceptor implements NestInterceptor {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+      console.log('Before...');
+
+      const now = Date.now();
+      return next
+        .handle()
+        .pipe(
+          tap(() => console.log(`After... ${Date.now() - now}ms`)),
+        );
+    }
+  }
+
+100. How to bind interceptor to controller/method/globally?
+  @UseInterceptors for controller/method,
+  app.useGlobalInterceptors with additional settings in module for dependencies
+
+    @Module({
+    providers: [
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: LoggingInterceptor,
+        },
+      ],
+    })
+    export class AppModule {}
+
+101. Provide example of interceptor mapping responce (movind res data into 'data' property).
+
+  @Injectable()
+  export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
+      return next.handle().pipe(map(data => ({ data })));
+    }
+  }
+
+102. Are Nest interceptors always synchronous?
+  no, they are async when async added before `intercept` method
+
+103. Provide example of interceptors rewriting override thrown exceptions.
+
+  @Injectable()
+  export class ErrorsInterceptor implements NestInterceptor {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+      return next
+        .handle()
+        .pipe(
+          catchError(err => throwError(() => new BadGatewayException())),
+        );
+    }
+  }
+
+104. provide example of cache Interceptor
+
+  import { Observable, of } from 'rxjs';
+
+  @Injectable()
+  export class CacheInterceptor implements NestInterceptor {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+      const isCached = true;
+      if (isCached) {
+        return of([]);
+      }
+      return next.handle();
+    }
+  }
+
+105. Provide example of custom decorator
+
+  // data is optional param passed to decorator (if none used, specify type as unknown)
+  export const User = createParamDecorator(
+    (data: string, ctx: ExecutionContext) => {
+      const request = ctx.switchToHttp().getRequest();
+      const user = request.user;
+
+      return data ? user?.[data] : user;
+    },
+  );
+
+  usage:
+  @Get()
+  async findOne(@User('firstName') firstName: string) {
+    console.log(`Hello ${firstName}`);
+  }
+
+106. Middleware vs Guards vs Pipes vs Interceptors vs Decorators (Purpose comparison);
+  - Middleware: Process requests before reaching the handler
+  - Guards: Authorization and access control
+  - Pipes: Data transformation and validation
+  - Interceptors: Transform/modify requests/responses
+  - Decorators: Metadata-based behavioral modification
+
+107 Middleware vs Guards vs Pipes vs Interceptors vs Decorators (Execution Point comparison);
+  Middleware -> Guards -> Pipes
+  - Interceptors: Around the route handler - could modify both request and response
+  - Decorators: Compile-time (evaluated at runtime)
+
+108 Middleware vs Guards vs Pipes vs Interceptors vs Decorators (Use Cases comparison);
+  - Middleware: Logging, request modification, auth
+  - Guards: Role-based access, permission checks
+  - Pipes: Validating incoming payloads, data conversion
+  - Interceptors: Logging, monitoring, response transformation
+  - Decorators: Extracting request data, custom metadata
+
+109. how to implement decorators composition?
+  with applyDecorators
+
+    import { applyDecorators } from '@nestjs/common';
+
+    export function Auth(...roles: Role[]) {
+      return applyDecorators(
+        SetMetadata('roles', roles),
+        UseGuards(AuthGuard, RolesGuard),
+        ApiBearerAuth(),
+        ApiUnauthorizedResponse({ description: 'Unauthorized' }),
+      );
+    }
+
+  usage:
+    @Get('users')
+    @Auth('admin')
+    findAllUsers() {}
+
+  This has the effect of applying all four decorators with a single declaration.
+
+110. Is there a decorators not compatible with applyDecorators utility
+  The @ApiHideProperty() decorator from the @nestjs/swagger package is not composable and won't work properly with the applyDecorators function
+
+111. How does the Nest IoC container handle dependency injection, and what is the role of the dependency graph?
+
+  When instantiating a controller (e.g., `CatsController`), the Nest IoC container looks for dependencies (e.g., `CatsService`).
+  For each dependency, it performs a lookup on the token, retrieves the class, and resolves it.
+  For SINGLETON scope (default), it creates an instance of the dependency, caches it, and reuses it for subsequent requests. This process is transitive, meaning if a dependency (e.g., `CatsService`) has its own dependencies, they are resolved first.
+
+  This "dependency graph" ensures correct resolution order ("bottom-up") during application bootstrapping, simplifying complex dependency management for developers.
+
+112 What can you do if you're having problems with dependency resolution in a NestJS application?
+  You can set the NEST_DEBUG environment variable to get extra dependency resolution logs during startup.
+
+113. How are providers registered in NestJS and what is the shorthand syntax for providers property?
+  The providers property takes an array of providers, which can be defined explicitly as:
+
+    providers: [
+      {
+        provide: CatsService,
+        useClass: CatsService,
+      },
+    ];
+
+  This associates the CatsService `token` with the CatsService `class`. The shorthand syntax providers: [CatsService] simplifies this process for cases where the token matches the class name, serving as a convenient default for the most common use-case.
+
+114. name use cases for custom providers
+  You want to create a custom instance instead of having Nest instantiate (or return a cached instance of) a class
+  You want to re-use an existing class in a second dependency
+  You want to override a class with a mock version for testing
+
+115. How can the `useValue` syntax be used in NestJS providers, and what's an example?
+
+  The `useValue` syntax is useful for injecting a constant value, integrating an external library into the Nest container, or replacing a real implementation with a mock object (e.g., for testing).
+  example:
+
+    import { CatsService } from './cats.service';
+
+    const mockCatsService = {
+      /* mock implementation */
+    };
+
+    @Module({
+      imports: [CatsModule],
+      providers: [
+        {
+          provide: CatsService,
+          useValue: mockCatsService,
+        },
+      ],
+    })
+    export class AppModule {}
+
+116. How can non-class-based provider tokens, like strings or symbols, be used in NestJS, and how can they be injected?
+
+  Non-class-based provider tokens like strings, symbols, or TypeScript enums can be used for flexibility.
+
+  Example of defining a provider with a string token:
+
+    import { connection } from './connection';
+
+    @Module({
+      providers: [
+        {
+          provide: 'CONNECTION', // String-valued token
+          useValue: connection,  // Pre-existing connection object
+        },
+      ],
+    })
+    export class AppModule {}
+
+  Injecting a provider with a custom token using @Inject:
+
+    @Injectable()
+    export class CatsRepository {
+      constructor(@Inject('CONNECTION') connection: Connection) {}
+    }
+
+
+  The @Inject() decorator is imported from the @nestjs/common package.
+
+  It's best practice to define custom tokens (e.g., 'CONNECTION') in a separate file like constants.ts to improve code organization.
+
+  In addition to using strings, you can also use JavaScript symbols or TypeScript enums as tokens.
+
+  property connection in CatsRepository is now `connection` from './connection'
+
+117. How can you use the useClass syntax for dynamic class-based provider resolution in NestJS?
+  The useClass syntax allows dynamically choosing a class implementation for a token during runtime, based on conditions like environment variables.
+
+  const configServiceProvider = {
+    provide: ConfigService, // Token
+    useClass:
+      process.env.NODE_ENV === 'development'
+        ? DevelopmentConfigService
+        : ProductionConfigService, // Dynamic resolution based on environment
+  };
+
+  @Module({
+    providers: [configServiceProvider], // Register the provider
+  })
+  export class AppModule {}
+
+  Key Details:
+
+    Dynamic Resolution: Based on the NODE_ENV environment variable, either the DevelopmentConfigService or ProductionConfigService class is chosen at runtime.
+
+    Token: The token is `ConfigService`, so any class depending on ConfigService will receive the dynamically resolved implementation.
+
+    Overriding Default Implementations: This mechanism overrides any default `ConfigService` implementation that might have been declared elsewhere (e.g., with the @Injectable() decorator).
+
+    Code Organization: The provider is defined as a literal object (configServiceProvider) before being passed into the providers array for better readability.
+
+118. How does the useFactory syntax work for creating dynamic providers in NestJS?
+  The useFactory syntax allows for generating providers dynamically by using a factory function. The factory function can optionally depend on other providers.
+
+    const connectionProvider = {
+      provide: 'CONNECTION',
+      useFactory: (optionsProvider: MyOptionsProvider, optionalProvider?: string) => {
+        const options = optionsProvider.get();
+        return new DatabaseConnection(options);
+      },
+      inject: [MyOptionsProvider, { token: 'SomeOptionalProvider', optional: true }],
+      //       \______________/             \__________________/
+      //        This provider                The provider with this token
+      //        is mandatory.                can resolve to `undefined`.
+    };
+
+    @Module({
+      providers: [
+        connectionProvider,
+        MyOptionsProvider, // class-based provider
+        // { provide: 'SomeOptionalProvider', useValue: 'anything' },
+      ],
+    })
+    export class AppModule {}
+
+
+  Key Details:
+
+    Factory Function: The factory function creates the provider dynamically, and its return value is used as the provider.
+      Example: new DatabaseConnection(options) provides the final object.
+
+    Arguments: The factory function can accept arguments, which are instances of other providers resolved by Nest.
+
+    Inject Property: The inject array specifies the tokens of dependencies to be resolved and passed as arguments to the factory function (in the same order).
+
+      Example: MyOptionsProvider for mandatory dependency.
+      Optional providers (like 'SomeOptionalProvider') are marked with { optional: true } and can resolve to undefined.
+
+    Flexibility: This method is highly customizable and allows dynamic creation of providers, incorporating both mandatory and optional dependencies.
+
+
+118. How does the useExisting syntax work in context of NestJS providers?
+
+  The useExisting syntax in NestJS allows you to create aliases for existing providers. This enables multiple ways to access the same provider.
+
+  example:
+    @Injectable()
+    class LoggerService {
+      /* implementation details */
+    }
+
+    const loggerAliasProvider = {
+      provide: 'AliasedLoggerService',   // Alias (string-based token)
+      useExisting: LoggerService,       // Existing provider (class-based token)
+    };
+
+    @Module({
+      providers: [LoggerService, loggerAliasProvider],
+    })
+    export class AppModule {}
+
+  'AliasedLoggerService' is an alias for the LoggerService.
+  Both tokens point to the same LoggerService instance, maintaining singleton behavior when the scope is Singleton.
+
+119. How to supply Non-service based providers in Nest.js?
+  with useFactory
+
+  example:
+    const configFactory = {
+      provide: 'CONFIG',
+      useFactory: () => {
+        return process.env.NODE_ENV === 'development' ? devConfig : prodConfig;
+      },
+    };
+
+    @Module({
+      providers: [configFactory],
+    })
+    export class AppModule {}
+
+120. How do you export a custom provider in NestJS, and why is it necessary?
+
+  You can export a custom provider using:
+    - Its token
+    - The full provider object
+
+121. What are asynchronous providers in NestJS, and how are they implemented?
+  Asynchronous providers in NestJS are used when the application startup should be delayed until one or more asynchronous tasks are completed.
+  Can be defined by passing `async` function to `useFactory` property of provider object.
+  Use case: Delaying the app startup until a database connection is established.
+
+122. What is a dynamic module in NestJS, and how can it be used with a static register()/forRoot() method?
+  A dynamic module in NestJS is a module created at runtime, with all the same properties as a static module, plus one required property called module.
+
+  Dynamic modules must return an object with all typical module properties (e.g., providers, imports, exports) and an additional module property.
+
+  The @Module() decorator's imports property can take a dynamic module returned from a static method (e.g., ConfigModule.register()).
+    Example (Dynamic Module registeration):
+
+      import { Module } from '@nestjs/common';
+      import { AppController } from './app.controller';
+      import { AppService } from './app.service';
+      import { ConfigModule } from './config/config.module';
+
+      @Module({
+        imports: [ConfigModule.register({ folder: './config' })],  // Using ConfigModule's static method
+        controllers: [AppController],
+        providers: [AppService],
+      })
+      export class AppModule {}
+
+    Example (Dynamic Module):
+
+      @Module({})
+      export class ConfigModule {
+        static register(options: Record<string, any>): DynamicModule {
+          return {
+            module: ConfigModule,
+            providers: [
+              {
+                provide: 'CONFIG_OPTIONS',
+                useValue: options,
+              },
+              ConfigService,
+            ],
+            exports: [ConfigService],
+          };
+        }
+      }
+
+    Example (downstream service):
+
+      @Injectable()
+      export class ConfigService {
+        private readonly envConfig: EnvConfig;
+
+        constructor(@Inject('CONFIG_OPTIONS') private options: Record<string, any>) {
+          const filePath = `${process.env.NODE_ENV || 'development'}.env`;
+          const envFile = path.resolve(__dirname, '../../', options.folder, filePath);
+          this.envConfig = dotenv.parse(fs.readFileSync(envFile));
+        }
+
+        get(key: string): string {
+          return this.envConfig[key];
+        }
+      }
+
+  A dynamic module can encapsulate logic and dependencies, making it reusable with varying configurations in different parts of the application.
+
+123. What is the difference between `register`, `forRoot`, and `forFeature` methods in NestJS modules?
+
+  register: Used to configure a dynamic module with a specific configuration that is local to the calling module.
+
+  forRoot: Used to configure a dynamic module once with a shared configuration that is reused globally across the application. Typically used for modules that provide global services or resources (e.g., database connections, GraphQL, etc.).
+
+  forFeature: Used to build on the shared configuration from forRoot but adjust specific settings for the calling module's individual needs. For example typeorm for specific repo.
+
+  registerAsync/forRootAsync/forFeatureAsync - async version
+
+  *it's a Community guideline, not a rule.
+
+124. What is the ConfigurableModuleBuilder in NestJS, and how does it simplify the creation of configurable, dynamic modules?
+
+  The ConfigurableModuleBuilder in NestJS simplifies the process of manually creating highly configurable and dynamic modules that expose both synchronous (register) and asynchronous (registerAsync) methods.
+
+  steps:
+    1. Define an interface for options:
+    Create an interface to represent the configuration options for the module.
+      export interface ConfigModuleOptions {
+        folder: string;
+      }
+
+    2. Create a module-definition file:
+    Use ConfigurableModuleBuilder to construct the module definition.
+
+      // config.module-definition.ts
+      import { ConfigurableModuleBuilder } from '@nestjs/common';
+      import { ConfigModuleOptions } from './interfaces/config-module-options.interface';
+
+      export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN } =
+        new ConfigurableModuleBuilder<ConfigModuleOptions>().build();
+
+
+      ConfigurableModuleClass: Auto-generates a base class with register and registerAsync methods.
+      MODULE_OPTIONS_TOKEN: Provides a reference token for the configuration options.
+
+
+    3. Extend the ConfigurableModuleClass:
+    Modify the actual module implementation to use the auto-generated class.
+      // config.module.ts
+      import { Module } from '@nestjs/common';
+      import { ConfigService } from './config.service';
+      import { ConfigurableModuleClass } from './config.module-definition';
+
+      @Module({
+        providers: [ConfigService],
+        exports: [ConfigService],
+      })
+      export class ConfigModule extends ConfigurableModuleClass {}
+
+    4. update the Service class using configuration options
+
+      @Injectable()
+      export class ConfigService {
+        constructor(@Inject(MODULE_OPTIONS_TOKEN) private options: ConfigModuleOptions) { ... }
+      }
+
+
+125. How can you change the method name (e.g., register) in a `ConfigurableModuleBuilder`?
+  Use the `setClassMethodName` method of the `ConfigurableModuleBuilder` to rename the default register and registerAsync methods.
+
+  export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN } =
+    new ConfigurableModuleBuilder<ConfigModuleOptions>()
+      .setClassMethodName('forRoot')
+      .build();
+
+  This will generate forRoot and forRootAsync methods instead.
+
+126. What are Provider scopes in Nest.js and how to define it?
+  DEFAULT	- A single instance of the provider is shared across the entire application. The instance lifetime is tied directly to the application lifecycle.
+  REQUEST - A new instance of the provider is created exclusively for each incoming request. The instance is garbage-collected after the request has completed processing.
+  TRANSIENT - Transient providers are not shared across consumers. Each consumer that injects a transient provider will receive a new, dedicated instance.
+
+  DEFAULT scope is set already unless different scope chosen.
+
+  1) specify scope at Injectable decorator
+    @Injectable({ scope: Scope.REQUEST })
+
+  2) OR (for custom provider), specify in provider options
+
+    {
+      provide: 'CACHE_MANAGER',
+      useClass: CacheManager,
+      scope: Scope.TRANSIENT,
+    }
+
+127. Why should WebSocket Gateways avoid using request-scoped providers in NestJS?
+  WebSocket Gateways must act as singletons because each gateway encapsulates a real socket and cannot be instantiated multiple times. This limitation also applies to other providers like Passport strategies or Cron controllers.
+
+128. Provide example of scoped controller.
+  @Controller({
+    path: 'cats',
+    scope: Scope.REQUEST,
+  })
+  export class CatsController {}
+
+
+129. How does scope hierarchy work with request-scoped and transient-scoped providers in NestJS?
+  The REQUEST scope bubbles up the injection chain. A controller that depends on a request-scoped provider will, itself, be request-scoped.
+
+    Example: dependency graph: CatsController <- CatsService <- CatsRepository. If CatsService is request-scoped (and the others are default singletons), the CatsController will become request-scoped as it is dependent on the injected service. The CatsRepository, which is not dependent, would remain singleton-scoped.
+
+  Transient-scoped dependencies don't follow that pattern. If a singleton-scoped service injects a transient provider, , it will receive a fresh instance of it but service stay singleton-scoped.
+
+130. How do you access the original request object in request-scoped providers for HTTP and GraphQL applications in NestJS?
+  Any provider relying on a request-scoped object automatically adopts a request scope.
+
+  HTTP Applications: Use the REQUEST object, which is inherently request-scoped:
+
+    import { Injectable, Scope, Inject } from '@nestjs/common';
+    import { REQUEST } from '@nestjs/core';
+    import { Request } from 'express';
+
+    @Injectable({ scope: Scope.REQUEST })
+    export class CatsService {
+      constructor(@Inject(REQUEST) private request: Request) {}
+    }
+
+  GraphQL Applications: Inject CONTEXT instead of REQUEST and configure the GraphQL context to include the request:
+
+    import { Injectable, Scope, Inject } from '@nestjs/common';
+    import { CONTEXT } from '@nestjs/graphql';
+
+    @Injectable({ scope: Scope.REQUEST })
+    export class CatsService {
+      constructor(@Inject(CONTEXT) private context) {}
+    }
+
+131. What is the INQUIRER token in NestJS, and how can it be used in transient providers? Provide an example.
+
+  The INQUIRER token in NestJS allows transient providers to access the parent class (the class using the transient service). This is useful for logging or tracking which class constructed the provider.
+
+  Example:
+    //child, transient
+
+
+    import { Inject, Injectable, Scope } from '@nestjs/common';
+    import { INQUIRER } from '@nestjs/core';
+
+    @Injectable({ scope: Scope.TRANSIENT })
+    export class HelloService {
+      constructor(@Inject(INQUIRER) private parentClass: object) {}
+
+      sayHello(message: string) {
+        console.log(`${this.parentClass?.constructor?.name}: ${message}`);
+      }
+    }
+
+
+    //parent
+
+
+    import { Injectable } from '@nestjs/common';
+    import { HelloService } from './hello.service';
+
+    @Injectable()
+    export class AppService {
+      constructor(private helloService: HelloService) {}
+
+      getRoot(): string {
+        this.helloService.sayHello('My name is getRoot');
+
+        return 'Hello world!';
+      }
+    }
+
+    console result when AppService.getRoot() is called is 'AppService: My name is getRoot'. This shows that HelloService identified its parent class (AppService).
+
+132. What are durable providers in NestJS, and when should they be used?
+
+  Durable providers optimize multi-tenant applications by creating persistent DI sub-trees per tenant instead of per request. This avoids unnecessary instantiation for tenant-related providers across repeated requests.
+
+  Use them if classification can aggregate requests per tenant and does not rely on unique request attributes (e.g., UUID).
+
+  HOWEVER, it isn't ideal for applications with a large number of tenants.
+
+133. How can you define a ContextId strategy to aggregate requests by tenant for durable providers?
+
+  You should use the ContextIdStrategy interface to group requests by tenant:
+
+    import { ContextId, ContextIdFactory, ContextIdStrategy } from '@nestjs/core';
+    import { Request } from 'express';
+
+    const tenants = new Map<string, ContextId>();
+
+    export class AggregateByTenantContextIdStrategy implements ContextIdStrategy {
+      attach(contextId: ContextId, request: Request) {
+        const tenantId = request.headers['x-tenant-id'] as string;
+        let tenantSubTreeId: ContextId;
+
+        if (tenants.has(tenantId)) {
+          tenantSubTreeId = tenants.get(tenantId);
+        } else {
+          tenantSubTreeId = ContextIdFactory.create();
+          tenants.set(tenantId, tenantSubTreeId);
+        }
+
+        return (info: HostComponentInfo) =>
+          info.isTreeDurable ? tenantSubTreeId : contextId;
+      }
+    }
+
+134. How do you globally register a ContextId strategy in NestJS?
+  Use ContextIdFactory.apply() to register the strategy before any requests hit the application (e.g., in main.ts). This ensures the strategy is applied globally. Example:
+
+    ContextIdFactory.apply(new AggregateByTenantContextIdStrategy());
+
+135. How do you mark a provider as durable in NestJS?
+
+  Set the durable flag to true and ensure the provider has Scope.REQUEST. Examples:
+
+  Service Declaration:
+    import { Injectable, Scope } from '@nestjs/common';
+
+    @Injectable({ scope: Scope.REQUEST, durable: true })
+    export class CatsService {}
+    Custom Provider Registration:
+
+  Custom Provider Registration
+    {
+      provide: 'foobar',
+      useFactory: () => { ... },
+      scope: Scope.REQUEST,
+      durable: true,
+    }
+
+Side Note:  Multi-Tenant Flow with Durable Providers
+
+  Steps to Implement Multi-Tenant Flow with Durable Providers:
+  1. Define a Durable CatsService
+  The service will check tenant-specific details (e.g., bucket name) and retrieve resources accordingly.
+
+
+
+    import { Injectable, Scope } from '@nestjs/common';
+
+    @Injectable({ scope: Scope.REQUEST, durable: true })
+    export class CatsService {
+      constructor(private readonly bucketService: BucketService) {}
+
+      // Fetch cat photos for the current tenant
+      async getCatPhotos(): Promise<string[]> {
+        const bucketName = this.bucketService.getBucketName();
+        return [`Cat photo from ${bucketName}`]; // Simulate fetching photos from the bucket
+      }
+    }
+  Here, the CatsService is marked durable, meaning it will persist for a specific tenant's context instead of being destroyed after each request.
+
+  2. Create a Tenant-Specific BucketService
+  The BucketService determines the correct bucket (e.g., Bucket 1 or Bucket 2) for each tenant.
+
+    import { Injectable, Scope } from '@nestjs/common';
+
+    @Injectable({ scope: Scope.REQUEST, durable: true })
+    export class BucketService {
+      constructor(private readonly request: { tenantId: string }) {}
+
+      getBucketName(): string {
+        const tenantId = this.request.tenantId;
+        // Map tenantId to a bucket name
+        return tenantId === 'tenant-A' ? 'Bucket 1' : 'Bucket 2';
+      }
+    }
+
+  Here, the BucketService accesses the tenant-specific tenantId injected from the durable context.
+
+  3. Define the ContextId Strategy
+  Aggregate requests based on the x-tenant-id header. This strategy ensures that all components sharing the same tenant context (e.g., CatsService and BucketService) belong to the same DI subtree.
+
+
+    import {
+      HostComponentInfo,
+      ContextId,
+      ContextIdFactory,
+      ContextIdStrategy,
+    } from '@nestjs/core';
+    import { Request } from 'express';
+
+    const tenants = new Map<string, ContextId>();
+
+    export class AggregateByTenantContextIdStrategy implements ContextIdStrategy {
+      attach(contextId: ContextId, request: Request) {
+        const tenantId = request.headers['x-tenant-id'] as string;
+        let tenantSubTreeId: ContextId;
+
+        if (tenants.has(tenantId)) {
+          tenantSubTreeId = tenants.get(tenantId);
+        } else {
+          tenantSubTreeId = ContextIdFactory.create();
+          tenants.set(tenantId, tenantSubTreeId);
+        }
+
+        return {
+          resolve: (info: HostComponentInfo) =>
+            info.isTreeDurable ? tenantSubTreeId : contextId,
+          payload: { tenantId }, // Add tenantId to the payload
+        };
+      }
+    }
+
+  4. Register the ContextId Strategy Globally
+  Register the strategy in main.ts. This ensures that the strategy is globally applied across all request-scoped components.
+
+
+    import { ContextIdFactory } from '@nestjs/core';
+    import { AggregateByTenantContextIdStrategy } from './aggregate-by-tenant-context-id.strategy';
+
+    async function bootstrap() {
+      const app = await NestFactory.create(AppModule);
+
+      // Apply tenant-based strategy
+      ContextIdFactory.apply(new AggregateByTenantContextIdStrategy());
+
+      await app.listen(3000);
+    }
+    bootstrap();
+
+  5. Inject the Tenant Information via Payload
+  When tenantId is added to the payload, it can be injected into request-scoped providers
+
+    @Injectable({ scope: Scope.REQUEST, durable: true }) // Proper scope and durability settings
+    export class BucketService {
+      constructor(@Inject(REQUEST) private readonly request: { tenantId: string }) {}
+
+      getBucketName(): string {
+        const tenantId = this.request.tenantId;
+        return tenantId === 'tenant-A' ? 'Bucket 1' : 'Bucket 2';
+      }
+    }
+  6. Create a Controller to Handle Requests
+  The controller will route user requests to the appropriate tenant-specific CatsService.
+
+
+    import { Controller, Get, Req } from '@nestjs/common';
+    import { CatsService } from './cats.service';
+
+    @Controller('cats')
+    export class CatsController {
+      constructor(private readonly catsService: CatsService) {}
+
+      @Get('photos')
+      async getCatPhotos(@Req() req: Request): Promise<string[]> {
+        return this.catsService.getCatPhotos();
+      }
+    }
+
+Side Note: A circular dependency might also be caused when using "barrel files"/index.ts files to group imports. Barrel files should be omitted when it comes to module/provider classes. For example, barrel files should not be used when importing files within the same directory as the barrel file, i.e. cats/cats.controller should not import cats to import the cats/cats.service file.
+
+136. What are ways of dealing with circular references in Nest.js
+  - forward referencing technique
+  - ModuleRef
+
+Side Mote:  Using request-scoped providers in circular dependencies can lead to undefined dependencies. Circular references must use singleton providers for predictable behavior.
+
+137. What is a forward reference in NestJS, and how is it used to resolve circular dependencies?
+  A forward reference in NestJS allows referencing classes that aren't yet defined, resolving circular dependencies. The forwardRef() utility function is used with @Inject().
+
+  example:
+    @Injectable()
+    export class CatsService {
+      constructor(
+        @Inject(forwardRef(() => CommonService))
+        private commonService: CommonService,
+      ) {}
+    }
+
+    @Injectable()
+    export class CommonService {
+      constructor(
+        @Inject(forwardRef(() => CatsService))
+        private catsService: CatsService,
+      ) {}
+    }
+
+138. What is a module forward reference in NestJS, and how is it used to resolve circular dependencies?
+  that's an alternative to forward reference, basically the same but at module level
+
+  @Module({
+    imports: [forwardRef(() => CatsModule)],
+  })
+  export class CommonModule {}
+  That covers one side of the relationship. Now let's do the same with CatsModule:
+
+  @Module({
+    imports: [forwardRef(() => CommonModule)],
+  })
+  export class CatsModule {}
+
+139. How to obtain access to provider with ModuleRef?
+  @Injectable()
+  export class CatsService implements OnModuleInit {
+    private service: Service;
+    constructor(private moduleRef: ModuleRef) {}
+
+    onModuleInit() {
+      this.service = this.moduleRef.get(Service);
+    }
+  }
+
+140. How to get scoped providers  with `ModuleRef`?
+  With resolve method. pass scoped providers as first argument, to ensure singletone pattern pass `contextId` as second (can be obtained via `ContextIdFactory`)
+
+  @Injectable()
+  export class CatsService implements OnModuleInit {
+    private transientService: TransientService;
+    constructor(private moduleRef: ModuleRef) {}
+
+    async onModuleInit() {
+      this.transientService = await this.moduleRef.resolve(TransientService);
+    }
+  }
+
+141. Provide example of usage lazy loading modules
+
+  import { Injectable } from '@nestjs/common';
+  import { LazyModuleLoader } from '@nestjs/core';
+  import { LazyService } from './lazy.service';
+
+  @Injectable()
+  export class CatsService {
+    constructor(private lazyModuleLoader: LazyModuleLoader) {}
+
+    async getLazyServiceInstance() {
+      const { LazyModule } = await import('./lazy.module');
+      const moduleRef = await this.lazyModuleLoader.load(() => LazyModule);
+
+      return moduleRef.get(LazyService);
+    }
+  }
+
+142. Can You Lazy Load Controllers, Resolvers, or Gateways?
+ No, controllers, GraphQL resolvers, and WebSocket gateways cannot be lazy loaded using LazyModuleLoader.
+
+143. What happens if you try to register middleware (using MiddlewareConsumer) inside a lazy-loaded module?
+  Middleware with Lazy-Loaded Modules Middleware functions (implemented via MiddlewareConsumer) cannot be registered on-demand within lazy-loaded modules because middleware needs to be tied to the static application lifecycle and route handling.
+
+144. What are most common use cases for module lazy loading in Nest.js
+  Most commonly, you will see lazy loaded modules in situations when your worker/cron job/lambda & serverless function/webhook must trigger different services (different logic) based on the input arguments (route path/date/query parameters, etc.).
+
+145. How to identify Application Context
+  Use the getType() method of ArgumentsHost to determine the current application type:
+
+    "http" → Regular HTTP/REST requests
+    "rpc" → Microservice requests
+    "graphql" → GraphQL requests
+
+146. How to access context?
+  switchToRpc(): RpcArgumentsHost;
+  switchToHttp(): HttpArgumentsHost;
+  switchToWs(): WsArgumentsHost;
+
+147. how to access request/response from context?
+  const ctx = host.switchToHttp();
+  const request = ctx.getRequest<Request>();
+  const response = ctx.getResponse<Response>();
+
+148. How to access appropriate objects in the microservices and WebSockets contexts?
+
+  for WS
+    getData<T>(): T;
+    getClient<T>(): T;
+
+  for RPC
+    getData<T>(): T;
+    getContext<T>(): T;
+
+149. What is the ExecutionContext class in NestJS, and how does it relate to ArgumentsHost?
+  The ExecutionContext class extends the ArgumentsHost class, providing additional details about the current execution process. It is used in places like:
+    - Guards (canActivate() method)
+    - Interceptors (intercept() method)
+
+150. In which methods of guards and interceptors is ExecutionContext typically used?
+  getClass<T>(): Returns the type of the controller class to which the current handler belongs.
+  getHandler(): Returns a reference to the handler method (the method invoked next in the request pipeline).
+
+  Example: Retrieving Method & Class Names In an HTTP context, if the request is bound to a create() method in the CatsController class:
+
+    const methodKey = ctx.getHandler().name; // Returns "create"
+    const className = ctx.getClass().name;  // Returns "CatsController"
+
+151. What is the purpose of using Reflector#createDecorator in NestJS? Provide examples
+  Reflector#createDecorator is used to create strongly-typed custom decorators in NestJS by specifying the type argument.
+
+  Example of creation
+    import { Reflector } from '@nestjs/core';
+
+    export const Roles = Reflector.createDecorator<string[]>();
+
+  example of usage
+    @Post()
+    @Roles(['admin'])
+    async create(@Body() createCatDto: CreateCatDto) {
+      this.catsService.create(createCatDto);
+    }
+
+
+152. How can you inject the Reflector to access metadata in a class?
+
+  @Injectable()
+  export class RolesGuard {
+    constructor(private reflector: Reflector) {}
+
+      async canActivate(context: ExecutionContext) {
+        // first argument - decorator itself
+        // second context.getHandler or context.getClass (depending on whether decorator applied to controller method or the class)
+      const roles = this.reflector.get(Roles, context.getHandler());
+
+    }
+  }
+
+153. How do you retrieve metadata defined at the controller level in NestJS?
+  the same as for handler, but use class instead of handler.
+  Example:
+
+    const roles = this.reflector.get(Roles, context.getClass());
+
+
+154. What is the purpose of the Reflector#getAllAndOverride method in NestJS?
+  Reflector#getAllAndOverride extracts metadata from multiple contexts (controller and handler) and overrides values, applying the metadata closest to the handler.
+
+  Scenario:
+    @Roles(['user'])
+    @Controller('cats')
+    export class CatsController {
+      @Post()
+      @Roles(['admin'])
+      async create(@Body() createCatDto: CreateCatDto) {
+        this.catsService.create(createCatDto);
+      }
+    }
+
+  extraction:
+    // pass both hanler reference and class
+    const roles = this.reflector.getAllAndOverride(Roles, [context.getHandler(), context.getClass()]);
+    // retrived roles are ['admin']
+
+155. What is the difference between `getAllAndOverride` and `getAllAndMerg`e methods in the `Reflector` class?
+  - getAllAndOverride: Extracts metadata and prioritizes the closest context (e.g., method-level overrides controller-level).
+
+  - getAllAndMerge: Extracts and combines metadata from all contexts (e.g., merges method-level and controller-level).
+
+156. Provide example of setting and extraction of metadata with SetMetadata decorator.
+  decorator:
+    export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+    // It's strongly recomended to use it in othere decorators instead directly setting in to handler
+
+  extraction:
+    // key of metadata 'roles' are passed instead of Decorator itself
+    const roles = this.reflector.get<string[]>('roles', context.getHandler());
+    // both getAllAndOverride and getAllAndMerge can be used as well
+
+157. What are the lifecycle hooks in NestJS and when are they triggered?
+
+  NestJS lifecycle hooks are triggered during application initialization and shutdown. They allow developers to perform specific tasks at key points in the lifecycle:
+
+  Initialization Hooks:
+
+    - onModuleInit(): Called when the host module's dependencies are resolved.
+    - onApplicationBootstrap(): Called after all modules are initialized but before the application starts listening for connections. (Triggered by app.init() or app.listen().)
+
+  Shutdown Hooks ( To enable shutdown hooks on system signals (like SIGTERM), explicitly call enableShutdownHooks()):
+
+    - onModuleDestroy(): Called after a termination signal (e.g., SIGTERM) is received.
+    - beforeApplicationShutdown(): Called after onModuleDestroy() completes, allowing time to close connections via app.close().
+    - onApplicationShutdown(): Called after all connections are closed (i.e., when app.close() resolves).
+
+158. Are lifecycle hooks (e.g., onModuleInit, onApplicationShutdown) triggered for request-scoped classes in NestJS?
+  No, lifecycle hooks are not triggered for request-scoped classes in NestJS, since they are  tied to the lifespan of a single request. Meaning they are automatically garbage-collected after the response is sent
+
+159. What determines the execution order of onModuleInit() and onApplicationBootstrap() lifecycle hooks in NestJS?
+
+  The execution order of onModuleInit() and onApplicationBootstrap() depends on:
+
+  1) The order of module imports:
+    Hooks will be executed in the same order as modules are defined in the imports array of the root module or other relevant modules.
+
+  2) Awaiting the previous hook:
+    NestJS ensures that each lifecycle hook in an earlier module finishes execution before moving to the next one in the import order.
+
+160. Provide example of lifecycle hook being used.
+  import { Injectable, OnModuleInit } from '@nestjs/common';
+
+  // even though implementing relevant lifecycle interface is recommended, it's optional
+
+  @Injectable()
+  export class UsersService implements OnModuleInit {
+    onModuleInit() {
+      console.log(`The module has been initialized.`);
+    }
+  }
+
+161. How to use Asynchronous initialization ?
+ use hook onModuleInit/OnApplicationBootstrap with async
+
+ example:
+  async onModuleInit(): Promise<void> {
+    await this.fetch();
+  }
+
+162. How can you enable application shutdown hooks in NestJS, and when are they triggered?
+
+  Shutdown hooks are disabled by default. To enable them, call app.enableShutdownHooks() during app bootstrap.
+
+  Example:
+    import { NestFactory } from '@nestjs/core';
+    import { AppModule } from './app.module';
+
+    async function bootstrap() {
+      const app = await NestFactory.create(AppModule);
+
+      // Enable shutdown hooks
+      app.enableShutdownHooks();
+
+      await app.listen(process.env.PORT ?? 3000);
+    }
+    bootstrap();
+
+  These hooks are triggered during shutdown in response to:
+
+    Explicit call to app.close()
+    System signals: Such as SIGTERM, often used in platforms like Kubernetes or Heroku to manage container lifecycles.
+
+163. What platform limitations exist for application shutdown hooks in NestJS on Windows?
+
+  Platform Limitations on Windows:
+    SIGINT: Fully supported (e.g., triggered via Ctrl+C).
+    SIGBREAK: Supported (e.g., triggered via Ctrl + Break).
+    SIGHUP: Partially supported.
+
+    SIGTERM is not supported on Windows because killing a process in the Task Manager is unconditional — there is no way for an application to detect or prevent it.
+
+Side Note: `enableShutdownHooks` consumes memory by starting listeners.
+
+164. What does calling app.close() do in a NestJS application, and does it terminate the Node.js process?
+  Calling app.close() does not terminate the Node.js process.
+  It triggers the following shutdown hooks: onModuleDestroy() -> onApplicationShutdown()
+
+  If the application has active intervals, long-running background tasks, or other asynchronous operations, those tasks will prevent the Node.js process from terminating automatically.
+
+165. What is DiscoveryService in NestJS?
+  DiscoveryService is a utility from the @nestjs/core package that allows developers to dynamically inspect and retrieve providers, controllers, and other metadata within a NestJS application. It is useful for building plugins, decorators, or advanced features relying on runtime introspection for flexible and modular architectures.
+
+166. How do you inject DiscoveryService into a provider or service?
+  In module you add DiscoveryModule to your import
+
+  In service use DI:
+
+    @Injectable()
+    export class ExampleService {
+      constructor(private readonly discoveryService: DiscoveryService) {}
+    }
+
+167. How can you retrieve all registered providers in a NestJS application using DiscoveryService?
+  Use the getProviders() method:
+
+    const providers = this.discoveryService.getProviders();
+
+  The providers array contains information such as: Instance, Token, Metadata
+
+168. How do you retrieve all controllers in a NestJS application using DiscoveryService?
+  Use the getControllers() method:
+
+  const controllers = this.discoveryService.getControllers();
+
+169. How can you use DiscoveryService to retrieve and filter metadata in NestJS?
+
+  1. Create a custom decorator:
+
+    import { DiscoveryService } from '@nestjs/core';
+    export const FeatureFlag = DiscoveryService.createDecorator();
+
+  2. Apply the decorator with metadata:
+
+    import { Injectable } from '@nestjs/common';
+    import { FeatureFlag } from './custom-metadata.decorator';
+
+    @Injectable()
+    @FeatureFlag('experimental')
+    export class CustomService {}
+
+
+  3. Retrieve and filter providers with specific metadata:
+
+    const providers = this.discoveryService.getProviders();
+
+    const [provider] = providers.filter(
+      (item) =>
+        this.discoveryService.getMetadataByDecorator(FeatureFlag, item) ===
+        'experimental',
+    );
+
+  This approach helps dynamically process providers based on metadata values, particularly useful for features like custom behaviors or runtime toggles.
+
+170. How do you create a testing module and retrieve providers/controllers when writing NestJS tests using the @nestjs/testing package?
+  - Create a Testing Module:
+    Use Test.createTestingModule() method with module metadata (e.g., controllers, providers):
+
+    const moduleRef = await Test.createTestingModule({
+      controllers: [CatsController],
+      providers: [CatsService],
+    }).compile();
+
+  - Retrieve Instances:
+    Use .get() for static instances (e.g., singleton providers):
+
+    catsService = moduleRef.get(CatsService);
+    catsController = moduleRef.get(CatsController);
+    // Use .resolve() for dynamic instances (e.g., transient or request-scoped providers):
+    catsService = await moduleRef.resolve(CatsService);
+
+  - Key Note: The compile() method is asynchronous and must be awaited to fully bootstrap the testing module.
+
+171. What is a key behavior of the resolve() method when retrieving providers in NestJS testing (Test.createTestingModule)?
+  - Returns a unique instance of the provider from its own DI container sub-tree.
+  - Each call creates a new instance with a unique context identifier (instances not equal)
+
+172. How do you use useMocker() in NestJS testing to auto-mock dependencies?
+  Chain .useMocker() with Test.createTestingModule() to auto-mock dependencies.
+
+      const moduleRef = await Test.createTestingModule({
+        controllers: [CatsController],
+      })
+        .useMocker((token) => {
+          const results = ['test1', 'test2'];
+          if (token === CatsService) {
+            return { findAll: jest.fn().mockResolvedValue(results) };
+          }
+          if (typeof token === 'function') {
+            const mockMetadata = moduleMocker.getMetadata(
+              token,
+            ) as MockFunctionMetadata<any, any>;
+            const Mock = moduleMocker.generateFromMetadata(mockMetadata);
+            return new Mock();
+          }
+        })
+        .compile();
+
+173. How do you override a globally registered guard (or pipe, interceptor, or filter) in NestJS for testing?
+
+  Use useExisting for Global Registration:
+    Register the global guard (or other enhancer) using useExisting instead of useClass to reference it as a provider:
+
+    providers: [
+      {
+        provide: APP_GUARD,
+        useExisting: JwtAuthGuard, // Makes it a visible, overridable provider, instaed of useClass
+      },
+      JwtAuthGuard, // Register the actual guard as a provider
+    ],
+
+  Override in TestingModule:
+    Override the globally registered guard using overrideProvider() in your createTestingModule() chain:
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+      .overrideProvider(JwtAuthGuard)
+      .useClass(MockAuthGuard) // Replace with mock
+      .compile();
+
+  Now all tests will use MockAuthGuard globally.
+
+174. How do you test request-scoped providers in NestJS, given they are uniquely created per request?
+  Generate a context ID using ContextIdFactory and mock its behavior. Context IDs ensure access to the DI sub-tree created for the tested request.
+
+    const contextId = ContextIdFactory.create();
+    jest.spyOn(ContextIdFactory, 'getByRequest').mockImplementation(() => contextId);
+
+  Access DI Container Sub-Tree:
+  Retrieve the request-scoped provider using the context ID with resolve():
+    catsService = await moduleRef.resolve(CatsService, contextId);
+
+175. How do you typically use ConfigModule?
+
+  Import it into app module and call .forRoot on it. Optionally pass the config object
+
+    @Module({
+      imports: [ConfigModule.forRoot()],
+    })
+    export class AppModule {}
+
+176. When a key exists both in the runtime environment as an environment variable (e.g., via OS shell exports like export DATABASE_USER=test) and in a .env file what has higher priority?
+
+  The runtime environment variable takes precedence.
+
+177. How do you pass config values if ConfigModule not initialized yet?
+  nest start --env-file .env
+    * node should be of v20.6.0 or higher (still under active development)
+
+178. what's default env file for ConfigModule?
+  .env in root folder
+
+179. How do you specify a custom env file path?
+  ConfigModule.forRoot({
+    envFilePath: ['.env.development.local', '.env.development'],
+  });
+
+  *If a variable is found in multiple files, the first one takes precedence.
+
+180. How do you disable environment variable file loading in a NestJS ConfigModule?
+  ConfigModule.forRoot({
+    ignoreEnvFile: true,
+  });
+181. How to make sure the ConfigService#get method retrieves values exclusively from custom configuration files and ignores process.env variables
+
+  ConfigModule.forRoot({
+    skipProcessEnv : true,
+  });
+
+182. What is the purpose of custom configuration files in complex projects, and how are they implemented in NestJS?
+  It groups related settings logically (e.g., database settings) and manages settings independently using separate files.
+
+  1) define factory function that returns a nested configuration object.
+
+    export default () => ({
+      port: parseInt(process.env.PORT, 10) || 3000,
+      database: {
+        host: process.env.DATABASE_HOST,
+        port: parseInt(process.env.DATABASE_PORT, 10) || 5432,
+      },
+    });
+
+  2) use it in ConfigModule with `load`
+
+    @Module({
+      imports: [
+        ConfigModule.forRoot({
+          load: [configuration],
+        }),
+      ],
+    })
+
+183. How do you access configuration values in NestJS using the ConfigService?
+
+  1) imports: [ConfigModule] // in your feature module
+
+  2) Inject ConfigService via constructor:
+    constructor(private configService: ConfigService) {}
+
+  3) Use the get method to retrieve values:
+    const dbUser = this.configService.get<string>('DATABASE_USER'); // Env variable
+    const dbHost = this.configService.get<string>('database.host'); // Nested config
+
+
+184.  How can you avoid importing ConfigModule into every module in NestJS?
+  Set the isGlobal property to true in ConfigModule.forRoot() to make it globally available:
+
+    ConfigModule.forRoot({ isGlobal: true });
+
+185. How does the infer feature work in the ConfigService#get method?
+  With { infer: true }, TypeScript automatically infers the type based on the provided interface.
+    Example: EnvironmentVariables.PORT is number.
+
+      constructor(
+        private configService: ConfigService<{ database: { host: string } }>
+      ) {
+        const dbHost = this.configService.get('database.host', { infer: true });
+        // dbHost type inferred as string
+      }
+
+186. what does  second generic in ConfigService do?
+  It removes undefined types when strictNullChecks is enabled.
+
+  constructor(private configService: ConfigService<{ PORT: number }, true>) {
+    const port = this.configService.get('PORT', { infer: true });
+    // Type: number (undefined is excluded)
+  }
+
+
+187. What does the registerAs() function do in the ConfigModule?
+  The registerAs() function creates a namespaced configuration object.
+
+    export default registerAs('database', () => ({
+      host: process.env.DATABASE_HOST,
+      port: process.env.DATABASE_PORT || 5432,
+    }));
+
+188. How do you load a namespaced configuration in NestJS?
+
+  Load it with the load property in ConfigModule.forRoot():
+
+    @Module({
+      imports: [
+        ConfigModule.forRoot({
+          load: [databaseConfig],
+        }),
+      ],
+    })
+    export class AppModule {}
+
+189. How do you access a namespaced configuration value in NestJS?
+  Option 1
+    const dbHost = this.configService.get<string>('database.host');
+      *here database if a firs argument passed into registerAs() function
+
+  Option 2
+    Injecting the namespace directly with strong typing:
+
+    constructor(
+      @Inject(databaseConfig.KEY)
+      private readonly dbConfig: ConfigType<typeof databaseConfig>,
+    ) {}
+
+    *here databaseConfig is object returned by registerAs() function
+
+190. How to converts a namespaced configuration into a provider?
+  use asProvider() method. Example:
+    @Module({
+      imports: [
+        TypeOrmModule.forRootAsync(databaseConfig.asProvider()),
+      ],
+    })
+
+191. How can you improve the performance of ConfigService#get when accessing process.env variables?
+  Set cache: true in the ConfigModule.forRoot() options to cache process.env variables.
+    ConfigModule.forRoot({
+      cache: true,
+    });
+
+192. How do you register feature-specific configuration files in NestJS?
+  Use ConfigModule.forFeature() within a feature module for partial configuration registration.
+
+    @Module({
+      imports: [ConfigModule.forFeature(databaseConfig)],
+    })
+    export class DatabaseModule {}
+
+  Note: Use the onModuleInit() hook if accessing these properties to ensure proper module initialization order.
+
+
+193. How can you ensure .env variables are fully loaded before using them in NestJS?
+  Use the ConfigModule.envVariablesLoaded hook to wait for .env file loading before interacting with process.env.
+
+    export async function getStorageModule() {
+      await ConfigModule.envVariablesLoaded;
+      return process.env.STORAGE === 'S3' ? S3StorageModule : DefaultStorageModule;
+    }
+
+194. How to load configuration module conditionally?
+  you shou use both `ConfigModule.forRoot` and  `ConditionalModule.registerWhen`
+
+  @Module({
+    imports: [
+      ConfigModule.forRoot(),
+      ConditionalModule.registerWhen(
+        FooBarModule,
+        (env: NodeJS.ProcessEnv) => !!env['foo'] && !!env['bar'],
+      ),
+    ],
+  })
+  export class AppModule {}
+
+195. What is expandable variables and how to use them?
+  is't a variable containing reference to another variable:
+
+    APP_URL=mywebsite.com
+    SUPPORT_EMAIL=support@${APP_URL}
+
+  to enable:
+    ConfigModule.forRoot({
+      expandVariables: true,
+    }),
+
+196. How do you integrate TypeORM with NestJS
+
+  1) Install dependencies for TypeORM and your database (e.g., MySQL):
+    $ npm install --save @nestjs/typeorm typeorm mysql2
+
+    Import TypeOrmModule into the root AppModule:
+
+  2) Import TypeOrmModule into the root AppModule:
+
+    import { Module } from '@nestjs/common';
+    import { TypeOrmModule } from '@nestjs/typeorm';
+
+    @Module({
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'mysql',
+          host: 'localhost',
+          port: 3306,
+          username: 'root',
+          password: 'root',
+          database: 'test',
+          entities: [User], // whatever typeORM entities you are going to use
+          synchronize: true,  //  Avoid using `true` in production!
+        }),
+      ],
+    })
+    export class AppModule {}
+
+    * you may specify "autoLoadEntities: true," instead of manually specifying entities, then all entities registred with TypeOrmModule.forFeature()  will be automatically added
+
+  3) Optional Configurations:
+    retryAttempts: Number of DB connection attempts (default: 10)
+    retryDelay: Delay between connection retries in ms (default: 3000)
+    autoLoadEntities: Automatically load entities (default: false)
+
+  4) Inject DataSource or EntityManager anywhere in the project:
+
+    @Module({
+      imports: [TypeOrmModule.forRoot(), UsersModule], // User module is typically has user service, controller and User entity
+    })
+    export class AppModule {
+      constructor(private dataSource: DataSource) {}
+    }
+
+197. Suggest implementation of repository pattern in Nest.js with TypeORM?
+
+  1) define TypeORM entity
+
+    import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+    @Entity()
+    export class User {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      firstName: string;
+    }
+
+  2) insert entity into TypeOrmModule.forRoot entities
+
+    @Module({
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'mysql',
+          host: 'localhost',
+          port: 3306,
+          username: 'root',
+          password: 'root',
+          database: 'test',
+          entities: [User],
+          synchronize: true,
+        }),
+      ],
+    })
+
+  3) in appropriate module 'User' import TypeOrmModule.forFeature to define repos registered in the current scope
+
+    @Module({
+      imports: [TypeOrmModule.forFeature([User])],
+      providers: [UsersService],
+      controllers: [UsersController],
+    })
+
+  4) inject the repo into a service
+
+    import { InjectRepository } from '@nestjs/typeorm';
+
+    @Injectable()
+    export class UsersService {
+      constructor(
+        @InjectRepository(User)
+        private usersRepository: Repository<User>,
+      ) {}
+
+      findAll(): Promise<User[]> {
+        return this.usersRepository.find();
+      }
+    }
+
+
+  5) import the UsersModule into the root AppModule
+
+  6) to use repository outside the module:
+    1) export TypeOrmModule from module
+    2) import whole module with repo ('UsersModule')
+    3) in required service @InjectRepository(EntityName)
+
+198. how to make transactions with TypeORM?
+  one of two ways:
+  1) in service method
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+      await queryRunner.manager.save(users[0]);
+      await queryRunner.manager.save(users[1]);
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      // you need to release a queryRunner which was manually instantiated
+      await queryRunner.release();
+    }
+
+  2) in the same method use callback style syntax
+
+    await this.dataSource.transaction(async manager => {
+      await manager.save(users[0]);
+      await manager.save(users[1]);
+    });
+
+Sidenote: there is subscribers concept in TypeORM allowing code to be executed inon certain repo operations (creating/deletion/quering and some others)
+
+199. How to set up multiple database connections in NestJS?
+  1) create multiple connections
+
+    const defaultOptions = {
+      type: 'postgres',
+      port: 5432,
+      username: 'user',
+      password: 'password',
+      database: 'db',
+      synchronize: true,
+    };
+
+      @Module({
+        imports: [
+          TypeOrmModule.forRoot({
+            ...defaultOptions,
+            host: 'user_db_host',
+            entities: [User],
+          }),
+          TypeOrmModule.forRoot({
+            ...defaultOptions,
+            name: 'albumsConnection', // Name for second data source
+            host: 'album_db_host',
+            entities: [Album],
+          }),
+        ],
+      })
+
+    *if no name passed 'default' is used
+
+  2) Using TypeOrmModule.forFeature() for entities:
+
+      @Module({
+        imports: [
+          TypeOrmModule.forFeature([User]),
+          TypeOrmModule.forFeature([Album], 'albumsConnection'),
+        ],
+      })
+  3)  Injecting data source or entity manager:
+
+    @Injectable()
+    export class AlbumsService {
+      constructor(
+        @InjectDataSource('albumsConnection') private dataSource: DataSource,
+        @InjectEntityManager('albumsConnection') private entityManager: EntityManager,
+      ) {}
+    }
+
+200. How to test services with repositories in NestJS without a real database connection?
+
+  Use mock repositories to avoid real database connections:
+
+    1) Replace Repository with a mock object using custom providers.
+    2) Use getRepositoryToken() to prepare the mock token:
+
+
+    @Module({
+      providers: [
+        UsersService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockRepository,
+        },
+      ],
+    })
+
+Side note: In Mongoose (and MongoDB in general), the concept of a session is primarily tied to the implementation of transactions. Transactions allow you to ensure that a sequence of operations (e.g., multiple inserts, updates, or deletes) either all succeed or all fail (roll back on errors), maintaining data integrity across multiple documents or collections.
+
+201. How do you start a session in Mongoose using NestJS and manage transactions?
+
+  Inject the Mongoose connection using @InjectConnection
+
+    import { InjectConnection } from '@nestjs/mongoose';
+    import { Connection } from 'mongoose';
+
+    @Injectable()
+    export class CatsService {
+      constructor(@InjectConnection() private readonly connection: Connection) {}
+
+      async startTransaction() {
+        const session = await this.connection.startSession();
+        session.startTransaction();
+        // Your transaction logic goes here
+      }
+    }
+
+202. How to setup multiple databases
+
+  Example:
+  1) define connections
+    import { Module } from '@nestjs/common';
+    import { MongooseModule } from '@nestjs/mongoose';
+
+    @Module({
+      imports: [
+        MongooseModule.forRoot('mongodb://localhost/test', {
+          connectionName: 'cats',
+        }),
+        MongooseModule.forRoot('mongodb://localhost/users', {
+          connectionName: 'users',
+        }),
+      ],
+    })
+    export class AppModule {}
+
+  *connectionName is mandatory if 2+ connection present, there is no default value
+
+
+  2) inject forFeature with specified connectionName
+
+    @Module({
+      imports: [
+        MongooseModule.forFeature([{ name: Cat.name, schema: CatSchema }], 'cats'),
+      ],
+    })
+    export class CatsModule {}
+
+  3 optionally if sessions required you can inject connection for a certain conection
+
+    import { Injectable } from '@nestjs/common';
+    import { InjectConnection } from '@nestjs/mongoose';
+    import { Connection } from 'mongoose';
+
+    @Injectable()
+    export class CatsService {
+      constructor(@InjectConnection('cats') private connection: Connection) {}
+    }
+
+203. How to to inject the mongoose model from a named database?
+
+  you can use the connection name as a second parameter to the @InjectModel() decorator.
+
+    @Injectable()
+    export class CatsService {
+      constructor(@InjectModel(Cat.name, 'cats') private catModel: Model<Cat>) {}
+    }
+
+204. How do you register pre/post hooks (middleware) in Mongoose with NestJS?
+  Use MongooseModule.forFeatureAsync() with useFactory to register hooks during schema setup. Calling pre() or post() after compiling a model does not work in Mongoose.
+
+
+    @Module({
+      imports: [
+        MongooseModule.forFeatureAsync([
+          {
+            name: Cat.name,
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => {
+              const schema = CatsSchema;
+              schema.pre('save', function() {
+                console.log(
+                  `${configService.get('APP_NAME')}: Hello from pre save`,
+                ),
+              });
+              return schema;
+            },
+            inject: [ConfigService],
+          },
+        ]),
+      ],
+    })
+    export class AppModule {}
+
+205. How do you register a plugin for a specific schema in Mongoose with NestJS?
+
+  Use MongooseModule.forFeatureAsync() to register a plugin for a schema during its setup.
+  Example for enabling mongoose-autopopulate on a specific schema:
+
+    @Module({
+      imports: [
+        MongooseModule.forFeatureAsync([
+          {
+            name: Cat.name,
+            useFactory: () => {
+              const schema = CatsSchema;
+              schema.plugin(require('mongoose-autopopulate'));
+              return schema;
+            },
+          },
+        ]),
+      ],
+    })
+    export class AppModule {}
+
+206. How do you register a plugin for all Mongoose schemas in NestJS?
+
+  Use the connectionFactory option in MongooseModule.forRoot() to register a plugin at the connection level.
+
+  Example for enabling mongoose-autopopulate globally:
+
+    @Module({
+      imports: [
+        MongooseModule.forRoot('mongodb://localhost/test', {
+          connectionFactory: (connection) => {
+            connection.plugin(require('mongoose-autopopulate'));
+            return connection;
+          }
+        }),
+      ],
+    })
+    export class AppModule {}
+
+207. What are discriminators in MongoDB (Mongoose)? How do they function, and give an example of their usage?
+
+
+  Discriminators are a schema inheritance mechanism in MongoDB (via Mongoose) for models with overlapping schemas. They allow multiple related types to share the same collection, differentiated using a "discriminator key."
+
+  The discriminator key ('__t' by default, customizable with discriminatorKey) helps Mongoose identify which schema model each document adheres to.
+
+  Base schema:
+
+    @Schema({ discriminatorKey: 'kind' })
+    class Event {
+      kind: string;  // Enum to differentiate types
+      time: Date;    // Common field
+    }
+
+    export const EventSchema = SchemaFactory.createForClass(Event);
+
+  Specific  schema:
+
+    @Schema()
+    export class ClickedLinkEvent {
+      kind: string;
+      time: Date;
+
+      @Prop({ type: String, required: true })
+      url: string;
+    }
+
+    export const ClickedLinkEventSchema = SchemaFactory.createForClass(ClickedLinkEvent);
+
+  Setup in EventsModule:
+
+    @Module({
+      imports: [
+        MongooseModule.forFeature([
+          {
+            name: Event.name,
+            schema: EventSchema,
+            discriminators: [
+              { name: ClickedLinkEvent.name, schema: ClickedLinkEventSchema }
+            ],
+          },
+        ]),
+      ]
+    })
+
+208. Provide example of Async configuration of Mongoose.
+
+  MongooseModule.forRootAsync({
+    imports: [ConfigModule],
+    useFactory: async (configService: ConfigService) => ({
+      uri: configService.get<string>('MONGODB_URI'),
+    }),
+    inject: [ConfigService],
+  });
+
+209. How do you listen to Mongoose connection events, and what are some common connection events?
+
+  Use the `onConnectionCreate` option in MongooseModule.forRoot or MongooseModule.forRootAsync to register event listeners on a database connection.
+
+    MongooseModule.forRoot('mongodb://localhost/test', {
+      onConnectionCreate: (connection: Connection) => {
+        connection.on('connected', () => console.log('connected'));
+        connection.on('open', () => console.log('open'));
+        connection.on('disconnected', () => console.log('disconnected'));
+        connection.on('reconnected', () => console.log('reconnected'));
+        connection.on('disconnecting', () => console.log('disconnecting'));
+        return connection;
+      },
+    });
+
+210. How can you define and work with nested subdocuments in Mongoose using schemas?
+
+  1) Define Subdocument Schema:
+
+    @Schema()
+    export class Name {
+      @Prop()
+      firstName: string;
+
+      @Prop()
+      lastName: string;
+    }
+
+    export const NameSchema = SchemaFactory.createForClass(Name);
+
+  2) Reference Subdocument in Parent Schema:
+
+    @Schema()
+    export class Person {
+      @Prop(NameSchema)
+      name: Name;
+    }
+
+    export const PersonSchema = SchemaFactory.createForClass(Person);
+
+    export type PersonDocumentOverride = {
+      name: Types.Subdocument<Types.ObjectId> & Name;
+    };
+
+    export type PersonDocument = HydratedDocument<Person, PersonDocumentOverride>;
+
+  3) Handle Multiple Subdocuments with Arrays:
+
+    @Schema()
+    export class Person {
+      @Prop([NameSchema])
+      name: Name[];
+    }
+
+    export const PersonSchema = SchemaFactory.createForClass(Person);
+
+    export type PersonDocumentOverride = {
+      name: Types.DocumentArray<Name>;
+    };
+
+    export type PersonDocument = HydratedDocument<Person, PersonDocumentOverride>;
+
+211. What is a virtual in Mongoose, and how is it used? Provide an example.
+  A virtual is a computed property in Mongoose that exists in a document but is not stored in the database.
+  It can be used for derived values (e.g., concatenating fields) or calculations based on data in the document.
+
+  Example:
+    import { Prop, Virtual } from '@nestjs/mongoose';
+
+    class Person {
+      @Prop()
+      firstName: string;
+
+      @Prop()
+      lastName: string;
+
+      @Virtual({
+        get: function (this: Person) {
+          return `${this.firstName} ${this.lastName}`;
+        },
+      })
+      fullName: string; // Computed property
+    }
+
+  Usage: The fullName virtual dynamically combines firstName and lastName but is not saved to MongoDB.
+
+212. How to implement auto validaton in Nest.js?
+
+  1) add  gloval validation pipe:
+
+
+    async function bootstrap() {
+      const app = await NestFactory.create(AppModule);
+      app.useGlobalPipes(new ValidationPipe({ transform: true }));
+      // used transform: true to transform payload to an instance of Dto class
+      await app.listen(process.env.PORT ?? 3000);
+    }
+
+  2) Define DTO class
+
+  3) add validation to controller
+
+    @Post()
+    create(@Body() createUserDto: CreateUserDto) {
+      return 'This action adds a new user';
+    }
+
+213. Can interfaces/generics be used for DTO?
+  No, ValidationPipe cannot validate them because TypeScript does not retain metadata for interfaces or generics. Use Classes
+
+
+214. Can type only be imported from DTO Class?
+  No, they would not exist in a runtime, so please only use classes themself.
+
+215. Does `transform: true` in Nest validator converts both primitive and objects?
+  Yes, example
+
+  // incoming param is of type 'string'
+  @Get(':id')
+  findOne(@Param('id') id: number) {
+    console.log(typeof id === 'number'); // true
+    return 'This action returns a user';
+  }
+
+216. How to convert incomming primitive into boolean or number if `transform: false`?
+  Use ParseIntPipe or ParseBoolPipe
+
+217. List mapped types for DTOs ?
+  PartialType
+    export class UpdateCatDto extends PartialType(CreateCatDto) {} // all props of CreateCatDto are optional
+  PickType()
+    export class UpdateCatAgeDto extends PickType(CreateCatDto, ['age'] as const) {}
+  OmitType()
+    export class UpdateCatDto extends OmitType(CreateCatDto, ['name'] as const) {}
+  IntersectionType()
+    export class UpdateCatDto extends IntersectionType(
+      CreateCatDto,
+      AdditionalCatInfo,
+    ) {}
+    //picks all properties of both classes
+
+  * as const would make object readonly
+
+218. How can you validate arrays in NestJS DTOs, given that TypeScript lacks metadata on generics? Provide examples.
+  TypeScript cannot validate arrays in DTOs directly due to lack of metadata on generics/interfaces.
+
+    Option 1: Wrap the array in a class or use `ParseArrayPipe`:
+        @Post()
+        createBulk(
+          @Body(new ParseArrayPipe({ items: CreateUserDto }))
+          createUserDtos: CreateUserDto[],
+        ) {
+          return 'This action adds new users';
+        }
+
+    Option 2, pick values from query string
+      @Get()
+      findByIds(
+        @Query('ids', new ParseArrayPipe({ items: Number, separator: ',' }))
+        ids: number[],
+      ) {
+        return 'This action returns users by ids';
+      }
+
+      when request GET /?ids=1,2,3 executer 'ids' === [1, 2, 3]
+
+219. what storage used under the hood in '@nestjs/cache-manager'?
+  keyv, though you may configure different, like reddis/valkey
+
+220. Provide example of in memmory caching with CacheModule?
+
+  1) enable caching in your application
+
+    @Module({
+      imports: [CacheModule.register()],
+      controllers: [AppController],
+    })
+    export class AppModule {}
+
+  2)  inject it to your class using the CACHE_MANAGER token
+
+    constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
+  3) interact in classes method
+
+    const value = await this.cacheManager.get('key');
+
+    await this.cacheManager.set('key', 'value', 1000); // ttl in ms is optional, you may set it yo 0 disable
+
+    await this.cacheManager.del('key');
+
+    await this.cacheManager.clear(); //prunes all the cache
+
+221. How do you enable auto-caching of responses in NestJS? What are the limitations?
+
+  1) Enable Caching for Specific Controllers:
+    @Controller()
+    @UseInterceptors(CacheInterceptor)
+    export class AppController {
+      @Get()
+      findAll(): string[] {
+        return [];
+      }
+    }
+
+  2) Enable Caching globally
+    @Module({
+      imports: [CacheModule.register()],
+      controllers: [AppController],
+      providers: [
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: CacheInterceptor,
+        },
+      ],
+    })
+    export class AppModule {}
+
+222. Name auto-caching of responses limitations
+  1) Works only for GET endpoints.
+  2) Does not cache routes using @Res() for native response objects.
+  3) In GraphQL, interceptors are executed per field resolver, so CacheModule won't work properly.
+
+223. How to set cache ttl globally?
+
+  CacheModule.register({
+    ttl: 5000, // milliseconds
+  });
+
+224. How can you use caching in WebSocket subscribers or Microservices in NestJS? What additional decorators are required?
+
+  1) Enable Caching for WebSocket Subscribers:
+    Use @CacheInterceptor and specify a key with @CacheKey():
+
+    @CacheKey('events')
+    @UseInterceptors(CacheInterceptor)
+    @SubscribeMessage('events')
+    handleEvent(client: Client, data: string[]): Observable<string[]> {
+      return [];
+    }
+
+
+  2) Use best Practices:
+    - Only cache data-fetching actions.
+    - Avoid caching actions that perform business operations.
+
+225. How can you customize cache tracking in NestJS to use HTTP headers or other factors instead of the default URL or cache key?
+
+  1)Create a Custom Cache Interceptor, Override the `trackBy()` method in a subclass of `CacheInterceptor` to define custom caching logic.
+
+
+    @Injectable()
+    export class HttpCacheInterceptor extends CacheInterceptor {
+      trackBy(context: ExecutionContext): string | undefined {
+        const request = context.switchToHttp().getRequest();
+        if (request.headers['authorization']) {
+          return `auth-${request.headers['authorization']}`; // Custom key based on Authorization header
+        }
+        return super.trackBy(context); // Default key (e.g., URL)
+      }
+    }
+
+  2) register the custom interceptor.
+    @UseInterceptors(HttpCacheInterceptor)
+    @Controller('profile')
+    export class ProfileController {
+      @Get()
+      getProfile() {
+        return { data: 'Profile Data' };
+      }
+    }
+
+226. How can you exclude sensitive properties (e.g., password) from being returned in a NestJS response using ClassSerializerInterceptor?
+
+  1) Use @Exclude decorator:
+
+    import { Exclude } from 'class-transformer';
+
+    export class UserEntity {
+      id: number;
+      firstName: string;
+      lastName: string;
+
+      @Exclude()
+      password: string;
+
+      constructor(partial: Partial<UserEntity>) {
+        Object.assign(this, partial);
+      }
+    }
+
+  2) Apply ClassSerializerInterceptor:
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Get()
+    findOne(): UserEntity {
+      return new UserEntity({
+        id: 1,
+        firstName: 'John',
+        lastName: 'Doe',
+        password: 'password',
+      });
+    }
+
+  3) make sure you always returns class, and not a plain object
+
+  *This does not work with `StreamableFile` responses.
+
+227. How would you expose additional properties with `ClassSerializerInterceptor`?
+
+  Use @Expose decorator in schema, like this:
+  @Expose()
+  get fullName(): string {
+    return `${this.firstName} ${this.lastName}`;
+  }
+
+228. How would you transform properties with `ClassSerializerInterceptor`?
+  Use @Transform decorator in schema, like this:
+
+  @Transform(({ value }) => value.name)
+  role: RoleEntity;
+
+229. How would you exclude certain properties from serialization process performed by `ClassSerializerInterceptor`?
+
+  pass the prefix of properties to be excluded like following:
+
+  @SerializeOptions({
+    excludePrefixes: ['_'], // properties started with '_' would be excluded from response
+  })
+  @Get()
+  findOne(): UserEntity {
+    return new UserEntity();
+  }
+
+230. How can you enforce transformations of plain objects into class instances automatically in a NestJS controller?
+  Use the @SerializeOptions decorator option `type`along with the ClassSerializerInterceptor like this:
+      @UseInterceptors(ClassSerializerInterceptor)
+      @SerializeOptions({ type: UserEntity }) // Specifies the class type to transform into
+      @Get()
+      findOne(@Query() { id }: { id: number }): UserEntity {
+        if (id === 1) {
+          return {
+            id: 1,
+            firstName: 'John',
+            lastName: 'Doe',
+            password: 'password',
+          };
+        }
+
+        return {
+          id: 2,
+          firstName: 'Kamil',
+          lastName: 'Mysliwiec',
+          password: 'password2',
+        };
+    }
+
+    * resulting value automatically converted to class UserEntity and serialized accordingly
+
+
+231. What type of API versioning present in Nest.js?
+  - URI Versioning - The version will be passed within the URI of the request (default)
+
+  - Header Versioning - A custom request header will specify the version
+
+  - Media Type Versioning - The `Accept` header of the request will specify the version
+
+  - Custom Versioning -	Any aspect of the request may be used to specify the version(s). A custom function is provided to extract said version(s).
+
+
+232. Provide example of URI Versioning Type usage.
+  1) set versioning type globaly
+  app.enableVersioning({
+    type: VersioningType.URI,
+    // prefix: 'v' // that's a default prefix, you may choose another one
+
+  });
+  2) use it
+
+  @Controller({
+    version: '1',
+  })
+
+  OR on route level
+
+  @Version('1')
+  @Get('cats')
+  findAllV1(): string {
+    return 'This action returns all cats for version 1';
+  }
+
+  3) keep in mind route level versioning more specific and would override contoller level versioning
+
+Side note: With URI Versioning the version will be automatically added to the URI after the global path prefix (if one exists), and before any controller or route paths.
+
+233. What happens if versioning is enabled in a NestJS application but a controller or route does not specify a version?
+
+  Any requests to a controller or route without a specified version will return a 404 response status. The same request with not matching versions
+
+234. How can you define a version-neutral controller or route in a NestJS application?
+
+  Use the VERSION_NEUTRAL symbol to define a controller or route that applies to all versions or no version at all.
+
+    @Controller({
+      version: VERSION_NEUTRAL,
+    })
+    export class CatsController {
+      @Get('cats')
+      findAll(): string {
+        return 'This action returns all cats regardless of version';
+      }
+    }
+    //to access this controller request should call GET /cats instead OR GET /v1/cats OR any other version
+
+235. How can you define a controller or route in NestJS that applies to multiple API versions?
+
+  To support multiple versions, set the version property to an array of version strings.
+
+  Example:
+
+    @Controller({
+      version: ['1', '2'], // Supports both version 1 and 2
+    })
+    export class CatsController {
+      @Get('cats')
+      findAll(): string {
+        return 'This action returns all cats for version 1 or 2';
+      }
+    }
+
+  Behavior:
+
+    The controller will respond to requests for both /v1/cats and /v2/cats.
+    Other versions (e.g., /v3/cats) will not match this controller.
+
+  Key Use Case:
+
+    Applicable when the same resource or functionality needs to be maintained across multiple API versions.
+
+236. How can you set a default API version for controllers or routes in NestJS when versioning is enabled?
+
+  app.enableVersioning({
+    defaultVersion: '1', // Default to version 1
+    // or
+    defaultVersion: ['1', '2'], // Support multiple default versions
+    // or
+    defaultVersion: VERSION_NEUTRAL // Apply version-neutral as default
+  });
+
+  Behavior:
+
+  If a controller/route doesn’t explicitly specify a version:
+    It defaults to the version(s) specified in defaultVersion.
+    Requests without a version will automatically route to resources matching the default version(s).
+
+  * controller/method can override the default version
+
+237. How can you apply middleware to specific API versions in NestJS?
+
+  You can use versioning metadata in the MiddlewareConsumer.forRoutes() method to apply middleware to a specific route version.
+
+  Example:
+
+    @Module({})
+    export class AppModule implements NestModule {
+      configure(consumer: MiddlewareConsumer) {
+        consumer
+          .apply(LoggerMiddleware)
+          .forRoutes({
+            path: 'cats',
+            method: RequestMethod.GET,
+            version: '2', // Middleware applies only to version '2'
+          });
+      }
+    }
+
+  Behavior:
+
+    The LoggerMiddleware will only apply to the route /v2/cats for GET requests.
+
+238. How do you set up task scheduling in a NestJS app?
+  1) import shedule module for the root the app
+    @Module({
+      imports: [
+        ScheduleModule.forRoot()
+      ],
+    })
+    export class AppModule {}
+
+  2) Use the @Cron() decorator to define cron jobs
+
+    import { Cron } from '@nestjs/schedule';
+
+    @Injectable()
+    export class TasksService {
+      private readonly logger = new Logger(TasksService.name);
+
+      @Cron('45 * * * * *')
+      handleCron() {
+        this.logger.debug('Called when the current second is 45');
+      }
+    }
+
+239. Can task sheduling be used with timeout/interval ?
+  Yes, use decorator @Interval(number) or @Timeout(number).
+
+240. How to use dynamic schedule module API with intervals/timeouts/crons?
+  1) assign a name to a job
+    @Interval('someName1', number) or @Timeout('someName2', number) or @Cron('* * 8 * * *', { name: 'notifications' })
+
+  2) inject  SchedulerRegistry
+
+    constructor(private schedulerRegistry: SchedulerRegistry) {}
+
+  3) get job by the name
+    const job = this.schedulerRegistry.getCronJob('notifications');
+
+  4) call jod's method(s)
+    job.stop();
+
+  OR
+
+  5) add job dynamically
+
+    const job = new CronJob(`${seconds} * * * * *`, () => {
+      this.logger.warn(`time (${seconds}) for job ${name} to run!`);
+    });
+
+    this.schedulerRegistry.addCronJob(name, job);
+    job.start();
+
+  * the same is relevant for intervals and timeouts
+
+241. Question: How do you set up and use queues in a NestJS app with BullMQ?
+
+  import it into app module
+
+
+    import { Module } from '@nestjs/common';
+    import { BullModule } from '@nestjs/bullmq';
+
+    @Module({
+      imports: [
+        BullModule.forRoot({
+          connection: {
+            host: 'localhost',
+            port: 6379,
+          },
+        }),
+        BullModule.registerQueue({
+          name: 'audio', // Register a queue named 'audio'
+        }),
+      ],
+    })
+    export class AppModule {}
+
+  Key Details:
+    - Use BullModule.registerQueue() to register one or more queues.
+    - Each queue's name is used as an injection token for providers and decorators.
+
+242.  What is a flow producer in context of BullMq?
+
+  A Flow Producer in BullMQ enables the creation of job hierarchies, where jobs have parent-child relationships.
+
+  This functionality allows you to organize jobs into trees of arbitrary depth, enabling complex workflows where dependent tasks can be created and managed effectively.
+
+  Child jobs are queued automatically after the completion of their parent jobs.
+
+
+  To register a flow producer in NestJS, use the BullModule.registerFlowProducer() method:
+
+    BullModule.registerFlowProducer({
+      name: 'flowProducerName', // Name of the flow producer
+    });
+
+  You can create job flows using the flow producer to define dependencies:
+
+    const flowProducer = new FlowProducer();
+
+    await flowProducer.add({
+      name: 'parentJob',
+      children: [
+        { name: 'childJob1', data: { foo: 'bar' }},
+        { name: 'childJob2', data: { foo: 'baz' }},
+      ],
+    })
+
+243. How do you use named configurations with BullMQ in NestJS and what's the use cases for named configurations?
+
+  Named configurations allow multiple Redis instances by associating each with a unique key, e.g., 'alternative-config'.
+
+  1) Register a Named Configuration:
+
+    BullModule.forRoot('alternative-config', {
+      connection: { port: 6381 }, // Connect to another Redis instance
+    });
+
+
+  2) Use the Named Configuration in a Queue:
+
+    BullModule.registerQueue({
+      configKey: 'alternative-config', // Link to 'alternative-config'
+      name: 'video', // Queue name
+    });
+
+244. How do you create a job producer in NestJS using BullMQ?
+  1. Inject the Queue in a Service:
+
+    @Injectable()
+    export class AudioService {
+      constructor(@InjectQueue('audio') private audioQueue: Queue) {}
+    }
+
+    * Use the @InjectQueue() decorator to inject a queue by its name (e.g., 'audio').
+
+  2) Add Jobs to the Queue:
+
+    const job = await this.audioQueue.add('transcode', {
+      foo: 'bar', // Job data
+    });
+
+    * The add() method adds a job with a name (e.g., 'transcode') and a serializable object (job data) of any shape.
+
+
+
+245. How do you delay a job in BullMQ?
+  Use the delay option in Queue.add() to specify the delay in milliseconds:
+
+    const job = await this.audioQueue.add(
+      'transcode',
+      { foo: 'bar' },
+      { delay: 3000 }, // Delay by 3 seconds
+    );
+
+246. How do you add a job in LIFO order in BullMQ?
+
+  Set the lifo option to true in Queue.add() to process the job as Last In, First Out:
+
+    const job = await this.audioQueue.add(
+      'transcode',
+      { foo: 'bar' },
+      { lifo: true },
+    );
+
+247. How do you set job priority in BullMQ?
+
+  Use the priority option in Queue.add() (1 = highest priority):
+
+    const job = await this.audioQueue.add(
+      'transcode',
+      { foo: 'bar' },
+      { priority: 2 },
+    );
+
+248. What are some common job options you can use with Queue.add() in BullMQ?
+
+  - priority: Set job priority (1 = highest, MAX_INT = lowest).
+
+  - delay: Delay job execution (in ms).
+
+  - attempts: Number of retry attempts for the job.
+
+  - repeat: Repeat job based on cron pattern.
+
+  - backoff: Retry delay after failure.
+
+  - lifo: Add job as Last In, First Out (true for LIFO).
+
+  - jobId: Custom ID for the job (must be unique).
+
+  - removeOnComplete: Remove job on completion (true or keep a limited number).
+
+  - removeOnFail: Remove job on failure (true or keep a limited number).
+
+  - stackTraceLimit: Limit stacktrace lines recorded.
+
+249. How do you define a consumer in NestJS with BullMQ?
+
+  Use the @Processor() decorator to define a consumer for a specific queue:
+
+
+    import { Processor } from '@nestjs/bullmq';
+
+    @Processor('audio') // Associates this consumer with the 'audio' queue
+    export class AudioConsumer {}
+
+
+250. How do you process jobs in a consumer with BullMQ?
+
+  Extend the WorkerHost class and implement the process method to handle jobs:
+
+    import { Processor, WorkerHost } from '@nestjs/bullmq';
+    import { Job } from 'bullmq';
+
+    @Processor('audio')
+    export class AudioConsumer extends WorkerHost {
+      async process(job: Job<any, any, string>): Promise<any> {
+        let progress = 0;
+        for (let i = 0; i < 100; i++) {
+          await doSomething(job.data);  // Process job data
+          progress += 1;
+          await job.updateProgress(progress); // Update progress
+        }
+        return {}; // Return result after processing
+      }
+    }
+
+251. How do you handle different job types (names) in BullMQ since @Process('name') is not supported?
+
+  Use a switch statement inside the process method to handle jobs of different names:
+
+    @Processor('audio')
+    export class AudioConsumer extends WorkerHost {
+      async process(job: Job<any, any, string>): Promise<any> {
+        switch (job.name) {
+          case 'transcode':
+            await doSomething(job.data); // Logic for 'transcode'
+            break;
+          case 'concatenate':
+            await doSomeLogic2(); // Logic for 'concatenate'
+            break;
+        }
+      }
+    }
+
+252. How do you register consumers in NestJS with BullMQ?
+
+  Consumers must be registered as providers so the @nestjs/bullmq package can recognize them.
+
+  Example:
+
+    @Processor('audio') // Associates this consumer with the 'audio' queue
+    export class AudioConsumer extends WorkerHost {
+      async process(job: Job<any, any, string>): Promise<any> {
+        console.log(`Processing job: ${job.name}`);
+        // Handle job logic here
+      }
+    }
+
+  Register the consumer in the module:
+
+    @Module({
+      imports: [
+        BullModule.registerQueue({ name: 'audio' }), // Register the 'audio' queue
+      ],
+      providers: [AudioConsumer], // Register the consumer as a provider
+    })
+    export class AppModule {}
+
+253. What is a request-scoped consumer in NestJS BullMQ?
+
+  A request-scoped consumer ensures that a new instance of the consumer class is created for each job. The instance is garbage-collected after the job is completed.
+
+    import { Processor, Scope } from '@nestjs/bullmq';
+
+    @Processor({
+      name: 'audio',
+      scope: Scope.REQUEST, // Declare the consumer as request-scoped
+    })
+    export class AudioConsumer {}
+
+
+254. How do you inject the specific job context in a request-scoped consumer in BullMQ?
+
+  Use the @Inject(JOB_REF) token to inject the job reference in the constructor.
+
+    @Processor({
+      name: 'audio',
+      scope: Scope.REQUEST, // Request-scoped consumer
+    })
+    export class AudioConsumer {
+      constructor(@Inject(JOB_REF) jobRef: Job) {
+        console.log(jobRef); // Access the job reference
+      }
+    }
+
+255. How do you listen to `Worker events` in NestJS BullMQ?
+
+  Worker events occur at the Worker level, such as when jobs are processed, completed, or failed.
+
+  Use the @OnWorkerEvent(event) decorator inside a consumer class (decorated with @Processor()):
+
+    @Processor('audio')
+    export class AudioConsumer {
+      @OnWorkerEvent('active') // Listen for 'active' event
+      onActive(job: Job) {
+        console.log(
+          `Processing job ${job.id} of type ${job.name} with data ${job.data}...`,
+        );
+      }
+    }
+
+256. How do you listen to `QueueEvents` in NestJS BullMQ?
+
+  QueueEvent listeners capture Queue-level events such as job state changes (e.g., active, completed, failed).
+
+  Use the @OnQueueEvent(event) decorator in a listener class that extends QueueEventsHost:
+
+    @QueueEventsListener('audio') // Listener tied to 'audio' queue events
+    export class AudioEventsListener extends QueueEventsHost {
+      @OnQueueEvent('active') // Listen for 'active' event at the queue level
+      onActive(job: { jobId: string; prev?: string }) {
+        console.log(`Processing job ${job.jobId}...`);
+      }
+    }
+
+257. What are the two main methods for controlling queue processing, and what happens when you pause a queue?
+  pause() - Stops processing new jobs (current jobs continue until finished)
+  resume() - Resumes processing paused queue
+
+258. What are the advantages of running BullMQ job handlers in separate (forked) processes, and how do you configure it
+
+  Sandboxed execution - Process crashes don't affect the main worker
+  Non-blocking code - Can run blocking code without stalling other jobs
+  Better CPU utilization - Improved multi-core CPU usage
+  Fewer Redis connections - More efficient resource usage
+  Use case-  CPU-intensive tasks, blocking operations, crash-prone processing
+
+  downsides: No Dependency Injection - The forked process doesn't have access to NestJS IoC container
+
+259. How do you disable automatic BullMQ component registration and manually control when components are registered?
+  1)Disable Auto-Registration:
+    BullModule.forRoot({
+      extraOptions: {
+        manualRegistration: true,
+      },
+    });
+
+  2) Manual Registration with `BullRegistrar`:
+
+    @Injectable()
+    export class AudioService implements OnModuleInit {
+      constructor(private bullRegistrar: BullRegistrar) {}
+
+      onModuleInit() {
+        if (yourConditionHere) {
+          this.bullRegistrar.register();
+        }
+      }
+    }
+
+260. How do you register multiple queues in BullMQ?
+
+  BullModule.registerQueue(
+    {
+      name: 'audio',
+    },
+    {
+      name: 'video',
+    }
+  );
+
+Side note: Bull has a configuration simular to BullMQ
+
+261.What are the ways to customize NestJS logging during application bootstrap?
+
+  const app = await NestFactory.create(AppModule, {
+    //all configs here are optional
+    logger: false, // disable logging
+    logger: ['error', 'warn'], // specify log level
+    colors: false, // disable coloring
+    prefix: 'MyApp', // Default is "Nest"
+  });
+
+262. How do you enable JSON logging in NestJS, and what happens to colorization when JSON is enabled?
+
+  const app = await NestFactory.create(AppModule, {
+    logger: new ConsoleLogger({
+      json: true,
+    }),
+  });
+
+  Colorization Behavior:
+    Automatic: json: true automatically sets colors: false
+    Override: Can explicitly set colors: true for development
+
+263. How do you integrate Pino logger in NestJS application bootstrap and service injection?
+
+  main.ts
+    async function bootstrap() {
+      const app = await NestFactory.create(AppModule, {
+        bufferLogs: true // Buffer logs until logger is ready
+      });
+
+      app.useLogger(app.get(PinoLogger));
+      // ... other configs
+    }
+    Service Injection:
+
+  import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+
+    @Injectable()
+    export class MyService {
+      constructor(
+        @InjectPinoLogger(MyService.name)
+        private readonly logger: PinoLogger,
+      ) {}
+    }
+
+264. How do you set up cookie parsing in NestJS with Express, and how do you read/write cookies in route handlers?
+
+  // main.ts
+
+    import * as cookieParser from 'cookie-parser';
+
+    app.use(cookieParser('optional-secret'));
+
+  // reading
+
+  @Get()
+  findAll(@Req() request: Request) {
+    console.log(request.cookies);        // unsigned cookies
+    console.log(request.signedCookies);  // signed cookies (if secret provided)
+    console.log(request.cookies['cookieKey']); // specific cookie
+  }
+
+  //writing
+  @Get()
+  findAll(@Res({ passthrough: true }) response: Response) {
+    response.cookie('key', 'value');
+  }
+
+265. What are signed cookies in Nest.js and how do you implement them?
+
+  Signed cookies contain a cryptographic signature to verify integrity and authenticity. They detect tampering but don't encrypt data.
+
+  1) Setup
+    typescript// main.ts
+    app.use(cookieParser('your-secret-key'));
+
+  2) Creating Signed Cookies
+    @Get('/set-cookie')
+    setCookie(@Res() response: Response) {
+      response.cookie('user', 'john_doe', {
+        signed: true,
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000
+      });
+    }
+
+  3)Reading Signed Cookies
+    @Get('/get-cookie')
+    getCookie(@Req() request: Request) {
+      const userCookie = request.signedCookies.user; // signed cookies
+      const regularCookie = request.cookies.regularCookie; // unsigned cookies
+    }
+
+Side note: you cannot create properly signed cookies from the frontend (client-side)
+
+266. How do you set up the EventEmitter in Nest.js?
+  * it uses eventemitter2 package internally
+
+  // app.module.ts
+  import { EventEmitterModule } from '@nestjs/event-emitter';
+
+  @Module({
+    imports: [
+      EventEmitterModule.forRoot()
+    ],
+  })
+  export class AppModule {}
+
+267. What are the main configuration options for EventEmitterModule.forRoot()?
+
+  EventEmitterModule.forRoot({
+    wildcard: false,        // enable wildcards
+    delimiter: '.',         // namespace delimiter
+    newListener: false,     // emit newListener event
+    removeListener: false,  // emit removeListener event
+    maxListeners: 10,       // max listeners per event
+    verboseMemoryLeak: false, // show event name in leak message
+    ignoreErrors: false,    // disable uncaughtException
+  });
+
+
+268. How do you dispatch/emit events in Nest.js?
+  1) Inject EventEmitter2:
+    constructor(private eventEmitter: EventEmitter2) {}
+
+  2) Emit Event:
+    this.eventEmitter.emit(
+      'order.created',
+      new OrderCreatedEvent({
+        orderId: 1,
+        payload: {},
+      }),
+    );
+
+
+269. How do you create event listeners in Nest.js?
+  *Event subscribers cannot be request-scoped
+
+  @OnEvent('order.created')
+  handleOrderCreatedEvent(payload: OrderCreatedEvent) {
+    // handle event
+  }
+
+  // With Options:
+  @OnEvent('order.created', {
+    async: true,
+    prependListener: false,
+    suppressErrors: true
+  })
+  handleOrderCreatedEvent(payload: OrderCreatedEvent) {
+    // handle event
+  }
+
+
+270. How do you use wildcards with Nest.js events?
+  1) Enable Wildcards:
+    .forRoot({ wildcard: true })
+
+  2) Single Level Wildcard:
+    @OnEvent('order.*')  // matches order.created, order.shipped
+    handleOrderEvents(payload: OrderCreatedEvent | OrderRemovedEvent) {}
+
+  3) Multi-level Wildcard:
+    @OnEvent('**')  // matches ALL events
+    handleEverything(payload: any) {}
+
+  Event Format: 'foo.bar' or ['foo', 'bar']
+
+271. How do you prevent event loss in Nest.js when emitting events during application bootstrap?
+
+  Use `eventEmitterReadinessWatcher.waitUntilReady`. This is only necessary for events emitted before the onApplicationBootstrap lifecycle hook is complete. Example:
+
+    await this.eventEmitterReadinessWatcher.waitUntilReady();
+    this.eventEmitter.emit(
+      'order.created',
+      new OrderCreatedEvent({ orderId: 1, payload: {} }),
+    );
+
+272. How do you enable compression in Nest.js and when should you avoid it?
+  Install compression package, then use `app.use(compression())` as global middleware.
+
+  For high-traffic production websites, offload compression to reverse proxy (e.g., Nginx) instead of using compression middleware in the application.
+
+273. What is the basic setup for single file upload in Nest.js?
+
+  Use @UseInterceptors(FileInterceptor('file')) on the route and @UploadedFile() decorator for the parameter:
+
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadFile(@UploadedFile() file: Express.Multer.File) {
+      console.log(file);
+    }
+
+274. What are the two built-in file validators in Nest.js and what do they validate?
+
+  MaxFileSizeValidator - Checks if file size is less than provided value (in bytes)
+  FileTypeValidator - Checks if file's mime-type matches a string or RegExp using magic numbers
+
+  example:
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1000 }),
+          new FileTypeValidator({ fileType: 'image/jpeg' }),
+        ],
+      }),
+    )
+
+275. How do you upload multiple files with the same field name in Nest.js?
+
+  Use FilesInterceptor() (plural) and @UploadedFiles():
+
+    @Post('upload')
+    @UseInterceptors(FilesInterceptor('files'))
+    uploadFile(@UploadedFiles() files: Array<Express.Multer.File>) {
+      console.log(files);
+    }
+
+276. What important limitations should you know about Nest.js file uploads?
+  Multer only processes multipart/form-data format
+  Not compatible with FastifyAdapter
+  FileInterceptor may not work with third-party cloud providers like Google Firebase
+
+277. How do you upload multiple files with different field names in Nest.js?
+
+  Use FileFieldsInterceptor() with an array of field configurations:
+
+    @Post('upload')
+    @UseInterceptors(FileFieldsInterceptor([
+      { name: 'avatar', maxCount: 1 },
+      { name: 'background', maxCount: 1 },
+    ]))
+    uploadFile(@UploadedFiles() files: { avatar?: Express.Multer.File[], background?: Express.Multer.File[] }) {
+      console.log(files);
+    }
+
+278. How do you upload files from any field names (arbitrary fields) in Nest.js?
+  Use AnyFilesInterceptor() to accept files from all fields regardless of field names:
+
+    @Post('upload')
+    @UseInterceptors(AnyFilesInterceptor())
+    uploadFile(@UploadedFiles() files: Array<Express.Multer.File>) {
+      console.log(files);
+    }
+
+279. How do you accept multipart/form-data but prevent file uploads in Nest.js?
+
+  Use NoFilesInterceptor() - it processes multipart data into request body but throws BadRequestException if files are sent:
+
+    @Post('upload')
+    @UseInterceptors(NoFilesInterceptor())
+    handleMultiPartData(@Body() body) {
+      console.log(body)
+    }
+
+280. How do you stream files in Nest.js while preserving interceptor logic?
+
+  Use StreamableFile class instead of direct piping. It accepts a Buffer or Stream and preserves post-controller interceptors:
+
+    @Get()
+    getFile(): StreamableFile {
+      const file = createReadStream(join(process.cwd(), 'package.json'));
+      return new StreamableFile(file, {
+        type: 'application/json',
+        disposition: 'attachment; filename="package.json"'
+      });
+    }
+
+    //Default content-type is application/octet-stream.
+
+281. How do you make HTTP requests in Nest.js using the built-in HTTP module?
+
+  Install @nestjs/axios axios, import HttpModule, and inject HttpService. Methods return `Observables` wrapping of `AxiosResponse`:
+
+    @Module({
+      imports: [HttpModule],
+      providers: [CatsService],
+    })
+    export class CatsModule {}
+
+    @Injectable()
+    export class CatsService {
+      constructor(private readonly httpService: HttpService) {}
+
+      findAll(): Observable<AxiosResponse<Cat[]>> {
+        return this.httpService.get('http://localhost:3000/cats');
+      }
+    }
+
+282. Suggest configuring HTTP module asyncronously.
+
+  registering service:
+
+    @Module({
+      imports: [
+        HttpModule.register({
+          service: ACCOUNT_PUBLIC_SERVICE_HTTP_SERVICE,
+          inject: [register.KEY],
+          useFactory: (config: ConfigType<typeof register>) => ({
+            host: config.accountService.publicHost
+          })
+        })
+      ],
+      providers: [AccountPublicProcessor],
+      exports: exposedProviders
+    })
+    export class EpicServicesModule {}
+
+  Using service:
+
+  @Injectable()
+  export class AccountPublicService {
+    constructor(
+      @Inject(ACCOUNT_PUBLIC_SERVICE_HTTP_SERVICE) private readonly httpService: HttpService,
+    ) {}
+
+    // use the service to make get request
+    async verify({ token }: TokenParams) {
+      const query: TokenQuery = { includePerms: true };
+
+      const result = await this.httpService.get<AccountPublicServiceVerifyTokenResponse>(
+        '/account/api',
+        { query, headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      return result;
+    }
+  }
+
+283. How do you set up and use sessions in Nest.js with Express?
+  1) Default storage not for production, resave: false and saveUninitialized: false are recommended.
+  2) this mechanism is saving session into app's memmory
+
+  Install express-session, configure as global middleware, then use @Session() decorator or @Req():
+
+    // main.ts
+    app.use(session({
+      secret: 'my-secret',
+      resave: false,
+      saveUninitialized: false,
+    }));
+
+    // In controller
+    @Get()
+    findAll(@Session() session: Record<string, any>) {
+      session.visits = session.visits ? session.visits + 1 : 1;
+    }
+
+
+284. How do you set up Fastify as an alternative to Express in NestJS for better performance?
+  Use FastifyAdapter:
+
+    async function bootstrap() {
+      const app = await NestFactory.create<NestFastifyApplication>(
+        AppModule,
+        new FastifyAdapter()
+      );
+      await app.listen(3000, '0.0.0.0'); // '0.0.0.0' for external connections
+    }
+    bootstrap();
+
+  Fastify defaults to localhost (127.0.0.1) only - use '0.0.0.0' to accept external connections.
+
+
+285. How do you set up Server-Sent Events (SSE) in NestJS?
+
+  Use @Sse() decorator on controller method
+  It must return Observable stream
+
+  typescript@Sse('sse')
+  sse(): Observable<MessageEvent> {
+    return interval(1000).pipe(map((_) => ({ data: { hello: 'world' } })));
+  }
+
+
+286. How do you consume Server-Sent Events on the client side?
+  const eventSource = new EventSource('/sse');
+  eventSource.onmessage = ({ data }) => {
+    console.log('New message', JSON.parse(data));
+  };
+
+  Key Points:
+
+    - EventSource opens persistent HTTP connection
+    - Receives text/event-stream format
+    - Connection stays open until .close() called
+    - Generic message event fired if no event field present
+
+
+287. How do you enable authentication globally in NestJS?
+  Register AuthGuard as global guard in any module (e.g., AuthModule) and Nest automatically binds AuthGuard to ALL endpoints by default
+
+  //app.module.ts
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
+
+288. How do you create a custom decorator to mark routes as public when using global authentication?
+  1) create public decorator
+
+    import { SetMetadata } from '@nestjs/common';
+
+    export const IS_PUBLIC_KEY = 'isPublic';
+    export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+  2) add it to public route
+
+    @Public()
+    @Get()
+    findAll() {
+      return [];
+    }
+
+  3) modify AuthGuard to respect the @Public()
+
+    @Injectable()
+    export class AuthGuard implements CanActivate {
+      constructor(private jwtService: JwtService, private reflector: Reflector) {}
+
+      async canActivate(context: ExecutionContext): Promise<boolean> {
+        const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ]);
+        if (isPublic) {
+          return true; // Skip authentication for public routes
+        }
+        // ... rest of auth logic
+      }
+    }
+
+Side node: Encryption is a two-way function; what is encrypted can be decrypted with the proper key.
+Side note: Hashing is the process of converting a given key into another value. A hash function is used to generate the new value according to a mathematical algorithm. Once hashing has been done, it should be impossible to go from the output to the input.
+
+289. What are the three essential components needed for encryption?
+
+  Algorithm: The cipher method (e.g., 'aes-256-ctr')
+  Key: Secret password that controls encryption/decryption (32 bytes for AES-256)
+  IV (Initialization Vector): Random data that makes encryption unpredictable (16 bytes)
+
+  example:
+
+    const iv = randomBytes(16); // Random 16 bytes
+    const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer; // 32-byte key
+    const cipher = createCipheriv('aes-256-ctr', key, iv);
+
+  Analogy: Key = house key, IV = changing the lock position each time, Algorithm = type of lock
+
+290. How do you encrypt and decrypt data in NestJS using Node.js crypto module?
+  Encryption:
+    import { createCipheriv, randomBytes, scrypt } from 'crypto';
+    import { promisify } from 'util';
+
+    // 1. Generate random IV and derive key
+    const iv = randomBytes(16);
+    const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer;
+
+    // 2. Create cipher and encrypt
+    const cipher = createCipheriv('aes-256-ctr', key, iv);
+    const encryptedText = Buffer.concat([cipher.update(textToEncrypt), cipher.final()]);
+
+  Decryption:
+    const decipher = createDecipheriv('aes-256-ctr', key, iv);
+    const decryptedText = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
+
+  Key: Same key + IV needed for both operations.
+
+291. What's the main challenge with encryption IVs in distributed systems (multiple pods/servers)?
+
+  Each pod generates different random IVs during encryption:
+
+    Pod A encrypts data → creates random IV₁
+    Pod B tries to decrypt → doesn't know IV₁ → decryption fails
+
+  Solutions
+    1) Prepend IV to encrypted data, store together as single blob.
+
+      Encryption:
+        const iv = randomBytes(16);
+        const cipher = createCipheriv('aes-256-ctr', key, iv);
+        const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+
+        // Store IV + encrypted data together
+        const encryptedWithIV = Buffer.concat([iv, encrypted]);
+        // Save encryptedWithIV to database
+
+      Decryption:
+        const storedData = getFromDatabase(); // IV + encrypted data
+        const iv = storedData.subarray(0, 16);        // First 16 bytes = IV
+        const encrypted = storedData.subarray(16);     // Rest = encrypted data
+
+        const decipher = createDecipheriv('aes-256-ctr', key, iv);
+        const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+
+    2) use external secret services (AWS KMS, HashiCorp Vault, Azure Key Vault, Google Secret Manager)
+      Flow:
+        Pod A encrypts → stores key/IV pair in service with unique ID
+        Pod A stores encrypted data + ID in database
+        Pod B retrieves encrypted data + ID from database
+        Pod B fetches key/IV from service using ID
+        Pod B decrypts successfully
+
+    3) store IV separated
+      3.1) Store IV as separate field alongside encrypted data
+        OR
+      3.2)Use Redis with key pattern like encryption:${id}:iv and encryption:${id}:data
+
+292. How do you enable CORS in NestJS
+
+  1) app.enableCors(); // pass cors settings here
+  OR
+  2) const app = await NestFactory.create(AppModule, { cors: true });
+
+
+293. How do you implement csrf protection in Nest.js?
+
+  By leveraging srf-csrf package:
+  // csrf module file
+
+    import { doubleCsrf } from 'csrf-csrf';
+
+    const {
+      generateCsrfToken,
+      doubleCsrfProtection,
+    } = doubleCsrf({
+      getSecret: () => process.env.CSRF_SECRET,
+      getSessionIdentifier: (req) => req.sessionId || 'anonymous',
+      cookieName: '__Host-csrf-token',
+      cookieOptions: {
+        sameSite: 'strict',
+        path: '/',
+        secure: true,
+        httpOnly: true
+      }
+    });
+
+    @Module({
+      providers: [
+        {
+          provide: 'CSRF_PROTECTION',
+          useValue: { generateCsrfToken, doubleCsrfProtection }
+        }
+      ],
+      exports: ['CSRF_PROTECTION']
+    })
+    export class CsrfModule {}
+
+  // app.controller.ts
+
+    @Controller()
+    export class AppController {
+      constructor(@Inject('CSRF_PROTECTION') private csrf: any) {}
+
+      @Get('csrf-token')
+      getCsrfToken(@Req() req: any, @Res() res: any) {
+        const csrfToken = this.csrf.generateCsrfToken(req, res);
+        return res.json({ csrfToken });
+      }
+    }
+
+  // main.ts - Apply CSRF middleware globally
+    import cookieParser from 'cookie-parser';
+    import { doubleCsrfProtection } from './csrf-config'; // your config
+
+    async function bootstrap() {
+      const app = await NestFactory.create(AppModule);
+
+      app.use(cookieParser());
+      app.use(doubleCsrfProtection); // Apply globally
+
+      await app.listen(3000);
+    }
+
+  // on FE side
+
+        const response = await fetch('/csrf-token', {
+        credentials: 'include' // Important: include cookies
+      });
+
+  // when making request to protected endpoint passs obtained token as 'x-csrf-token' header
+
+294. How do you implement basic rate limiting in NestJS using @nestjs/throttler?
+
+  @Module({
+    imports: [
+      ThrottlerModule.forRoot({
+        throttlers: [ // define throttle config
+          {
+            ttl: 60000,
+            limit: 10,
+          },
+        ],
+      }),
+    ],
+    providers: [
+      {
+        provide: APP_GUARD, // apply globally
+        useClass: ThrottlerGuard, // This comes from @nestjs/throttler
+      },
+    ],
+  })
+  export class AppModule {}
+
+295. How do you configure multiple rate limiting rules with different time windows in NestJS?
+  @Module({
+    imports: [
+      ThrottlerModule.forRoot([
+        {
+          name: 'short',
+          ttl: 1000,    // 1 second
+          limit: 3,     // 3 requests per second
+        },
+        {
+          name: 'medium',
+          ttl: 10000,   // 10 seconds
+          limit: 20     // 20 requests per 10 seconds
+        },
+        {
+          name: 'long',
+          ttl: 60000,   // 1 minute
+          limit: 100    // 100 requests per minute
+        }
+      ]),
+    ],
+  })
+  export class AppModule {}
+
+296. How do you disable rate limiting for specific controllers or routes in NestJS?
+  Use the @SkipThrottle() decorator to disable rate limiting.
+  Default behavior: @SkipThrottle() = @SkipThrottle({ default: true })
+
+
+  @SkipThrottle()
+  @Controller('users')
+  export class UsersController {
+    // Rate limiting ENABLED for this route
+    @SkipThrottle({ default: false })
+    dontSkip() {
+      return 'Rate limiting applied';
+    }
+
+    // Rate limiting DISABLED (inherited from controller)
+    doSkip() {
+      return 'No rate limiting';
+    }
+  }
+
+  * Default behavior: @SkipThrottle() = @SkipThrottle({ default: true })
+
+297. How do you override global rate limiting settings for specific routes in NestJS?
+
+  Use the @Throttle() decorator to customize rate limiting per route/controller:
+
+    // Override global settings
+      @Throttle({ default: { limit: 3, ttl: 60000 } })
+      @Get()
+      findAll() {
+        return "Custom rate limiting: 3 requests per minute";
+      }
+
+298. How do you configure NestJS to work correctly behind a proxy server?
+
+  When running behind a proxy server, you must configure the HTTP adapter to trust the proxy to get correct client IP addresses.
+
+  Purpose:
+  - Enables retrieving the original client IP from X-Forwarded-For header
+  - Essential for rate limiting and security features to work correctly
+  - Without this, all requests appear to come from the proxy's IP
+
+
+    async function bootstrap() {
+      const app = await NestFactory.create<NestExpressApplication>(AppModule);
+      app.set('trust proxy', 'loopback'); // Trust loopback requests
+      await app.listen(3000);
+    }
+
+299. How do you set up GraphQL with TypeScript in NestJS using Apollo driver?
+  Basic setup example:
+    import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+
+    @Module({
+      imports: [
+        GraphQLModule.forRoot<ApolloDriverConfig>({
+          driver: ApolloDriver,
+        }),
+      ],
+    })
+    export class AppModule {}
+
+300. How do you configure GraphQL code-first approach in NestJS and what are the autoSchemaFile options?
+
+  Code-first approach uses decorators and TypeScript classes to generate GraphQL schema automatically.
+
+    Generate schema file:
+
+      GraphQLModule.forRoot<ApolloDriverConfig>({
+        driver: ApolloDriver,
+        autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+        sortSchema: true,  // Sort schema alphabetically
+      })
+
+    Generate schema in memory:
+
+      GraphQLModule.forRoot<ApolloDriverConfig>({
+        driver: ApolloDriver,
+        autoSchemaFile: true,  // In-memory generation
+        sortSchema: true,  // Sort schema alphabetically
+      })
+
+301. Schema-first approach starts with GraphQL SDL files, then generates TypeScript definitions.
+  Auto-generate TypeScript definitions:
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      typePaths: ['./**/*.graphql'],
+      definitions: {
+        path: join(process.cwd(), 'src/graphql.ts'),
+        outputAs: 'class',  // 'interface' (default) or 'class'
+      },
+    })
+
+302. How do you limit GraphQL resolver scanning to specific modules in NestJS?
+  Use the include property in GraphQLModule.forRoot() to specify which modules should be included:
+    GraphQLModule.forRoot({
+      include: [CatsModule],
+    })
+
+  By default, GraphQL searches for resolvers throughout the whole app
+
+303. What are GraphQL object types in NestJS and how do you define them using the code-first approach?
+  Object types are the main building blocks of a GraphQL schema that represent domain objects clients interact with.
+
+  Code-first approach uses TypeScript classes with decorators:
+
+    @ObjectType() // use on each class
+    export class Author {
+      @Field(type => Int) // use field decorator on each property, Int is imported from @nestjs/graphql
+      id: number;
+
+      @Field({ nullable: true })
+      firstName?: string;
+
+      @Field({ nullable: true }) // type function can be ommited only for string and boolean
+      lastName?: string;
+
+      @Field(type => [Post]) // type function required to avoid ambiguity between typescript and qraphQL
+      posts: Post[];
+    }
+
+  * that's an equivalent of following SDL (schema declaration language):
+    type Author {
+      id: Int!
+      firstName: String
+      lastName: String
+      posts: [Post!]!
+    }
+
+
+304. What are the main options you can pass to the @Field() decorator in NestJS GraphQL?
+
+  The @Field() decorator accepts an options object with these key properties:
+
+    nullable: Whether field is nullable (default: non-nullable) - boolean
+    description: Field description for documentation - string
+    deprecationReason: Mark field as deprecated - string
+
+305. How do you handle arrays in GraphQL fields using NestJS code-first approach?
+
+  Arrays require manual type indication in the @Field() decorator:
+    // Basic array
+    @Field(type => [Post])
+    posts: Post[];
+
+    // Array with nullable items (items can be null, but array exists)
+    @Field(type => [Post], { nullable: 'items' })
+    posts: Post[];
+
+    // Both array and items nullable
+    @Field(type => [Post], { nullable: 'itemsAndList' })
+    posts?: Post[];
+
+
+    // Matrix (array of arrays)
+    @Field(type => [[Int]])
+    matrix: number[][];
+
+306.What are GraphQL resolvers and what do they do?
+  Resolvers provide instructions for turning GraphQL operations (queries, mutations, subscriptions) into data.
+
+  Key characteristics:
+    Return the same shape of data specified in the schema
+    Can return data synchronously or as a promise
+    In NestJS, resolver maps are generated automatically using decorators
+    Each resolver function corresponds to a field in the GraphQL schema
+
+307. How do you create a resolver class in NestJS code-first approach?
+
+  Use the @Resolver() decorator on a class with resolver methods:
+
+    @Resolver(() => Author)
+    export class AuthorsResolver {
+      constructor(
+        private authorsService: AuthorsService,
+        private postsService: PostsService,
+      ) {}
+
+      @Query(() => Author)
+      async author(@Args('id', { type: () => Int }) id: number) {
+        return this.authorsService.findOneById(id);
+      }
+
+      @ResolveField()
+      async posts(@Parent() author: Author) {
+        const { id } = author;
+        return this.postsService.findAll({ authorId: id });
+      }
+    }
+
+308. What's the difference between @Query() and @ResolveField() resolvers?
+
+  @Query() resolvers:
+
+    Top-level entry points to your GraphQL API
+    Handle root queries like author(id: 1)
+    Define what data can be requested
+
+  @ResolveField() resolvers:
+
+    Resolve individual fields of an object type
+    Called when a specific field is requested
+    Used for nested data or computed fields
+
+  // Query resolver - entry point
+  @Query(() => Author)
+  async author(@Args('id') id: number) {
+    return this.authorsService.findOneById(id);
+  }
+
+  // Field resolver - resolves Author.posts field
+  @ResolveField()
+  async posts(@Parent() author: Author) {
+    return this.postsService.findAll({ authorId: author.id });
+  }
+
+309. Why and when do you need to pass a type to @Resolver() decorator?
+
+  The @Resolver(() => Type) parameter is optional but required when you have field resolvers.
+
+  Specifies the parent object type for field resolvers
+  Enables @Parent() decorator to access the parent object
+  Required when class contains @ResolveField() methods
+
+  @Resolver(() => Author)  // Author is parent type
+  export class AuthorsResolver {
+    @ResolveField()  // Resolves Author.posts field
+    async posts(@Parent() author: Author) {
+      // @Parent() gives access to the Author object
+      return this.postsService.findAll({ authorId: author.id });
+    }
+  }
+
+Side note: Field resolvers are called automatically by GraphQL when their field is requested. You never call them manually - GraphQL handles the orchestration and passes the parent object via @Parent().
+
+310. How do you decouple method names from GraphQL query names in NestJS resolvers?
+
+  By default, GraphQL uses the method name as the query name:
+    @Query(() => Author)
+    async author(@Args('id') id: number) {
+      // Creates: author(id: Int!): Author
+    }
+
+  To decouple, pass the desired GraphQL `name` to the decorator:
+    @Query(() => Author, { name: 'author' })
+    async getAuthor(@Args('id') id: number) {
+      // Method: getAuthor()
+      // GraphQL query: author(id: Int!): Author
+    }
+
+    @ResolveField('posts', () => [Post]) // name as first argument here
+    async getPosts(@Parent() author: Author) {
+      // Method: getPosts()
+      // GraphQL field: posts
+    }
+
+  Benefits:
+
+    Use descriptive method names (e.g., getAuthor())
+    Keep clean GraphQL API names (e.g., author)
+    Better code organization and readability
+
+
+311. How do you extract arguments from GraphQL requests using the @Args() decorator?
+
+  Simple usage (for string types):
+    @Args('id') id: string
+
+  For numbers (requires type specification):
+
+    @Query(() => Author)
+    async getAuthor(@Args('id', { type: () => Int }) id: number) {
+      return this.authorsService.findOneById(id);
+    }
+
+  Multiple arguments with options:
+    getAuthor(
+      @Args('firstName', { nullable: true }) firstName?: string,
+      @Args('lastName', { defaultValue: '' }) lastName?: string,
+    ) {}
+
+  @Args() options:
+
+    type: () => GraphQLType - specify GraphQL type (required for numbers)
+    defaultValue: any - set default value
+    nullable: boolean - allow null values
+    description: string - add field description
+    deprecationReason: string - mark as deprecated
+
+312. How do you avoid bloated @Args() calls by using a dedicated arguments class?
+  Create a dedicated @ArgsType() class:
+    @ArgsType()
+    class GetAuthorArgs {
+      @Field({ nullable: true })
+      firstName?: string;
+
+      @Field({ defaultValue: '' })
+      @MinLength(3)
+      lastName: string;
+    }
+
+  Use it in the resolver:
+    @Query(() => Author)
+    async getAuthor(@Args() args: GetAuthorArgs) {
+      return this.authorsService.findByName(args.firstName, args.lastName);
+    }
+
+313. How do you use TypeScript class inheritance with GraphQL @ArgsType() and @ObjectType() classes?
+  1) @ArgsType() inheritance - Create reusable base argument classes:
+    // Base class with common fields
+    @ArgsType()
+    class PaginationArgs {
+      @Field(() => Int)
+      offset: number = 0;
+
+      @Field(() => Int)
+      limit: number = 10;
+    }
+
+    // Extended class with specific fields
+    @ArgsType()
+    class GetAuthorArgs extends PaginationArgs {
+      @Field({ nullable: true })
+      firstName?: string;
+
+      @Field({ defaultValue: '' })
+      lastName: string;
+    }
+
+  2) @ObjectType() inheritance - Create base entity classes:
+    @ObjectType()
+    class Character {
+      @Field(() => Int)
+      id: number;
+
+      @Field()
+      name: string;
+    }
+
+    @ObjectType()
+    class Warrior extends Character {
+      @Field()
+      level: number;  // Warrior-specific field
+    }
+
+314. How do you create a generic base resolver using TypeScript inheritance and generics?
+
+  Create a generic base resolver function:
+
+    function BaseResolver<T extends Type<unknown>>(classRef: T): any {
+      @Resolver({ isAbstract: true })
+      abstract class BaseResolverHost {
+        @Query(() => [classRef], { name: `findAll${classRef.name}` })
+        async findAll(): Promise<T[]> {
+          return [];
+        }
+      }
+      return BaseResolverHost;
+    }
+
+  Extend it in concrete resolvers:
+
+    @Resolver(() => Recipe)
+    export class RecipesResolver extends BaseResolver(Recipe) {
+      constructor(private recipesService: RecipesService) {
+        super();
+      }
+    }
+
+315. How do you define a GraphQL mutation in NestJS using the code-first approach?
+  // Input type for complex arguments
+  @InputType()
+  export class UpvotePostInput {
+    @Field()
+    postId: number;
+  }
+
+  @Resolver()
+  export class AuthorResolver {
+    // Simple mutation with basic argument
+    @Mutation(() => Post)
+    async upvotePost(@Args({ name: 'postId', type: () => Int }) postId: number) {
+      return this.postsService.upvoteById({ id: postId });
+    }
+
+    // Mutation with input type
+    @Mutation(() => Post)
+    async upvotePostWithInput(@Args('upvotePostData') upvotePostData: UpvotePostInput) {
+      return this.postsService.upvoteById({ id: upvotePostData.postId });
+    }
+  }
+
+316. What are GraphQL subscriptions and how do you enable them in NestJS with Apollo driver?
+
+  Push real-time data from server to clients. Common use cases: notifications, live updates, new object creation.
+
+  enabling subscriptions:
+
+    typescriptGraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      subscriptions: {
+        'graphql-ws': true
+      },
+    })
+
+317. How do you create a GraphQL subscription using the code-first approach in NestJS?
+  const pubSub = new PubSub();
+
+  @Resolver(() => Author)
+  export class AuthorResolver {
+    // With custom name
+    @Subscription(() => Comment, { name: 'commentAdded' })
+    subscribeToCommentAdded() {
+      return pubSub.asyncIterableIterator('commentAdded');
+    }
+  }
+
+318. How do you publish events for GraphQL subscriptions in NestJS, and what's the critical requirement for the payload shape?
+
+  @Mutation(() => Comment)
+  async addComment(
+    @Args('postId', { type: () => Int }) postId: number,
+    @Args('comment') comment: CommentInput,
+  ) {
+    const newComment = this.commentsService.addComment({ id: postId, comment });
+
+    // Publish event with shaped payload
+    pubSub.publish('commentAdded', { commentAdded: newComment });
+
+    return newComment;
+  }
+
+  *Critical requirement - Payload shape must match subscription:
+    type Subscription {
+      commentAdded(): Comment!  # ← Top-level property name
+    }
+
+    // Correct - matches subscription shape
+      pubSub.publish('commentAdded', { commentAdded: newComment });
+
+    // Wrong - shape mismatch will cause validation failure
+      pubSub.publish('commentAdded', newComment);
+
+319. How do you filter GraphQL subscription events so only specific clients receive relevant updates?
+
+  Client subscription query:
+    graphqlsubscription {
+      commentAdded(title: "My Blog Post") {  # ← Client passes filter argument
+        id
+        content
+        author
+      }
+    }
+
+  Server subscription with filter:
+    typescript@Subscription(() => Comment, {
+      filter: (payload, variables) =>
+        payload.commentAdded.title === variables.title,
+        //     ↑ Event data          ↑ Client's "My Blog Post"
+    })
+    commentAdded(@Args('title') title: string) {
+      return pubSub.asyncIterableIterator('commentAdded');
+    }
+
+320. How do you modify/transform the payload before sending it to GraphQL subscription clients?
+
+  Basic payload transformation:
+    @Subscription(() => Comment, {
+      resolve: value => {
+        // Transform the payload before sending to client
+        return {
+          ...value.commentAdded,
+          timestamp: new Date().toISOString()
+        };
+      }
+    })
+    commentAdded() {
+      return pubSub.asyncIterableIterator('commentAdded');
+    }
+
+  Access resolver instance (for injected services):
+    @Subscription(() => Comment, {
+      resolve(this: AuthorResolver, value) {
+        // "this" refers to AuthorResolver instance
+        // Can access injected services: this.commentsService
+        return this.commentsService.formatComment(value.commentAdded);
+      }
+    })
+    commentAdded() {
+      return pubSub.asyncIterableIterator('commentAdded');
+    }
+
+321. How do you implement authentication over WebSockets in GraphQL subscriptions?
+  GraphQLModule.forRoot<ApolloDriverConfig>({
+    driver: ApolloDriver,
+    subscriptions: {
+      'subscriptions-transport-ws': {
+        onConnect: (connectionParams) => {
+          const authToken = connectionParams.authToken;
+          if (!isValid(authToken)) {
+            throw new Error('Token is not valid');
+          }
+          const user = parseToken(authToken);
+          return { user };
+        },
+      }
+    },
+    context: ({ connection }) => {
+      // connection.context will be equal to what was returned by the "onConnect" callback
+    },
+  })
+
+322. How do you create a basic WebSocket gateway in NestJS?
+
+  Use `@WebSocketGateway()` decorator on a class:
+
+    @WebSocketGateway()
+    export class EventsGateway {
+      // gateway logic
+    }
+
+  Key points:
+  - Gateway is a class with `@WebSocketGateway()` decorator
+  - Platform-agnostic (works with socket.io and ws)
+  - Listens on same port as HTTP server by default
+  - Must be registered in module providers array
+
+323. How do you configure custom port and namespace for a WebSocket gateway?
+
+  // Custom port
+  @WebSocketGateway(80)
+
+  // Custom port with namespace
+  @WebSocketGateway(80, { namespace: 'events' })
+
+  // With additional options
+  @WebSocketGateway(81, { transports: ['websocket'] })
+
+324. How do you handle incoming WebSocket messages in NestJS?
+
+    @SubscribeMessage('events')
+    handleEvent(@MessageBody() data: string): string {
+      return data; // auto-acknowledgment
+    }
+
+  Details:
+    - `@SubscribeMessage('eventName')` - listen for specific message
+    - `@MessageBody()` - extract message body
+    - Return value is sent as acknowledgment to client
+
+325. How do you access the client socket instance in a message handler?
+
+  @SubscribeMessage('events')
+  handleEvent(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ): string {
+    // Can use client.emit() for custom responses
+    return data;
+  }
+
+326. How do you extract specific properties from WebSocket message body?
+
+  @SubscribeMessage('events')
+  handleEvent(@MessageBody('id') id: number): number {
+    // id === messageBody.id
+    return id;
+  }
+
+327. How do you register a WebSocket gateway in a NestJS module?
+
+  @Module({
+    providers: [EventsGateway]
+  })
+  export class EventsModule {}
+
+
+    *Important note: Gateways are not instantiated until referenced in providers array.
+
+328. How does the client interact with NestJS WebSocket gateway?
+
+  // Send with acknowledgment listener
+  socket.emit('events', { name: 'Nest' }, (data) => {
+    console.log(data); // receives handler return value
+  });
+
+329. How do you handle WebSocket messages without sending an acknowledgment?
+  Simply don't return anything or return falsy value
+
+330. How do you send multiple responses or custom events from a WebSocket handler in NestJS?
+
+  The problem
+    Acknowledgment is dispatched only once
+    Not supported by native WebSockets
+
+  Solution
+    Return WsResponse<T> object with event and data properties:
+
+      @SubscribeMessage('eventA')
+      handleEvent(@MessageBody() data: unknown): WsResponse<unknown> {
+        const event = 'eventA';
+        return { event, data };
+      }
+
+  client side:
+    socket.on('eventA', (data) => console.log(data));
+
+331. How do you handle asynchronous and multiple responses in WebSocket message handlers?
+
+  Supported Response Types
+    Synchronous - direct return
+    Asynchronous - async/await
+    Observable - streaming multiple responses
+
+  Example of observable:
+    @SubscribeMessage('events')
+    onEvent(@MessageBody() data: unknown): Observable<WsResponse<number>> {
+      const event = 'events';
+      const response = [1, 2, 3];
+
+      return from(response).pipe(
+        map(data => ({ event, data })),
+      );
+    }
+
+332. What are the 3 WebSocket lifecycle hooks in NestJS and how do you implement them?
+
+  | Hook                    | Interface            |Purpose                            | Argument             |
+  |-------------------------|----------------------|-----------------------------------|----------------------|
+  | **OnGatewayInit**       | `afterInit()`        | server setup/configuration        | Takes server instance|
+  | **OnGatewayConnection** | `handleConnection()` | track new clients, authentication | Takes client socket  |
+  | **OnGatewayDisconnect** | `handleDisconnect()` | cleanup, remove from active users | Takes client socket  |
+
+
+  Example of implementation
+    @WebSocketGateway()
+    export class EventsGateway
+      implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+
+      afterInit(server: Server) {
+        console.log('Gateway initialized');
+      }
+
+      handleConnection(client: Socket) {
+        console.log('Client connected:', client.id);
+      }
+
+      handleDisconnect(client: Socket) {
+        console.log('Client disconnected:', client.id);
+      }
+    }
+
+333. How do you access the native WebSocket server instance in NestJS?
+
+  Method 1: Via Lifecycle Hook afterInit
+
+  Method 2: Via Decorator WebSocketServer
+
+  Both give access to the native, platform-specific server instance.
+
+334. How do you access a specific WebSocket namespace in NestJS?
+  @WebSocketGateway()
+  export class EventsGateway {
+    @WebSocketServer({ namespace: 'my-namespace' })
+    namespace: Namespace;
+
+    // Access specific namespace instead of server
+    someMethod() {
+      this.namespace.emit('event', data);
+    }
+  }
+
+335. How do you throw exceptions in WebSocket handlers vs HTTP handlers?
+  throw new HttpException('Invalid credentials.', 401);
+
+336. How do you apply exception filters to WebSocket handlers?
+  use decorator
+    @UseFilters(new WsExceptionFilter())
+
+  before class decorator
+    @WebSocketGateway()
+
+  or before method decorator
+    @SubscribeMessage()
+
+337. How do you create a custom WebSocket exception filter that extends the base filter?
+  @Catch()
+  export class AllExceptionsFilter extends BaseWsExceptionFilter {
+    catch(exception: unknown, host: ArgumentsHost) {
+      super.catch(exception, host);
+    }
+  }
+
+338. What are the key differences between regular pipes and WebSocket pipes in NestJS? How do you bind pipes to WebSocket handlers?
+
+  - Use WsException instead of HttpException
+  - Pipes only apply to the data parameter (not client instance)
+  - Otherwise functionally identical to regular pipes
+
+    @UsePipes(new ValidationPipe({
+      exceptionFactory: (errors) => new WsException(errors)
+    }))
+    @SubscribeMessage('events')
+    handleEvent(client: Client, data: unknown): WsResponse<unknown> {
+      const event = 'events';
+      return { event, data };
+    }
+
+339. What is the WebSocketAdapter interface in NestJS and how do you create a custom Redis adapter for load-balanced instances?
+
+  WebSocketAdapter Interface Methods:
+
+  - create - Creates socket instance
+  - bindClientConnect - Binds client connection event
+  - bindClientDisconnect - Binds client disconnection event (optional)
+  - bindMessageHandlers - Binds incoming messages to handlers
+  - close - Terminates server instance
+
+
+
+  export class RedisIoAdapter extends IoAdapter {
+    private adapterConstructor: ReturnType<typeof createAdapter>;
+
+    async connectToRedis(): Promise<void> {
+      const pubClient = createClient({ url: `redis://localhost:6379` });
+      const subClient = pubClient.duplicate();
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      this.adapterConstructor = createAdapter(pubClient, subClient);
+    }
+
+    createIOServer(port: number, options?: ServerOptions): any {
+      const server = super.createIOServer(port, options);
+      server.adapter(this.adapterConstructor);
+      return server;
+    }
+  }
+
+340. What is a microservice in NestJS and how does Nest handle different transport layers?
+  A microservice in Nest is an application that uses a different transport layer than HTTP.
+  Key Features:
+    Transporters: Built-in transport layer implementations
+    Message Styles: Support both request-response and event-based messaging
+    Canonical Interface: Nest abstracts implementation details behind unified interface
+    Easy Switching: Can change transport layers without impacting application code
+
+  Benefits: Switch transports (for reliability/performance) without code changes
+
+341. What are patterns in NestJS microservices and how do they work?
+  Pattern Definition: Plain values (strings, objects) that identify messages and events
+
+    - Microservices recognize messages/events by patterns
+    - Patterns coordinate which handlers consume which requests
+    - Automatically serialized and sent over network with data portion of a message
+    - Message senders and consumers use patterns for request routing
+
+    Example: @MessagePattern('user.created') or @EventPattern({ cmd: 'get-user' })
+
+342. How do you create a NestJS microservice and implement message handlers for request-response?
+  Setup:
+
+    // main.ts
+    import { NestFactory } from '@nestjs/core';
+    import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+
+    async function bootstrap() {
+      const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+        AppModule,
+        {
+          transport: Transport.TCP, // Default transport
+        },
+      );
+      await app.listen();
+    }
+
+  Message Handler:
+    @Controller()
+    export class MathController {
+      @MessagePattern({ cmd: 'sum' })
+      accumulate(data: number[]): number {
+        return (data || []).reduce((a, b) => a + b);
+      }
+    }
+
+  structure of message
+    {
+      cmd: 'sum',
+      data: number[]
+    }
+
+343. How do you create a NestJS microservice and implement message handlers for event-based?
+
+  @EventPattern('user_created')
+  async handleUserCreated(data: Record<string, unknown>) {
+    // business logic
+  }
+
+344. How do you access additional request details (like original subject, headers, or specific payload properties) in NestJS microservices handlers?
+
+
+  Basic Usage
+    @MessagePattern('time.us.*')
+    getDate(@Payload() data: number[], @Ctx() context: NatsContext) {
+      console.log(`Subject: ${context.getSubject()}`); // "time.us.east", transport-specific context received
+      return new Date().toLocaleTimeString();
+    }
+
+  // Full payload + specific property
+    @MessagePattern('order.process')
+    processOrder(@Payload() fullData: any, @Payload('orderId') id: string) {
+      // Access both complete payload and specific field
+    }
+
+  // Kafka - message headers
+  @MessagePattern('user.events')
+  handleUserEvent(@Payload() data: any, @Ctx() context: KafkaContext) {
+    const headers = context.getMessage().headers;
+    const partition = context.getPartition();
+  }
+
+345. How do you set up a client to communicate with NestJS microservices? What methods are available and how is the connection handled?
+
+  ClientProxy enables communication with microservices via send() (request-response) and emit() (events).
+
+  Setup :
+    @Module({
+      imports: [
+        ClientsModule.register([
+          { name: 'MATH_SERVICE', transport: Transport.TCP },
+        ]),
+      ],
+    })
+
+  Inject and use:
+    constructor(
+      @Inject('MATH_SERVICE') private client: ClientProxy,
+    ) {}
+
+    // Usage
+    this.client.send({ cmd: 'sum' }, [1, 2, 3]);
+    this.client.emit('user_created', { userId: 123 });
+
+  Connection behavior:
+
+    By default is lazy, connects on first call, reuses connection
+    Optionally you can initiate it on onApplicationBootstrap
+
+    async onApplicationBootstrap() {
+      await this.client.connect();
+    }
+
+346. How does the emit() method work in NestJS ClientProxy? What are its arguments and what type of Observable does it return?
+
+  example:
+    // here client is instance of ClientProxy
+    this.client.emit('user_created', { userId: 123, email: 'user@example.com' });
+
+  Returns hot Observable (fires immediately) instead of send() returns cold Observable (fires on subscription)
+
+
+347. How do you monitor real-time connection status for NestJS microservices clients and servers?
+  Client status monitoring:
+    this.client.status.subscribe((status: TcpStatus) => {
+      console.log(status); // 'connected' or 'disconnected'
+    });
+
+  Server status monitoring:
+    const server = app.connectMicroservice<MicroserviceOptions>(...);
+    server.status.subscribe((status: TcpStatus) => {
+      console.log(status); // server connection state
+    });
+
+348. How do you access the underlying driver instance in NestJS microservices? When would you need this?
+
+  Use unwrap<T>() to access the underlying driver for advanced operations.
+
+  example client driver access:
+    async onApplicationBootstrap() {
+      await this.broker.connect();
+      this.kafkaClient = this.broker.unwrap<Kafka>();
+      // broker is ClientKafkaProxy
+    }
+
+  example server driver access:
+    const msk = app.connectMicroservice<KafkaOptions>(kafka.config);
+    const balance = app.get<BalanceService>(BalanceService);
+    await app.startAllMicroservices();
+    await balance.capture(msk.unwrap<[unknown, Consumer, unknown]>()[1]);
+
+349. How do you handle timeouts in NestJS microservice communication to prevent indefinite waiting?
+  Use RxJS timeout operator to set time limits on microservice calls.
+
+  Basic timeout implementation:
+
+  this.client
+    .send<TResult, TInput>(pattern, data)
+    .pipe(timeout(5000));
+
+350. How do you enable TLS encryption for NestJS TCP microservices?
+  Server setup:
+    const tcpApp = await NestFactory.createMicroservice(AppModule, {
+      transport: Transport.TCP,
+      options: {
+        tlsOptions: {
+          key: fs.readFileSync('server.key', 'utf8'),
+          cert: fs.readFileSync('server.cert', 'utf8'),
+        },
+      },
+    });
+
+  Client setup:
+    ClientsModule.register([{
+      name: 'MATH_SERVICE',
+      transport: Transport.TCP,
+      options: {
+        tlsOptions: {
+          ca: [fs.readFileSync('ca.cert', 'utf8')],
+        },
+      },
+    }])
+
+  *Server needs key + cert, client needs CA certificate
+
+Note: There is a small difference in Kafka compared to other microservice transporters. Instead of the ClientProxy class, we use the ClientKafkaProxy class.
+
+351. What is the Kafka microservice message pattern in Nest.js and what key requirements must be met for proper operation?
+  The Kafka microservice message pattern uses two topics (request and reply channels) where:
+
+    - ClientKafkaProxy#send() sends messages with correlation ID, reply topic, and reply partition
+    - The ClientKafkaProxy instance must be subscribed to reply topic and assigned to at least one partition before sending
+    - Critical requirement: You need at least one reply topic partition for every Nest application running
+
+  Partition Assignment Problem: When new consumers join, normal round-robin partitioning can reassign existing consumers to different partitions, causing them to lose response messages from pre-rebalance requests.
+
+  Solution: Nest uses a custom partitioner that sorts consumers by high-resolution timestamps (process.hrtime()) set at application launch, preventing message loss during rebalancing.
+
+352. When and how should you use the heartbeat callback in Kafka message handlers?
+
+  When to use: For handlers with slow processing time that might exceed the session timeout.
+
+  Purpose: Prevents Kafka from timing out the consumer session during long-running message processing.
+
+  How to use:
+  - Get heartbeat function from KafkaContext using context.getHeartbeat()
+  - Call await heartbeat() between slow processing steps
+
+  Example pattern:
+    @MessagePattern('hero.kill.dragon')
+    async killDragon(@Payload() message, @Ctx() context: KafkaContext) {
+      const heartbeat = context.getHeartbeat();
+      await doWorkPart1();
+      await heartbeat(); // Prevent session timeout
+      await doWorkPart2();
+    }
+
+353. What naming conventions does Nest.js use for Kafka microservice components to prevent collisions?
+  Nest automatically appends suffixes to `clientId` and `groupId` to prevent collisions:
+
+    Append `-server` to KafkaServer
+    Append `-client` to ClientKafkaProxy
+
+354. What are the 4 main NestJS utility functions for type transformations and what do they do?
+
+  PartialType(BaseDto) - Makes all properties optional
+    export class UpdateCatDto extends PartialType(CreateCatDto) {}
+
+  PickType(BaseDto, ['prop1', 'prop2']) - Selects specific properties
+    export class UpdateCatAgeDto extends PickType(CreateCatDto, ['age'] as const) {}
+
+  OmitType(BaseDto, ['prop1', 'prop2']) - Excludes specific properties
+    export class UpdateCatDto extends OmitType(CreateCatDto, ['name'] as const) {}
+
+  IntersectionType(Type1, Type2) - Combines two types
+    export class UpdateCatDto extends IntersectionType(CreateCatDto, AdditionalCatInfo) {}
+
+355. What does nest g resource command generate and what manual steps does it replace?
+  - Module (nest g mo)
+  - Controller (nest g co)
+  - Service (nest g s)
+  - Entity class/interface
+  - DTOs (Data Transfer Objects)
+
+next:
+GO over
+1) introduction
+2) Overview
+3)Fundamentals
+
+4)Database
+5)Mongo
+6)Validation
+7)Caching
+
+topics:
+
+Recipes
+FAQ
+
+additional content:
+https://www.youtube.com/watch?v=IdsBwplQAMw&t=10s
+https://www.apollographql.com/blog/graphql-vs-rest
+https://www.youtube.com/watch?v=UkWcjVWs2UQ
+
+optional
+https://dev.to/nestjs/part-1-introduction-and-setup-1a2l - deep dive into building custom transporter
