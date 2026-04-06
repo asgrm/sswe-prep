@@ -6,24 +6,15 @@
 
 node.js bundlers
 
+https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+
 - redis (paused)
   0 Redis by S Grinder
   1 https://redis.io/docs/latest/develop/get-started/
-  2 Get started with Redis https://university.redis.io/learningpath/14q8m6gilfwltm?tab=details
-  3 Get started with Redis Software https://university.redis.io/learningpath/an0mgw5bjpjfbe?tab=details
-  4 Redis for JavaScript developers https://university.redis.io/learningpath/jjzus2xg4rjdrt?tab=details
-  5 Redis streams
-  https://university.redis.io/course/cjoybtwksjmsjz?tab=details
-  https://university.redis.io/learningpath/grnomm8jaglgcu?tab=details
-  6 Redis JSON
-  https://university.redis.io/learningpath/6q3tbh3qk2gexx?tab=details
-  7 Redis Query Engine
-  https://university.redis.io/learningpath/pdkbr7xdv3miym?tab=details
 
 - postgress (much deeper then I know for now)
 - graph ql ! (DONE)
 - kafka
-  https://www.udemy.com/course/apache-kafka/
 
   https://www.youtube.com/watch?v=-AZOi3kP9Js
   https://www.youtube.com/watch?v=QkdkLdMBuL0
@@ -37,8 +28,6 @@ node.js bundlers
 
   https://docs.confluent.io/kafka/introduction.html
   https://docs.confluent.io/kafka-client/overview.html
-
-  https://kafka.js.org/docs/getting-started
 
 - mongo
   https://learn.mongodb.com/learning-paths/introduction-to-mongodb - CANCELED
