@@ -1,8 +1,5 @@
 1.  Web Security Basics (https://kb.epam.com/spaces/EPMCJSCC/pages/1590928240/JS+D3+Growth+-+Web+Security+Basics)) + Knowledge Base + Recommended materials (except WebSecurity Academy)
 
-1.1. https://kb.epam.com/spaces/EPMCJSCC/pages/1596424908/CSRF
+1.2. proofread topics (sdlc.md + system-design.md + tech-debt.md + testing.md + typescript.md )
 
-
-1.1.2  iterate temp anki cards and merge it current iteration cycle 1/2 next card 244
-
-1.2. proofread topics
+1.3. https://kb.epam.com/spaces/EPMCJSCC/pages/1593834851/Man-in-the-Middle+Attacks
