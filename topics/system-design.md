@@ -4,9 +4,7 @@
 - **Correlation ID**: `X-Correlation-Id` header. Generate with `uuid` at API gateway / first service, pass to all downstream calls and message payloads
 - **Distributed tracing**: OpenTelemetry — spans + traces. Each service creates a child span. Visualised in Jaeger, Zipkin, Datadog, AWS X-Ray
 - **Message-driven systems**: event bus (Kafka/SQS/SNS) decouples producers from consumers. Producer doesn't know about consumers
-- **Saga pattern**: manage distributed transactions without 2PC. Choreography (events) vs Orchestration (central coordinator)
 - **Outbox pattern**: write event to DB in same transaction as business data. Worker reads outbox and publishes to message broker. Guarantees at-least-once delivery
-- **Circuit breaker**: fail fast when downstream is down. States: Closed → Open → Half-Open. Libraries: `opossum` for Node.js
 - **Rate limiting**: protect services from overload. Token bucket (burst-friendly), leaky bucket (smooth), sliding window. Implement at API Gateway or service level
 - **Idempotency**: processing the same message twice produces the same result. Track processed message IDs in DB/cache. Critical for retry-heavy systems
 

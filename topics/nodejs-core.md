@@ -24,56 +24,59 @@
 
 **Four stream types:**
 
-| Type | Direction | Example |
-|---|---|---|
-| `Readable` | Source of data | `fs.createReadStream`, `http.IncomingMessage` |
-| `Writable` | Sink for data | `fs.createWriteStream`, `http.ServerResponse` |
-| `Duplex` | Both read and write | TCP socket, `net.Socket` |
-| `Transform` | Duplex that transforms data | `zlib.createGzip()`, CSV parser |
+| Type        | Direction                   | Example                                       |
+| ----------- | --------------------------- | --------------------------------------------- |
+| `Readable`  | Source of data              | `fs.createReadStream`, `http.IncomingMessage` |
+| `Writable`  | Sink for data               | `fs.createWriteStream`, `http.ServerResponse` |
+| `Duplex`    | Both read and write         | TCP socket, `net.Socket`                      |
+| `Transform` | Duplex that transforms data | `zlib.createGzip()`, CSV parser               |
 
 **Basic file copy with streams:**
-```typescript
-import { createReadStream, createWriteStream } from 'fs';
 
-const readable = createReadStream('large-file.bin');
-const writable = createWriteStream('output.bin');
+```typescript
+import { createReadStream, createWriteStream } from "fs";
+
+const readable = createReadStream("large-file.bin");
+const writable = createWriteStream("output.bin");
 
 readable.pipe(writable);
 
-writable.on('finish', () => console.log('Done'));
-readable.on('error', err => console.error('Read error', err));
-writable.on('error', err => console.error('Write error', err));
+writable.on("finish", () => console.log("Done"));
+readable.on("error", (err) => console.error("Read error", err));
+writable.on("error", (err) => console.error("Write error", err));
 ```
 
 **`pipeline()` — preferred over `pipe()` for error handling:**
+
 ```typescript
-import { pipeline } from 'stream/promises';
-import { createReadStream, createWriteStream } from 'fs';
-import { createGzip } from 'zlib';
+import { pipeline } from "stream/promises";
+import { createReadStream, createWriteStream } from "fs";
+import { createGzip } from "zlib";
 
 // Compress a file — all errors properly propagated
 await pipeline(
-  createReadStream('input.bin'),
+  createReadStream("input.bin"),
   createGzip(),
-  createWriteStream('output.bin.gz'),
+  createWriteStream("output.bin.gz"),
 );
 ```
 
 **Custom Transform stream (process CSV line by line):**
+
 ```typescript
-import { Transform } from 'stream';
+import { Transform } from "stream";
 
 class CsvParserTransform extends Transform {
-  private buffer = '';
+  private buffer = "";
 
   _transform(chunk: Buffer, _enc: string, callback: () => void) {
     this.buffer += chunk.toString();
-    const lines = this.buffer.split('\n');
+    const lines = this.buffer.split("\n");
     this.buffer = lines.pop()!; // keep incomplete last line
 
     for (const line of lines) {
       if (line.trim()) {
-        this.push(JSON.stringify(line.split(',')) + '\n');
+        this.push(JSON.stringify(line.split(",")) + "\n");
       }
     }
     callback();
@@ -81,7 +84,7 @@ class CsvParserTransform extends Transform {
 
   _flush(callback: () => void) {
     if (this.buffer.trim()) {
-      this.push(JSON.stringify(this.buffer.split(',')) + '\n');
+      this.push(JSON.stringify(this.buffer.split(",")) + "\n");
     }
     callback();
   }
@@ -89,13 +92,14 @@ class CsvParserTransform extends Transform {
 
 // Usage
 await pipeline(
-  createReadStream('data.csv'),
+  createReadStream("data.csv"),
   new CsvParserTransform(),
-  createWriteStream('data.jsonl'),
+  createWriteStream("data.jsonl"),
 );
 ```
 
 **Stream events:**
+
 - `data` — chunk available (flowing mode)
 - `end` — no more data from readable
 - `finish` — writable has flushed all data
@@ -116,6 +120,7 @@ Readable: 1 GB/s  →→→→→→→→  Writable: 10 MB/s
 ```
 
 **How backpressure works:**
+
 - Every Writable has an internal buffer with a `highWaterMark` (default 16 KB for byte streams).
 - `writable.write(chunk)` returns `false` when the buffer is full — this is the backpressure signal.
 - When the buffer drains, the writable emits `'drain'`.
@@ -124,39 +129,43 @@ Readable: 1 GB/s  →→→→→→→→  Writable: 10 MB/s
 **`pipe()` and `pipeline()` handle this automatically** — that's the main reason to use them.
 
 **Manual backpressure (when you can't use pipe):**
+
 ```typescript
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream } from "fs";
 
-const readable = createReadStream('large-input.bin');
-const writable = createWriteStream('output.bin');
+const readable = createReadStream("large-input.bin");
+const writable = createWriteStream("output.bin");
 
-readable.on('data', (chunk: Buffer) => {
+readable.on("data", (chunk: Buffer) => {
   const canContinue = writable.write(chunk);
 
   if (!canContinue) {
     readable.pause(); // stop producing data — buffer is full
 
-    writable.once('drain', () => {
+    writable.once("drain", () => {
       readable.resume(); // buffer cleared — resume reading
     });
   }
 });
 
-readable.on('end', () => writable.end());
+readable.on("end", () => writable.end());
 ```
 
 **Why `pipe()` is better than manual:**
+
 - Automatically pauses/resumes the readable.
 - Forwards errors in both directions.
 - Cleans up listeners on completion.
 - `pipeline()` additionally handles stream cleanup on error (prevents resource leaks).
 
 **Real-world symptoms of missing backpressure handling:**
+
 - Node.js process RAM grows unboundedly when processing large files.
 - `Error: write after end` when writable is closed but readable keeps pushing.
 - `MaxListenersExceededWarning` from repeated `drain` listener attachment.
 
 **Backpressure in HTTP (NestJS/Express):**
+
 ```typescript
 // Stream file directly to HTTP response — no memory spike
 @Get('download/:filename')
@@ -178,29 +187,31 @@ async download(@Param('filename') filename: string, @Res() res: Response) {
 <summary>Binary file processing in Node.js</summary>
 
 **Buffer — Node.js raw binary data:**
+
 ```typescript
 // Create
-const buf = Buffer.from('hello', 'utf8');
+const buf = Buffer.from("hello", "utf8");
 const empty = Buffer.alloc(1024); // 1 KB zeroed
 const raw = Buffer.allocUnsafe(1024); // 1 KB uninitialized (faster, but may contain old data)
 
 // Read/write
-buf.readUInt32BE(0);    // big-endian unsigned 32-bit int at offset 0
+buf.readUInt32BE(0); // big-endian unsigned 32-bit int at offset 0
 buf.writeUInt32LE(42, 0); // little-endian at offset 0
-buf.slice(0, 10);       // view first 10 bytes (no copy)
-buf.subarray(0, 10);    // preferred over slice in modern Node.js
+buf.slice(0, 10); // view first 10 bytes (no copy)
+buf.subarray(0, 10); // preferred over slice in modern Node.js
 
 // Encoding
-buf.toString('hex');
-buf.toString('base64');
-Buffer.from('aGVsbG8=', 'base64').toString('utf8'); // → 'hello'
+buf.toString("hex");
+buf.toString("base64");
+Buffer.from("aGVsbG8=", "base64").toString("utf8"); // → 'hello'
 ```
 
 **Processing a binary file format (e.g. custom binary header + body):**
+
 ```typescript
-import { pipeline } from 'stream/promises';
-import { createReadStream } from 'fs';
-import { Transform } from 'stream';
+import { pipeline } from "stream/promises";
+import { createReadStream } from "fs";
+import { Transform } from "stream";
 
 class BinaryFrameParser extends Transform {
   private buf = Buffer.alloc(0);
@@ -225,11 +236,11 @@ class BinaryFrameParser extends Transform {
 }
 
 await pipeline(
-  createReadStream('data.bin'),
+  createReadStream("data.bin"),
   new BinaryFrameParser(),
   async function* (source) {
     for await (const frame of source) {
-      console.log('Frame:', frame.toString('hex'));
+      console.log("Frame:", frame.toString("hex"));
       // process frame...
     }
   },
@@ -237,6 +248,7 @@ await pipeline(
 ```
 
 **Key rules for binary processing:**
+
 1. **Always use streams** — never `fs.readFile()` for large binary files.
 2. **Buffer concatenation in loops is O(n²)** — accumulate chunks in an array, `Buffer.concat(chunks)` at the end.
 3. **`subarray` vs `slice`** — both create views (no copy). Prefer `subarray`.
@@ -245,7 +257,7 @@ await pipeline(
 
 ```typescript
 // Large binary files — increase chunk size for efficiency
-const stream = createReadStream('video.bin', {
+const stream = createReadStream("video.bin", {
   highWaterMark: 1024 * 1024, // 1 MB chunks
 });
 ```
@@ -260,6 +272,7 @@ const stream = createReadStream('video.bin', {
 Node.js is **single-threaded** but handles thousands of concurrent I/O operations via the event loop + libuv.
 
 **Event loop phases (in order):**
+
 ```
 1. timers          — executes setTimeout / setInterval callbacks whose threshold has passed
 2. pending cbs     — I/O callbacks deferred from previous iteration
@@ -270,53 +283,58 @@ Node.js is **single-threaded** but handles thousands of concurrent I/O operation
 ```
 
 **Microtasks** (run between every phase, highest priority):
+
 - `Promise.then()` / `async/await` continuations
 - `queueMicrotask()`
 - `process.nextTick()` — runs even before other microtasks
 
 ```typescript
-setTimeout(() => console.log('1 - setTimeout'));
-setImmediate(() => console.log('2 - setImmediate'));
-Promise.resolve().then(() => console.log('3 - Promise'));
-process.nextTick(() => console.log('4 - nextTick'));
-console.log('5 - sync');
+setTimeout(() => console.log("1 - setTimeout"));
+setImmediate(() => console.log("2 - setImmediate"));
+Promise.resolve().then(() => console.log("3 - Promise"));
+process.nextTick(() => console.log("4 - nextTick"));
+console.log("5 - sync");
 
 // Output: 5 → 4 → 3 → 1 → 2
 // sync first, then nextTick, then Promise, then timer phase, then check phase
 ```
 
 **What blocks the event loop:**
+
 - Synchronous CPU-heavy code (JSON.parse on 50 MB, crypto, regex on large strings).
 - `fs.readFileSync`, `child_process.execSync`.
 - Infinite loops, heavy computation in route handlers.
 
 **What does NOT block:**
+
 - `fs.readFile` (async) — libuv thread pool.
 - `http.get` — OS async I/O.
 - `setTimeout`, `setInterval` — timer phase.
 - DB queries, network calls — all async.
 
 **libuv thread pool** (default size: 4 threads):
+
 - Handles: `fs` operations, DNS lookups (`dns.lookup`), crypto (`crypto.pbkdf2`), `zlib`.
 - Network I/O (TCP/UDP) does NOT use the thread pool — handled by OS async I/O directly.
 - Increase pool size: `UV_THREADPOOL_SIZE=16 node server.js`.
 
 **Worker threads** — true CPU parallelism:
+
 ```typescript
 // main.ts
-import { Worker } from 'worker_threads';
+import { Worker } from "worker_threads";
 
-const worker = new Worker('./heavy-computation.js', {
+const worker = new Worker("./heavy-computation.js", {
   workerData: { dataset: largeArray },
 });
 
-worker.on('message', result => console.log('Result:', result));
-worker.on('error', err => console.error(err));
+worker.on("message", (result) => console.log("Result:", result));
+worker.on("error", (err) => console.error(err));
 ```
 
 ```typescript
 // heavy-computation.js
-import { workerData, parentPort } from 'worker_threads';
+import { workerData, parentPort } from "worker_threads";
 const result = heavyCompute(workerData.dataset);
 parentPort!.postMessage(result);
 ```

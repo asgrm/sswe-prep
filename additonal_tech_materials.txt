@@ -4,7 +4,7 @@
 - k8s
   https://kubernetes.io/training/ -> Introduction to Kubernetes + Introduction to Cloud Infrastructure Technologies
 
-node.js bundlers
+node.js bundlers - (debatable)?
 
 https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
 
@@ -44,6 +44,7 @@ https://medium.com/@manikmudholkar831995/worker-threads-multitasking-in-nodejs-6
 https://ebook.learn.epam.com/node-gmp/docs/docker-basics/docker-basics - mentoring program materials
 
 https://www.udemy.com/course/understanding-nodejs-core-concepts/
+https://github.com/alexanderteplov/computer-science - additional cs materials (optional)
 
 - protobuf + GRPC
   OPTION - SHALLOW
