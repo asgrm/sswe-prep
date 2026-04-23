@@ -35,6 +35,7 @@ https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
 
 - web sockets (socket.io) DONE
 - [learn.js](https://javascript.info/) - just go over of parts I am not absolutely confident about
+- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management - used as example, can be entry point for unobvious parts of JS
 - nest docs
 
 https://kb.epam.com/display/EPMCJSCC/JS+Senior+Developer+Growth

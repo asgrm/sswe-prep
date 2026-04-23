@@ -1,4 +1,75 @@
 
-1. Card 261 check at least 4 more times
+2. Node.js
+2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
 
-2. proceed with https://kb.epam.com/spaces/EPMCJSCC/pages/1599104277/Memory+leaks+detection and extra materials mentioned
+2.1.1. continue video 9 00:00
+2.1.2. create new temp card and iterate over
+
+2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
+2.3. main article https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js + docs
+
+2.4. googling on what mentioned in article (https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js) but not covered yet
+2.5. googling on what mentioned in topics/nodejs-core.md but not covered yet
+
+
+2.6. go over list of node.js modules (scope is to be adjusted),
+
+already covered: [events]
+
+2.6.1. read:
+  async_context
+  buffer
+  child_process
+  cluster
+  fs
+  http
+  net
+  process
+  stream
+  timers
+  worker_threads
+  url
+  path
+  os
+  perf_hooks
+  permissions
+  modules + esm + typescript
+  globals
+  environment_variables
+  zlib
+
+2.6.2 read with constrains
+
+  errors - stop once covered Class: Error
+  async_hooks — read it for understanding, but know that the stable surface you actually use is async_context (AsyncLocalStorage).
+
+  crypto — Focus on randomBytes, createHash, createHmac, createCipheriv/createDecipheriv. Skip the low-level DH/DSA/EC key generation details .
+
+  inspector — too deep for a senior generalist. Know it exists, know it powers --inspect and Chrome DevTools. Unless you're building debuggers or profiling tools you don't need the API.
+
+  repl - shallow glance over
+  readline - shallow glance over
+  string_decoder - shallow glance over
+  console - shallow glance over
+
+  util — only util.promisify, util.callbackify, util.types, util.inspect, util.parseArgs are all practically useful.
+  v8 - shallow glance over
+
+
+
+2.6.3. POST SSEW (potentially move to .ideas_post_sswe)
+
+  tls
+  http2
+  dgram
+
+2.6.5 POST SSEW WHEN ON STAGE 2 (potentially move to .ideas_post_sswe)
+
+  stream_iter
+  zlib_iter
+  tracing
+  single-executable-applications
+
+
+
+3. for JS consider source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards
