@@ -2,7 +2,7 @@
 2. Node.js
 2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
 
-2.1.1. continue video 15 15:00
+2.1.1. continue video 17 00:00
 2.1.2. create new temp card and iterate over
 
 2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
