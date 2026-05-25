@@ -748,3 +748,610 @@ process.on("unhandledRejection", (err) => {
 4. Listeners can be objects. As well as plain functions, `NodeEventTarget` accepts any object with a `handleEvent` method as a listener, following the browser `EventListener` interface.
 
 </details><br>
+
+<details>
+<summary>32. Can you pass a plain Uint8Array to Node.js APIs that accept Buffer?</summary>
+
+Yes.
+
+```js
+import { createHash } from "node:crypto";
+
+const raw = new Uint8Array([104, 101, 108, 108, 111]); // "hello" in UTF-8
+const hash = createHash("sha256").update(raw).digest("hex");
+// Works fine — no Buffer.from() needed
+```
+
+Gotcha: the reverse is not universally true in browser environments. Code that passes a Buffer to a Web API may fail there because browsers do not know what Buffer is. Prefer Uint8Array when writing isomorphic code.
+
+</details><br>
+
+<details>
+<summary>33. What is the difference between Buffer.alloc, Buffer.allocUnsafe, and Buffer.allocUnsafeSlow?</summary>
+
+**Buffer.alloc(size)** allocates and zero-fills the memory before returning. Safe to use immediately; no old data leaks. Slightly slower due to the fill step.
+
+**Buffer.allocUnsafe(size)** allocates from a shared internal memory pool without zeroing. May contain sensitive leftover bytes from prior allocations. Faster for large-throughput paths where you will overwrite every byte yourself. Buffers smaller than 4 KiB come from the pool; larger ones skip it.
+
+**Buffer.allocUnsafeSlow(size)** is like `allocUnsafe` but always bypasses the pool, allocating raw OS memory directly. Intended for long-lived Buffers that you do not want to keep the pool alive. Slower than allocUnsafe for small sizes.
+
+Gotcha: never expose an allocUnsafe buffer to untrusted output before writing to every byte — you risk leaking heap contents (passwords, keys, etc.) from earlier allocations.
+
+</details><br>
+
+<details>
+<summary>34. What do "encoding" and "decoding" mean for character encodings vs binary-to-text encodings in Node.js Buffers?</summary>
+
+For character encodings (utf8, latin1, etc.): converting a string to a Buffer is called encoding; converting a Buffer to a string is called decoding.
+
+For binary-to-text encodings (base64, hex): the convention is reversed. Converting a Buffer to a string is called encoding; converting a string to a Buffer is called decoding. This matches the network/storage convention where raw bytes are encoded into printable text for transport.
+
+```js
+// Character encoding (utf8) — string → Buffer is "encoding"
+const buf = Buffer.from("hello", "utf8"); // encode
+
+// Character encoding — Buffer → string is "decoding"
+const str = buf.toString("utf8"); // decode
+
+// Binary-to-text (base64) — Buffer → string is "encoding"
+const b64 = buf.toString("base64"); // encode
+
+// Binary-to-text — string → Buffer is "decoding"
+const back = Buffer.from(b64, "base64"); // decode
+```
+
+</details><br>
+
+<details>
+<summary>35. What silent truncation risk exists with the 'hex' Buffer encoding?</summary>
+
+When decoding a hex string into a Buffer, Node.js processes pairs of hexadecimal characters. If the string contains an odd number of hex characters, the trailing unpaired character is silently dropped — no error is thrown. Similarly, any non-hex character terminates decoding at that point without warning.
+
+```js
+// Even-length hex — all bytes decoded correctly
+Buffer.from("deadbeef", "hex"); // <Buffer de ad be ef>
+
+// Odd number of hex digits — last character silently dropped
+Buffer.from("deadbee", "hex"); // <Buffer de ad be>  (not 'f')
+
+// Non-hex character stops decoding early
+Buffer.from("dead!beef", "hex"); // <Buffer de ad>  (stops at '!')
+```
+
+Always validate that hex input is a string of even length containing only [0-9a-fA-F] before decoding.
+
+</details><br>
+
+<details>
+<summary>36. What is a Blob in Node.js and how does it differ from a Buffer?</summary>
+
+Blob is a web-standard API that encapsulates an immutable, opaque chunk of raw binary data with an optional MIME type string. It cannot be mutated after creation.
+
+Key differences from Buffer:
+
+1. Mutability: Buffer exposes direct byte-level access (buf[0] = 255 works). Blob does not — you cannot read or write individual bytes directly.
+
+2. API shape: Blob exposes its data only through async methods: .arrayBuffer(), .text(), and .stream(). Buffer access is synchronous.
+
+3. MIME type: Blob carries a type string (e.g. "image/png"). Buffer has no concept of content type.
+
+4. Source copying: ArrayBuffer, TypedArray, DataView, and Buffer sources passed to the Blob constructor are copied in, so mutating the original after construction does not affect the Blob.
+
+```js
+const blob = new Blob(['{"ok":true}'], { type: "application/json" });
+
+// Async access only
+const text = await blob.text();
+const ab = await blob.arrayBuffer();
+const u8 = new Uint8Array(ab); // now byte-addressable
+```
+
+The main use case in Node.js is interoperability with web-standard APIs — `fetch`, `FormData`, and `File` — which expect `Blob`, not `Buffer`. Blob lets you share upload and streaming logic between Node.js and browser code without changes.
+
+</details><br>
+
+<details>
+<summary>37. How do ArrayBuffer, TypedArray/Buffer, and Blob relate to each other in the Node.js binary type hierarchy?</summary>
+
+The three types occupy distinct layers with different roles.
+
+ArrayBuffer is the raw memory block itself. A fixed-size allocation of bytes with no read or write methods. You cannot touch the bytes directly; it exists only to be pointed at by a view.
+
+TypedArray (including Uint8Array) / Buffer is a view over an ArrayBuffer. This is the layer that lets you read and write individual bytes. Buffer is Node.js's subclass of Uint8Array; they share the same underlying memory model. Multiple views can point at overlapping ranges of the same ArrayBuffer.
+
+Blob wraps binary data (copied in from any source) with a MIME type and makes it accessible only through async methods. It is not a view; it hides the memory behind a promise-based interface.
+
+```js
+// Typical pattern: Blob → ArrayBuffer → writable view
+const blob = new Blob(["hello"]);
+
+const ab = await blob.arrayBuffer(); // raw memory block
+const u8 = new Uint8Array(ab); // byte-addressable view (web-standard)
+const buf = Buffer.from(ab); // Node.js-specific view of the same memory
+
+// ArrayBuffer shared between views (demonstrates the layer separation)
+const shared = new ArrayBuffer(4);
+const viewA = new Uint8Array(shared);
+const viewB = new DataView(shared);
+viewA[0] = 255;
+viewB.getUint8(0); // 255 — same underlying memory
+```
+
+</details><br>
+
+<details>
+<summary>38. What does the Blob constructor's 'endings' option do, and when should you set it?</summary>
+
+The endings option controls how line-ending characters (\n) in string source parts are treated when the Blob is constructed. It accepts two values.
+
+'transparent' (default) — line endings are left exactly as provided in the source string. No conversion happens.
+
+'native' — line endings are converted to the platform-native newline sequence before the data is stored. On Windows this produces \r\n; on Unix/macOS it produces \n (using require('node:os').EOL internally).
+
+```js
+import os from "node:os";
+
+const src = "line1\nline2\nline3";
+
+const transparent = new Blob([src], { type: "text/plain" });
+const native = new Blob([src], { type: "text/plain", endings: "native" });
+
+// On Windows: native blob contains "line1\r\nline2\r\nline3"
+// On macOS/Linux: native blob is identical to transparent
+```
+
+Avoid 'native' for data you intend to transmit over a network, hash, or compare across platforms — the resulting bytes will differ per OS, breaking reproducibility. Reserve it for files written to local disk that must conform to the host OS's text convention.
+
+</details><br>
+
+<details>
+<summary>39. How do you stream the contents of a Blob using blob.stream(), and when would you use it over blob.arrayBuffer() or blob.text()?</summary>
+
+blob.stream() returns a web-standard ReadableStream (not a Node.js stream) that lets you consume the Blob's bytes incrementally, without loading the entire contents into memory at once.
+
+The key distinction from the other async accessors:
+
+blob.arrayBuffer() and blob.text() load everything into memory in one go before resolving. Fine for small payloads, but a problem for large files.
+
+blob.stream() gives you a ReadableStream you can pipe, cancel, or read chunk by chunk — the data is never all in memory at once.
+
+```js
+const blob = new Blob(["hello ", "world"]);
+
+// Basic chunk-by-chunk consumption
+const reader = blob.stream().getReader();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(value); // Uint8Array chunk
+}
+```
+
+The most common use in Node.js is piping into a fetch body or a writable destination. Because fetch natively accepts a ReadableStream as its body, you can stream a large Blob to a server without buffering it:
+
+```js
+const blob = new Blob([largeBinaryData], { type: "application/octet-stream" });
+
+await fetch("https://example.com/upload", {
+  method: "POST",
+  body: blob.stream(), // streamed — never fully buffered
+  headers: { "Content-Type": blob.type },
+});
+```
+
+If you need to pipe into a Node.js Writable (e.g. a file write stream), convert with Readable.fromWeb() from node:stream:
+
+```js
+import { Readable } from "node:stream";
+import { createWriteStream } from "node:fs";
+
+const blob = new Blob([largeBinaryData]);
+const nodeReadable = Readable.fromWeb(blob.stream());
+
+nodeReadable.pipe(createWriteStream("output.bin"));
+```
+
+Gotcha: the ReadableStream returned is a WHATWG web stream, not a Node.js stream.Readable. APIs that expect a Node.js stream will reject it — use Readable.fromWeb() to bridge the two.
+
+</details><br>
+
+<details>
+<summary>40. What is MessageChannel and how do its two ports relate to each other?</summary>
+
+MessageChannel is a web-standard API that creates a pair of connected ports. Whatever is posted into one port comes out the other. It is the primitive underlying structured inter-context communication — most commonly used between a main thread and a Worker, or between two Workers, when the two sides should not share a direct object reference.
+
+```js
+const { port1, port2 } = new MessageChannel();
+
+port1.onmessage = ({ data }) => console.log("received:", data);
+port2.postMessage("hello");
+// → received: hello
+```
+
+Each side holds one port. Communication is bidirectional — both ports can send and receive. When you are done, call port.close() to release the channel and allow garbage collection.
+
+</details><br>
+
+<details>
+<summary>41. How does posting a Blob over MessageChannel differ from posting a plain object or a transferable, and why is this safe?</summary>
+
+postMessage handles different value types in one of three ways:
+
+Structured clone (most objects) — the data is deep-copied immediately at post time. The sender and receiver each have their own independent copy in memory.
+
+Transfer (ArrayBuffer, MessagePort, etc.) — ownership moves to the receiver. The sender's reference becomes detached and unusable. No copy is made, but only one side can use it.
+
+Blob — neither of the above. The Blob is shared by reference across threads. The underlying bytes are not copied at post time. A copy is made only later, per-receiver, when that receiver calls .arrayBuffer(), .text(), or .stream().
+
+```js
+const blob = new Blob(["hello there"]);
+
+const { port1: r1, port2: s1 } = new MessageChannel();
+const { port1: r2, port2: s2 } = new MessageChannel();
+
+r1.onmessage = async ({ data }) => console.log(await data.arrayBuffer());
+r2.onmessage = async ({ data }) => console.log(await data.arrayBuffer());
+
+s1.postMessage(blob); // no copy made yet
+s2.postMessage(blob); // no copy made yet
+
+blob.text().then(console.log); // original still fully usable
+```
+
+This is safe precisely because Blob is immutable. Because no receiver can mutate the shared data, there is no risk of one thread corrupting what another is about to read. A Buffer could not be shared this way safely.
+
+</details><br>
+
+<details>
+<summary>42. What is a practical use case for posting the same Blob to multiple MessageChannel recipients?</summary>
+
+The pattern is useful any time you need to fan a single binary payload out to multiple consumers without making upfront copies or reading the raw bytes more than once per consumer.
+
+A concrete example: a file upload handler receives a large file and needs to store it in object storage, write metadata to a database, and forward it to an analytics pipeline. Posting the same Blob to three workers means no worker waits on another, no extra memory is consumed until each worker is actually ready to act, and the main thread remains unblocked.
+
+```js
+import { Blob } from "node:buffer";
+import { Worker } from "node:worker_threads";
+
+async function handleUpload(rawBytes) {
+  const blob = new Blob([rawBytes], { type: "application/octet-stream" });
+
+  for (const worker of [storageWorker, dbWorker, analyticsWorker]) {
+    const { port1, port2 } = new MessageChannel();
+    worker.postMessage({ blob, port: port1 }, [port1]);
+    // each worker receives the same shared reference
+    // bytes are only copied when that worker calls .arrayBuffer()
+  }
+}
+```
+
+The key property being exploited is lazy copying: memory for the data is duplicated only at the moment each recipient actually consumes it, not at the moment it is sent.
+
+</details><br>
+
+<details>
+<summary>43. How do you join multiple Buffers into one?</summary>
+
+Use `Buffer.concat(list_of_buffers [, totalLength])`. It takes an array of Buffer or Uint8Array instances and returns a single new Buffer with their contents joined in order. If the list is empty, a zero-length Buffer is returned. `totalLength` is optional. If omitted, it is calculated automatically by summing the lengths of all items. Providing it explicitly skips that summation (minor performance win).
+
+Gotcha: Buffer.concat() may allocate from the internal pool the same way Buffer.allocUnsafe() does, so memory is not zero-filled before the source bytes are written in. Never assume bytes beyond the actual content are zero.
+
+</details><br>
+
+<details>
+<summary>44. What is the difference between Buffer.from(typedArray) and Buffer.from(typedArray.buffer)?</summary>
+
+Passing a TypedArray copies only the bytes the view exposes into a new independent Buffer — no memory is shared. Passing the underlying .buffer (the ArrayBuffer itself) creates a view over the entire backing memory, ignoring any offset or length the TypedArray was created with, and mutations on either side are immediately visible through the other.
+
+```js
+const arrA = Uint8Array.from([0x63, 0x64, 0x65, 0x66]);
+const arrB = new Uint8Array(arrA.buffer, 1, 2); // view over bytes at index 1–2
+
+const bufC = Buffer.from(arrB); // copies view  → 6465
+const bufD = Buffer.from(arrB.buffer); // shares memory → 63646566
+
+arrA[1] = 0xa5; // mutate original
+console.log(bufC.toString("hex")); // 6465 — unaffected, it was copied
+console.log(bufD.toString("hex")); // 63a56566 — changed, memory is shared
+```
+
+The bug is silent — no error is thrown, you just get unexpected bytes.
+
+</details><br>
+
+<details>
+<summary>45. Does modifying a Buffer affect other Buffers copied from it?</summary>
+
+No. Buffer.from(buffer) copies the data into a new independent Buffer. The two share no memory — mutations to one are not visible in the other.
+
+```js
+const buf1 = Buffer.from("buffer");
+const buf2 = Buffer.from(buf1);
+
+buf1[0] = 0x61; // change 'b' to 'a'
+
+console.log(buf1.toString()); // 'auffer'
+console.log(buf2.toString()); // 'buffer' — unaffected
+```
+
+This is the opposite of Buffer.from(arrayBuffer), which shares memory. Buffer.from(buffer) always copies.
+
+</details><br>
+
+<details>
+<summary>46. How do you compare two Buffers?</summary>
+
+buf.compare(target) compares bytes lexicographically and returns 0 (equal), -1 (buf sorts before target), or 1 (buf sorts after target). Works directly as a Array.sort comparator via the static Buffer.compare.
+
+```js
+const buf1 = Buffer.from("ABC");
+const buf2 = Buffer.from("BCD");
+const buf3 = Buffer.from("ABCD");
+
+buf1.compare(buf1); // 0  — equal
+buf1.compare(buf2); // -1 — buf1 sorts before buf2
+buf2.compare(buf1); // 1  — buf2 sorts after buf1
+
+[buf2, buf3, buf1].sort(Buffer.compare);
+// → [buf1, buf3, buf2]  (ABC, ABCD, BCD)
+```
+
+</details><br>
+
+<details>
+<summary>47. How do you copy bytes from one Buffer into another?</summary>
+
+buf.copy(target[, targetStart[, sourceStart[, sourceEnd]]]) copies a range of bytes from buf into target, which must be a Buffer or Uint8Array. All offset parameters default to 0 / buf.length. Returns the number of bytes copied.
+
+```js
+const src = Buffer.from("hello world");
+const dst = Buffer.alloc(5);
+
+src.copy(dst); // copies first 5 bytes → dst = 'hello'
+src.copy(dst, 0, 6, 11); // copies 'world' into dst starting at offset 0
+```
+
+</details><br>
+
+<details>
+<summary>48. How do you read numeric values from a Buffer at a specific byte offset?</summary>
+
+Use the typed read methods. readUInt8(offset) is the most common — reads one unsigned byte. For multi-byte numbers you pick the type and byte order (BE = big-endian, LE = little-endian).
+
+```js
+const buf = Buffer.from([0x01, 0x02, 0x03, 0x04]);
+
+buf.readUInt8(0); // 1      — single byte, no endianness
+buf.readUInt16BE(0); // 258    — 0x0102, big-endian
+buf.readUInt16LE(0); // 513    — 0x0201, little-endian
+buf.readInt32BE(0); // 16909060
+```
+
+The full family follows the pattern read[U]Int[8|16|32|64]BE/LE, with float and double variants as well. For arbitrary byte lengths use readUIntBE(offset, byteLength) or readUIntLE(offset, byteLength).
+
+</details><br>
+
+<details>
+<summary>49. How do you get a slice of a Buffer without copying?</summary>
+
+buf.subarray(start, end) returns a new Buffer that references the same memory as the original — no copy is made. Mutations in the subarray are visible in the original and vice versa.
+
+```js
+const buf = Buffer.from("hello world");
+const sub = buf.subarray(0, 5);
+
+sub[0] = 0x48; // 'H'
+console.log(buf.toString()); // 'Hello world' — original affected
+```
+
+To get an independent copy instead, use Buffer.from(buf.subarray(0, 5)).
+
+</details><br>
+
+<details>
+<summary>50. How do you write a string into an existing Buffer at a specific offset?</summary>
+
+buf.write(string[, offset[, length]][, encoding]) writes a string into buf at the given offset, returning the number of bytes written. Defaults: offset 0, length buf.length - offset, encoding utf8.
+
+```js
+const buf = Buffer.alloc(10);
+
+buf.write("hello", 0); // writes at start
+buf.write("world", 5); // writes at offset 5
+console.log(buf.toString()); // 'helloworld'
+```
+
+Gotcha: if the string is longer than length allows, it is truncated silently. Allocate carefully or check the returned byte count.
+
+</details><br>
+
+<details>
+<summary>51. How do you write a numeric value into a Buffer at a specific byte offset?</summary>
+
+The numeric write methods follow the same naming pattern as the read methods: write[U]Int[8|16|32|64]BE/LE, plus float and double variants. Each takes a value and an offset, and returns the offset plus the number of bytes written.
+
+```js
+const buf = Buffer.alloc(4);
+
+buf.writeInt8(127, 0); // writes 1 byte  at offset 0
+buf.writeInt16BE(256, 1); // writes 2 bytes at offset 1, big-endian
+buf.writeUInt8(255, 3); // writes 1 byte  at offset 3
+
+console.log(buf); // <Buffer 7f 01 00 ff>
+```
+
+</details><br>
+
+<details>
+<summary>52. What is File and how does it differ from Blob?</summary>
+
+File extends Blob and adds two pieces of metadata: a file name and a last-modified timestamp. Everything else — immutability, async access, MIME type, thread-safe sharing — is inherited from Blob unchanged.
+
+Signatute is `new buffer.File(sources, fileName[, options])`
+
+```js
+const file = new File(['{"ok":true}'], "data.json", {
+  type: "application/json",
+  lastModified: Date.now(),
+});
+
+file.name; // 'data.json'
+file.lastModified; // timestamp
+file.type; // 'application/json'
+const text = await file.text(); // inherited from Blob
+```
+
+The practical difference shows up with FormData: appending a Blob requires passing the filename as a third argument; appending a File does not — the name is already embedded.
+
+```js
+form.append("upload", blob, "data.json"); // must name it manually
+form.append("upload", file); // name comes from the File itself
+```
+
+</details><br>
+
+<details>
+<summary>53. Can fs.open() + createReadStream() be used on non-file resources?</summary>
+
+Yes. On Linux everything is a file descriptor, so `fs.open()` works on character devices, serial ports, sound cards, and virtual files — not just regular files. `createReadStream()` simply wraps the descriptor in Node's stream interface; the kernel doesn't distinguish.
+
+```js
+import { open } from "node:fs/promises";
+
+// Read raw 24-byte keyboard event structs from a character device
+const fd = await open("/dev/input/event0", "r");
+const stream = fd.createReadStream({ highWaterMark: 24 });
+
+stream.on("data", (chunk) => {
+  const type = chunk.readUInt16LE(16);
+  const code = chunk.readUInt16LE(18);
+  const value = chunk.readInt32LE(20);
+
+  if (type === 1) {
+    // EV_KEY
+    console.log(`Key ${code} ${value === 1 ? "pressed" : "released"}`);
+  }
+});
+```
+
+Gotcha: character devices only produce data when an event occurs (keypress, audio sample, serial byte), so reads **block** instead of returning EOF. Calling `stream.close()` is not enough — a pending read inside the kernel keeps the stream alive. Force-terminate it from the inside:
+
+```js
+stream.push(null); // fake EOF signal
+stream.read(0); // flush stream state machine to act on it
+```
+
+</details><br>
+
+<details>
+<summary>54. How does autoClose affect file descriptor lifetime in createReadStream?</summary>
+
+With the default `autoClose: true` the file descriptor is closed automatically on `'end'` or `'error'`. Set it to `false` when you need to reuse the same `FileHandle` across multiple streams — one `open()`, many reads.
+
+The classic real-world case is **HTTP range requests** (video seeking, resumable downloads):
+
+```js
+const fd = await open("movie.mp4");
+
+// Browser requests initial chunk
+fd.createReadStream({ start: 0, end: 999, autoClose: false }).pipe(res1);
+
+// User scrubs to a timestamp — same fd, different range
+fd.createReadStream({ start: 50000, end: 50999, autoClose: false }).pipe(res2);
+
+// Last request — let autoClose clean up
+fd.createReadStream({ start: 99000, end: 99999 }).pipe(res3);
+```
+
+Other cases: log file tailing (new stream each poll cycle), retry logic (resume from last good byte position), parsing binary formats (header tells you where to seek next).
+
+Gotcha: with `autoClose: false`, errors also leave the descriptor open — always attach an `'error'` handler and close manually, or you leak file descriptors.
+
+</details><br>
+
+<details>
+<summary>55. What does filehandle.datasync() do and when would you use it?</summary>
+
+Writes don't go straight to disk — the OS buffers them in memory and flushes whenever it wants, for performance. `datasync()` forces that flush immediately, blocking until the data is physically on disk. Unlike `sync()`, it skips flushing metadata (last modified time, file size, permissions) — saving unnecessary I/O when you only care that the content survived.
+
+| Method       | Flushes data | Flushes metadata |
+| ------------ | ------------ | ---------------- |
+| `datasync()` | ✅           | ❌               |
+| `sync()`     | ✅           | ✅               |
+
+The classic use case is any place where you confirm an action to the user — you must guarantee the record hit disk first:
+
+```js
+const fd = await open("transactions.log", "a");
+
+await fd.write('tx:{"id":1,"amount":99.99}\n');
+await fd.datasync(); // data is on disk — safe to confirm to the user
+
+console.log("Payment confirmed");
+```
+
+Without `datasync()`, a power loss between the write and the OS flush means the transaction record is gone — even though you already told the user it succeeded.
+
+Gotcha: `datasync()` is a real I/O wait — calling it after every single write in a hot loop will destroy throughput. Batch writes together and call it once at the end of the batch.
+
+</details><br>
+
+<details>
+<summary>56. How do you clear a file's content without deleting it?</summary>
+
+`filehandle.truncate(0)` sets the file size to zero, wiping all content while keeping the file and its descriptor open.
+
+```js
+const fd = await open("app.log", "r+");
+await fd.truncate(0); // file exists, now empty
+```
+
+Useful for log rotation — you keep the fd open and writing, you just wipe what's already there.
+
+There are similar varians like `fs.ftruncate(fd[, len], callback)` and `fs.truncate(path[, len], callback)`.
+
+If value passed to truncate greater than file length it will be filled with empty bytes.
+
+</details><br>
+
+<details>
+<summary>57. How do you check if a file is readable/writable?</summary>
+
+`fsPromises.access()` with permission flags — fulfills if the process has access, rejects if not.
+
+```js
+import { access, constants } from "node:fs/promises";
+
+const canAccess = async (path, mode) => {
+  try {
+    await access(path, mode);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+await canAccess("/etc/passwd", constants.R_OK | constants.W_OK); // true or false
+```
+
+Gotcha: never use this before `open()` — another process can change the file between the two calls. Open directly and handle the error instead.
+
+</details><br>
+
+<details>
+<summary>58. How do you reference files relative to the current module in ESM?</summary>
+
+In CommonJS `__dirname` gave you the current file's directory. ESM doesn't have it — use `import.meta.url` instead, which is the URL of the current file.
+
+```js
+// CommonJS
+path.join(__dirname, "./package.json");
+
+// ESM
+new URL("./package.json", import.meta.url);
+```
+
+Gotcha: plain relative paths like `'./package.json'` are relative to where you _ran_ the process from, not where the file lives — so they break depending on your working directory. `import.meta.url` always anchors to the file itself.
+
+</details><br>

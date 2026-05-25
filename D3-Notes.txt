@@ -2,8 +2,9 @@
 2. Node.js
 2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
 
-2.1.1. continue video 17 00:00
-2.1.2. create new temp card and iterate over
+2.1.1. read stream docs https://nodejs.org/docs/latest/api/stream.html [next is "writable.uncork()"]
+2.1.2. make anki cards
+2.1.3. continue video 54 00:00
 
 2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
 2.3. main article https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js + docs
@@ -23,7 +24,6 @@ already covered: [events]
   cluster
   fs
   http
-  net
   process
   stream
   timers
@@ -32,7 +32,6 @@ already covered: [events]
   path
   os
   perf_hooks
-  permissions
   modules + esm + typescript
   globals
   environment_variables
@@ -54,22 +53,9 @@ already covered: [events]
 
   util — only util.promisify, util.callbackify, util.types, util.inspect, util.parseArgs are all practically useful.
   v8 - shallow glance over
-
-
-
-2.6.3. POST SSEW (potentially move to .ideas_post_sswe)
-
-  tls
-  http2
-  dgram
-
-2.6.5 POST SSEW WHEN ON STAGE 2 (potentially move to .ideas_post_sswe)
-
-  stream_iter
-  zlib_iter
-  tracing
-  single-executable-applications
-
-
+  net - shallow glance over
+  permissions - shallow glance over
 
 3. for JS consider source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards
+
+4. "System Design: Comprehensive Learning Journey" at learn
