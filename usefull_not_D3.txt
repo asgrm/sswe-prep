@@ -90,6 +90,83 @@
 What is WebTransport?
 In short, WebTransport is an alternative to WebSocket which fixes several performance issues that plague WebSockets like head-of-line blocking (https://en.wikipedia.org/wiki/Head-of-line_blocking).
 
+44. Usage of duplexPair for teesing a custom protocol implementation
+  Let's say you have a simple length-prefixed message protocol:
+  const { duplexPair } = require('node:stream');
+
+  // Protocol: 4 bytes length header + message body
+  class ProtocolServer {
+    constructor(socket) {
+      this.socket = socket;
+      socket.on('readable', () => this._onReadable());
+    }
+
+    _onReadable() {
+      const header = this.socket.read(4);
+      if (!header) return;
+
+      const length = header.readUInt32BE(0);
+      const body = this.socket.read(length);
+      if (!body) return;
+
+      const message = JSON.parse(body.toString());
+      this._handleMessage(message);
+    }
+
+    _handleMessage(message) {
+      // echo back with server timestamp
+      const response = JSON.stringify({
+        ...message,
+        serverTime: Date.now()
+      });
+      const buf = Buffer.from(response);
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(buf.length);
+      this.socket.write(Buffer.concat([header, buf]));
+    }
+  }
+
+  class ProtocolClient {
+    constructor(socket) {
+      this.socket = socket;
+    }
+
+    send(message) {
+      const buf = Buffer.from(JSON.stringify(message));
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(buf.length);
+      this.socket.write(Buffer.concat([header, buf]));
+    }
+
+    async receive() {
+      return new Promise((resolve) => {
+        this.socket.once('readable', () => {
+          const header = this.socket.read(4);
+          const length = header.readUInt32BE(0);
+          const body = this.socket.read(length);
+          resolve(JSON.parse(body.toString()));
+        });
+      });
+    }
+  }
+
+  // --- test ---
+  async function test() {
+    const [clientSocket, serverSocket] = duplexPair();
+
+    const server = new ProtocolServer(serverSocket);
+    const client = new ProtocolClient(clientSocket);
+
+    client.send({ type: 'ping', payload: 'hello' });
+    const response = await client.receive();
+
+    console.log(response);
+    // { type: 'ping', payload: 'hello', serverTime: 1234567890 }
+  }
+
+  test();
+  The point here: ProtocolServer and ProtocolClient have zero knowledge they're talking to each other in-process. They just see a socket-like Duplex — same code would work with a real net.Socket. duplexPair gives you a real stream with backpressure, buffering, and readable/writable mechanics, so your protocol logic is exercised exactly as it would be in production.
+
 
 https://socket.io/how-to/use-with-express-session
 
