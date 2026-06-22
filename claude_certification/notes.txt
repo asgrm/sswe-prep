@@ -1,0 +1,5 @@
+it's recommended to run /init in claude code for Project with no .md files
+
+shift+tab - auto accept of file edit with no further requests
+# - switch us to memory mode - added note to claude.md 
+@ - allows to reference certain file(s) the similar syntax is used in .md file to reference file
