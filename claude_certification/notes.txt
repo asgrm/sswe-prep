@@ -1,5 +1,28 @@
-it's recommended to run /init in claude code for Project with no .md files
 
-shift+tab - auto accept of file edit with no further requests
-# - switch us to memory mode - added note to claude.md 
-@ - allows to reference certain file(s) the similar syntax is used in .md file to reference file
+Plan
+
+  https://leap.epam.com/sp/partners/anthropic
+
+  https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request
+
+  https://learn.epam.com/myLearning/path?moduleId=41040582&rootId=41040580
+
+      NEXT
+
+
+  go to https://slava-kudzinau.github.io/cc-guide/docs/00-intro/01-what-is-claude-code.html
+
+  (need to do +0 minutes from usual)
+
+
+  after:
+  https://claudecertificationguide.com/
+  https://claude-architect-preparation.lab.epam.com/
+
+  https://dev.ua/news/anthropic-certification-1779872914
+
+  https://platform.claude.com/docs/en/intro
+  https://code.claude.com/docs/en/overview
+
+
+OPTIONAL TODO - spend more investigation on BM25
