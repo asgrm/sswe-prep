@@ -1,4 +1,3 @@
-
 Plan
 
   https://leap.epam.com/sp/partners/anthropic
@@ -7,13 +6,18 @@ Plan
 
   https://learn.epam.com/myLearning/path?moduleId=41040582&rootId=41040580
 
-      NEXT
+    Next:
+    https://claudecertificationguide.com/learn/2-tool-design-mcp/2-5-built-in-tools
 
+      1. Go over all materials of 2.5 + Concept Check + Exam Sim
+      2. update md file add 2.5 (currently not there)
+      3. Do Practical task 2.5 + apply Build Coach
+      4. check .md q - and sq -
 
-  go to https://slava-kudzinau.github.io/cc-guide/docs/00-intro/01-what-is-claude-code.html
+      may need https://code.claude.com/docs/en/agent-sdk/subagents,
 
-  (need to do +0 minutes from usual)
-
+  (need to do -20 minutes from usual on Work Day)
+  (need to do -0 minutes from usual on Day off)
 
   after:
   https://claudecertificationguide.com/
@@ -24,5 +28,7 @@ Plan
   https://platform.claude.com/docs/en/intro
   https://code.claude.com/docs/en/overview
 
+
+  canceled https://slava-kudzinau.github.io/cc-guide/docs/02-tools-mastery/03-vscode-extension.html To be discussed
 
 OPTIONAL TODO - spend more investigation on BM25
