@@ -1,34 +1,41 @@
 Plan
-
-  https://leap.epam.com/sp/partners/anthropic
-
   https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request
 
   https://learn.epam.com/myLearning/path?moduleId=41040582&rootId=41040580
 
     Next:
-    https://claudecertificationguide.com/learn/2-tool-design-mcp/2-5-built-in-tools
 
-      1. Go over all materials of 2.5 + Concept Check + Exam Sim
-      2. update md file add 2.5 (currently not there)
-      3. Do Practical task 2.5 + apply Build Coach
-      4. check .md q - and sq -
+    run https://practice.cyberskill.world/practice/ccaf
+    83.33%(50/60)
+    98.33%(59/60)
+    98.33%(59/60)
+    98.33%(59/60)
+    98.33%(59/60)
 
-      may need https://code.claude.com/docs/en/agent-sdk/subagents,
-
-  (need to do -20 minutes from usual on Work Day)
-  (need to do -0 minutes from usual on Day off)
+    https://claude-architect-preparation.lab.epam.com/ - inspect and continue
+    833(50/60)
+    833(50/60)
+    884(53/60)
+    850(51/60)
+    850(51/60)
+    884(53/60)
+    916(55/60)
+    934(56/60)
+    900(54/60)
+    950(57/60)
+    967(58/60)
+    900(54/60)
+    883(53/60)
 
   after:
-  https://claudecertificationguide.com/
-  https://claude-architect-preparation.lab.epam.com/
-
+  https://medium.com/@yeesun.chu/how-i-passed-the-claude-certified-architect-foundations-cca-f-exam-in-2-weeks-6b967e6effb4
   https://dev.ua/news/anthropic-certification-1779872914
 
   https://platform.claude.com/docs/en/intro
   https://code.claude.com/docs/en/overview
 
+OPTIONAL TODO
 
-  canceled https://slava-kudzinau.github.io/cc-guide/docs/02-tools-mastery/03-vscode-extension.html To be discussed
+spend more investigation on BM25
 
-OPTIONAL TODO - spend more investigation on BM25
+https://git-scm.com/docs/git-worktree

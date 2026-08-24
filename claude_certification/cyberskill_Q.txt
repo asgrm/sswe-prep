@@ -1,0 +1,180 @@
+1)
+An engineer's exploration subagent spent 30 minutes analyzing a legacy payment system, reading 47 files and documenting data flows. The session was interrupted when the engineer's connection dropped. While away, a teammate merged a PR that renamed two utility functions. The engineer wants to continue the same exploration.
+What's the most effective approach?
+
+Your answer: C. Launch a fresh subagent with a summary of prior findings.
+
+Correct: D. Resume the subagent from its previous transcript and inform it about the renamed functions.
+
+Correct. Keep the accumulated understanding, and give it a targeted delta about the renames so it can update its mental model — minimum waste, maximum accuracy.
+
+Principle: When an interruption invalidates only a small, specific piece of accumulated context, the right move is targeted correction, not wholesale restart. Restarting is appropriate when the context itself is suspect or too stale to trust — not when it's 99% intact and you just need to patch a couple of facts.
+
+2)
+Your extraction pipeline processes invoices and extracts line items, subtotals, tax amounts, and grand totals. During evaluation, you discover that in 18% of extractions, the sum of extracted line item amounts doesn't match the extracted grand total—sometimes due to OCR errors in the source document, sometimes due to extraction mistakes by the model. Downstream accounting systems reject records with mismatched totals.
+What's the most effective approach to improve extraction reliability?
+
+Your answer: C. Add few-shot examples demonstrating invoices where extracted line items sum correctly to the stated total, encouraging the model to produce mathematically consistent extractions.
+
+Correct: A. Add a "`calculated_total`" field where the model sums extracted line items alongside a "`stated_total`" field. Flag records for human review when values differ.
+
+Correct. Capturing both values makes the discrepancy a first-class signal — you catch OCR errors and extraction mistakes uniformly, and you can route only the mismatched 18% to humans.
+
+Principle: when correctness can't be guaranteed by the model, make the failure mode observable rather than trying to prompt it away.
+
+3)
+An engineer who just joined the team asks the agent to help them understand the authentication and authorization architecture before making security improvements. The codebase has 800+ files across multiple services.
+What exploration strategy will most effectively build understanding, given Claude built-in tools and context limits?
+
+Your answer: B. Launch parallel subagents to explore different services simultaneously, then synthesize their findings into an architectural overview.
+
+Correct: C. Use Grep to find authentication entry points, read those files, then follow imports and function calls to map the auth flow incrementally.
+
+Correct. Start at entry points (login, token verify, middleware), then trace outward following real code edges. Incremental, grounded, fits within context limits.
+
+Principle: when the goal is to build one coherent mental model of how a system works, explore by following the system's actual structure (call graphs, imports, control flow) incrementally — don't parallelize on an artificial partition and stitch the pieces back together after the fact. Parallelize exploration when subtasks are truly independent and coverage is the goal.
+
+4)
+
+A customer sends: "This is frustrating. I've explained my issue twice and nothing is being resolved. I want to talk to a real person NOW." The agent has not yet called any tools to investigate their account.
+What should the agent do?
+
+Your answer: D. First call `get_customer` and `lookup_order` to gather account context, then escalate to a human agent.
+
+Correct: A. Acknowledge the frustration and ask one targeted question to understand the specific issue before escalating.
+
+Correct. The customer has said 'twice' but you have no context yet. One acknowledging, focused question gives you a shot at first-contact resolution without dismissing the frustration or delaying a potential handoff.
+
+Principle: when a frustrated person explicitly demands a specific action (escalation), don't silently substitute your own plan for theirs — but also don't blindly comply without giving yourself one cheap shot at actually helping first.
+
+
+5)
+Your agent needs to insert a new helper function into the middle of a 150-line utility module, between two existing functions. The Edit tool fails because its `old_string` parameter cannot find unique text to match — the file has repetitive docstrings, variable names, and structural patterns.
+What's the most reliable way to complete this insertion?
+
+Your answer: A. Use Edit with an extremely long `old_string` capturing 30+ lines of context to guarantee uniqueness
+
+Correct: D. Use Read to load the file, add the function at the appropriate location, then Write the updated file
+
+Correct. When Edit's unique-match contract can't be satisfied in a repetitive file, fall back to Read → modify in memory at the intended line → Write the full file back.
+
+Principle: When a tool requires a precondition to hold (uniqueness, well-formedness, a specific structural assumption) and the actual input doesn't reliably satisfy that precondition, don't try to force satisfaction by scaling up the same approach (more context, more retries, more text) — recognize the mismatch and switch to an approach that doesn't depend on the precondition at all. Brute-forcing around a structural constraint is fragile; sidestepping the constraint is robust.
+
+6)
+During a billing dispute resolution, your agent successfully retrieves customer info via `get_customer` and order details via `lookup_order`, but when attempting to call `process_refund`, the tool returns a timeout error. The agent has enough information to explain the charges and verify refund eligibility, but cannot actually process the refund due to the backend failure.
+What approach best balances first-contact resolution with appropriate error handling?
+
+Your answer: B. Implement automatic retries with exponential backoff for `process_refund`, keeping the conversation open until the refund is successfully processed
+
+Correct: C. Explain the billing, confirm refund eligibility, acknowledge the system issue preventing immediate processing, and offer escalation or retry later
+
+Correct. Deliver the partial value you can (explanation + eligibility), be honest about the failure, and let the customer choose between human escalation or a retry. Classic graceful degradation.
+
+Principle: When a multi-step task partially succeeds and partially fails due to a backend/tool failure, don't let the failed step gate the entire response. Deliver whatever value the successful steps already produced, state plainly what failed and why (to the extent known), and offer the person a choice for how to handle the blocked part — rather than silently retrying and making them wait with no visibility, or discarding the successful work along with the failed part.
+
+7)
+
+A customer raises three separate issues during one session: a refund inquiry (turns 1-15), a subscription question (turns 16-30), and a payment method update (turns 31-45). At turn 48, the customer asks "What happened with my refund?" The conversation is approaching context limits.
+What strategy best maintains the agent's ability to address all issues throughout the session?
+
+Your answer: A. Extract and persist structured issue data (order IDs, amounts, statuses) into a separate context layer.
+
+Correct: C. Summarize earlier turns into a narrative description, preserving full message history only for the active issue.
+
+Correct. Progressive summarization compresses stable resolved topics while keeping the active thread verbatim — the classic pattern for long multi-issue conversations near the context limit.
+
+Principle: When compressing history near a context limit across multiple sequential subtopics, compress based on recency and activity status (older/resolved → summarized, active → verbatim), not by narrowing to a fixed schema of fields extracted from the whole conversation. Schema extraction is useful as a supplement for hard facts you know you'll need (like an order ID), but it isn't a substitute for narrative compression, because it silently drops everything outside the schema that a follow-up question might depend on.
+
+8)
+
+Your extraction system implements automatic retries when validation fails. On each retry, the specific validation error is appended to the prompt. This retry-with-error-feedback approach resolves most failures within 2-3 attempts.
+For which failure pattern would additional retries be LEAST effective?
+
+Your answer: A. The model extracts keywords as a nested object organized by category when the schema requires a flat array of strings
+
+Correct: D. The model extracts "et al." for co-authors when the full list exists only in an external document not in the input
+
+Correct. No amount of retrying teaches the model information that isn't in the input. Retry-with-error-feedback only fixes mistakes the model could have gotten right from the source.
+
+Principle: retry-with-error-feedback only fixes failures caused by the model misinterpreting or misformatting information it already has access to — it can't fix failures caused by the required information being absent from the input entirely.
+
+9)
+A customer writes: "I've been going back and forth on this return for days. I just want to speak to someone who can actually help me." The agent has confirmed via `lookup_order` that the return is straightforward—within policy and eligible for immediate processing.
+What should the agent do?
+
+Your answer: B. Call `escalate_to_human` immediately to honor the customer's request
+
+Correct: A. Acknowledge frustration, inform them this is resolvable now, and offer to complete it or escalate
+
+Correct. Honor the feeling, give them the fast resolution path in writing, and preserve their choice. That's the customer-respect move that still leverages the agent's capability.
+
+Principle: When a person's explicit request conflicts with information you have that would change their decision, don't silently comply and don't silently override — surface the information and let them choose. Compliance without transparency isn't actually honoring the request if it withholds a materially better path from someone who would probably want to know about it.
+
+10)
+An agent has tried three times to resolve a billing issue and the customer is still stuck. The right next step is to:
+
+Your answer: A. Try the same resolution a fourth time.
+
+Correct: B. Escalate to a human with the full history and what has been tried, so the customer does not start over.
+
+Principle: Then repeated attempts at the same approach have failed, more of the same isn't a strategy — it's a refusal to update. Escalate with full context so the failure isn't compounded by also forcing the customer to repeat themselves.
+
+11)
+Your extraction pipeline processes contracts that frequently include amendments. When a contract contains both original terms and later amendments (e.g., original clause specifies "30-day payment terms" while Amendment 1 changes this to "45 days"), the model inconsistently extracts one value or the other with no indication of which applies.
+What's the most effective approach to improve extraction accuracy for documents with amendments?
+
+Your answer: A. Redesign the schema so amended fields capture multiple values, each with source location and effective date.
+
+Correct. Amendments are structurally about versioned values. A schema with value + source location + effective date models the domain correctly and stops forcing the model to pick one.
+
+
+12)
+Two sub-agents return conflicting figures for the same metric, each with moderate confidence. Before the coordinator writes the final answer, the best move is to:
+
+Your answer: D. Include both numbers in the final answer and let the reader decide.
+
+Correct: C. Run a focused check that re-fetches the metric from the primary source and resolves the conflict before synthesizing.
+
+When two internal outputs disagree on a factual point and verification is available and cheap, verify and resolve before finalizing — don't present unresolved internal disagreement to the end user as if it were their responsibility to adjudicate. Reserve "present both sides" for cases of genuine, irreducible ambiguity (where authoritative sources themselves disagree), not for cases where your own pipeline just hasn't finished checking its work.
+
+13)
+An engineer asks the agent to understand how the caching layer works before adding a new cache invalidation trigger. After initial Grep searches, the agent has identified that caching logic spans 15 files including decorators, middleware, and service classes (~8,000 lines total).
+What's the most effective next step for building understanding while managing context constraints?
+
+Your answer: B. Analyze imports and class hierarchies to identify the base cache class, Read that file to understand the interface, then trace specific invalidation implementations.
+
+Correct. Start from the architectural root (the interface), then navigate only the specific implementations that matter for invalidation — focused reading, low context cost.
+
+Principle: When exploring a large codebase for a specific, scoped goal, look for the architectural root (base class, core interface, entry point) first — it gives you a map of the system's contract with minimal context cost. Then navigate outward only along the paths relevant to your actual task, rather than reading exhaustively or parallelizing across an artificial partition. This keeps context spend proportional to relevance, not to the system's total size.
+
+14)
+The document analysis agent has a single `analyze_document` tool that takes a document and a free-text instruction parameter. During evaluation, requests like "extract the key financial metrics" often return narrative summaries, while "summarize the methodology" sometimes returns raw data tables. The synthesis agent reports that 35% of analysis results require re-requests with clarified instructions.
+What's the most effective way to improve reliability?
+
+Your answer: A. Split the generic tool into purpose-specific tools—`extract_data_points`, `summarize_content`, `verify_claim_against_source`—each with defined input/output contracts.
+
+Correct. Free-text instructions put the semantics in prose, which the model interprets inconsistently. Purpose-specific tools give the model an explicit, well-typed contract to pick between.
+
+Principle: When a single tool's behavior is disambiguated only by free-text instructions, and you're seeing inconsistent outputs across similar-sounding requests, the fix is usually to move the semantics out of prose and into structure — split the tool by intended output/purpose so each has an explicit contract. This is the same shape as "give the model a schema instead of hoping it infers one": constraints at the interface level are far more reliable than constraints expressed only in natural language instructions.
+
+15) Your extraction pipeline processes restaurant menus and must output structured JSON with fields for item names, descriptions, prices, and dietary tags. Some menus use inconsistent formatting—prices as "$12" vs "12.00", dietary info as icons vs text.
+What's the most reliable approach?
+
+Your answer: B. Extract data as-is and normalize formats in post-processing code after Claude returns.
+
+Correct: D. Define a strict output schema and include format normalization rules in your prompt.
+
+Correct. Strict schema + explicit normalization rules ('prices as decimal with two places', 'dietary as enumerated tags') lets the model both extract and normalize in one pass.
+
+Principle: push transformation logic into the model's task definition, not into a downstream code layer, whenever the transformation depends on interpreting ambiguous or inconsistent input.
+
+16)
+
+Your `process_refund` tool returns two types of errors: technical errors ("503 Service Unavailable", "Connection timeout") that are transient (5% of calls), and business errors ("Order exceeds 30-day return window", "Item already refunded") that are permanent (12% of calls). Monitoring shows the agent wastes 3-4 turns retrying business errors that can never succeed. Currently, both error types return only a plain text message to Claude.
+What's the most effective way to reduce wasted retries while improving customer-facing response quality?
+
+Your answer: D. Implement automatic retry logic at the tool level for technical errors only, passing business errors to Claude without retries.
+
+Correct: A. Return structured error responses with retryable: false for business errors and a customer-friendly explanation for Claude to use.
+
+Correct. A retryable flag tells Claude deterministically 'don't retry,' and a ready-made customer-friendly message improves the outgoing reply. Fixes both problems at once.

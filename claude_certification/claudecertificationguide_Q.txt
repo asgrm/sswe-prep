@@ -1,0 +1,338 @@
+FAILED
+=================================================
+1) Directory-level CLAUDE.md files load based on the working directory hierarchy, but Claude Code sessions typically operate from the repository root. These directory-level files would only load when the agent is directly working within that specific directory, which is less reliable than path-scoped rules that match by file pattern regardless of working directory.
+=================================================
+2)Hiding rate limits from the agent removes its ability to make informed decisions, such as prioritising remaining queries, switching to cached results, or reporting partial progress. The agent should receive structured metadata to decide its own recovery strategy.
+=================================================
+3)
+
+Two Claude Code instances are running in separate git worktrees: Instance A is extracting the payment service (branch: extract/payment) and Instance B is extracting the inventory service (branch: extract/inventory). Both instances need to modify the shared OrderService.java file — Instance A to remove payment logic and Instance B to remove inventory logic. How should the team coordinate this?
+
+B
+Have Instance A complete and merge first, then Instance B rebases onto the updated main before modifying OrderService.java
+
+
+A
+Let both instances modify OrderService.java independently on their branches and resolve the merge conflict when merging to main
+
+Why B is correct
+
+Sequencing modifications to shared files avoids merge conflicts. Instance A completes its changes to OrderService.java and merges. Instance B then rebases onto the updated main, seeing Instance A's changes, and makes its modifications with full awareness of the current state. This is the standard coordination pattern for parallel Claude Code instances modifying shared files.
+
+Why A is wrong
+
+Allowing both instances to make independent, potentially contradictory modifications to the same file risks complex merge conflicts that are difficult to resolve correctly. Coordinating changes to shared files upfront is safer.
+=================================================
+4)
+
+A financial services company's customer support agent receives a request: 'I was charged twice for my subscription, and I also need to update my billing address.' The agent processes the address change successfully but only partially investigates the double-charge, providing an incomplete resolution. What architectural pattern should be applied to handle this correctly?
+
+B
+Route the request to two separate specialised agents — one for billing disputes and one for address changes
+
+
+C
+Decompose the request into items, investigate each in parallel with shared context, then synthesise a unified resolution.
+
+
+
+Why C is correct
+
+Multi-concern request decomposition breaks the compound request into distinct items, investigates each in parallel using shared context (the customer's account), and synthesises a unified resolution that addresses all concerns. This ensures no concern is dropped or partially addressed.
+
+Why B is wrong
+
+Splitting the request across agents adds coordination overhead and may lose the shared context between the two issues. The correct pattern is multi-concern decomposition within the agent's workflow, investigating each issue in parallel with shared context.
+
+=================================================
+5)
+
+Your document processing pipeline chains three steps: (1) extract raw text, (2) classify document type, (3) extract structured fields based on type. Step 2 occasionally misclassifies invoices as purchase orders, causing step 3 to extract the wrong fields. The team proposes combining steps 2 and 3 into a single prompt to reduce errors. What is the better approach?
+
+B
+Keep steps separate and validate the classification between steps 2 and 3 before extraction
+
+
+C
+Add more few-shot classification examples to step 2's prompt so misclassifications stop occurring
+
+Why B is correct
+
+Keeping steps separate maintains focused prompts. Adding validation between steps catches misclassifications before they cascade into wrong-field extraction. This is the core principle of prompt chaining: focused steps with inter-step validation.
+
+Why C is wrong
+
+Better examples may help, but without validation between steps, misclassifications still cascade silently into step 3. Inter-step validation is the structural fix.
+
+Why B is correct
+
+When instruction text like 'check for security in each function' overlaps with tool name patterns, the model conflates instruction keywords with tool selection cues. Using distinct terminology for instructions versus tool names eliminates this cross-contamination.
+
+Why C is wrong
+
+More detailed descriptions help but do not fix the root cause if the instruction text still contains overlapping keywords that cue the wrong tool.
+
+=================================================
+6)
+A CI/CD system prompt defines two review categories with the instructions 'Check for security vulnerabilities in each function' and 'Check for performance issues in each loop'. The model frequently calls `performance_check` for security issues found inside loops, and `security_check` for performance issues in security-sensitive functions. What is the root cause and best fix?
+
+B
+Keyword overlap between the instruction phrasing and the tool names causes the confusion; rewrite them to use distinct, non-overlapping terms.
+
+
+C
+Add more detailed tool descriptions explaining exactly when each tool should be called
+
+=================================================
+7)
+
+
+During the monolith-to-microservices refactoring, each extracted service must follow a consistent Java package naming convention (com.company.service.<service-name>). The team notices that subagents sometimes use inconsistent package names like com.company.app.<service-name> or com.company.<service-name>. A team member proposes adding stronger instructions to the system prompt. What is the correct approach?c
+
+
+A
+Add the naming convention to the system prompt with three concrete examples showing the correct pattern
+
+
+B
+Implement a PostToolUse hook that inspects written files and normalises any package declarations to the correct com.company.service.<service-name> format
+
+Why B is correct
+
+A PostToolUse hook on file write operations can inspect the output and normalise package names deterministically. This provides a 100% enforcement guarantee regardless of what the model generates, which is the correct approach for structural consistency rules.
+
+Why A is wrong
+
+Prompt instructions with examples improve consistency but still have a non-zero failure rate. Package naming is a deterministic rule that must be enforced 100% of the time to avoid broken imports across services.
+
+=================================================
+8)
+
+A legal document extraction pipeline has been running for three months with calibrated confidence thresholds. Extractions above 90% confidence are auto-approved without human review, saving 60% of reviewer time. A new client submits contracts written in an unusual two-column legal format the system has not encountered before. The system reports 92% confidence on these extractions. What is the appropriate safeguard?
+
+
+A
+Maintain stratified random sampling of high-confidence extractions across document types to catch the new format's error rate.
+
+
+D
+Add a document format classifier that flags unknown formats for mandatory human review before any auto-approval
+
+
+Why A is correct
+
+Stratified random sampling is designed precisely for this scenario: detecting novel error patterns in high-confidence extractions that slip past threshold-based routing. By sampling across document types, the new format's errors would surface during routine verification even though the confidence scores appear acceptable.
+
+Why D is wrong
+
+While not wrong in principle, this adds ML infrastructure complexity that stratified sampling already handles. A format classifier requires training data and maintenance, whereas ongoing stratified sampling detects novel error patterns without additional models.
+
+9)
+
+A synthesis agent produces a report with several claims that have no source attribution. The web search and document analysis subagents are working correctly and returning well-sourced results. What is the most likely root cause?
+
+A
+The synthesis agent's system prompt does not instruct it to include citations, so it drops source attribution even when given well-sourced input.
+
+B
+The coordinator passes content to the synthesis agent stripped of structured metadata like source URLs and document names.
+
+Why B is correct
+
+Context passing must include structured data that separates content from metadata. Without source URLs and document names, the synthesis agent has no attribution information to include.
+
+Why A is wrong
+
+Even with a citation instruction, the synthesis agent cannot attribute claims to sources that were never passed to it. The lesson is explicit: do not blame the synthesis prompt; the root cause is the coordinator dropping structured metadata.
+=================================================
+10)
+A documentation team wants to archive the full conversation transcript to a log file every time Claude Code runs /compact, so that context lost during compaction can be reviewed later. Which hook configuration achieves this?
+C
+A PreToolUse hook configured on a built-in 'Compact' tool, matching tool name 'Compact'
+
+B
+A PreCompact hook that writes the current transcript to a timestamped log file before /compact summarises the conversation
+
+Why B is correct
+
+PreCompact is a first-class hook event in Claude Code that fires immediately before /compact (or auto-compaction) runs. The hook receives the full pre-compaction transcript path and can copy or process it before summarisation discards detail. This is the documented mechanism for exactly this use case.
+
+Why C is wrong
+
+There is no 'Compact' tool exposed to PreToolUse. Compaction is a Claude Code lifecycle operation, not a model-invoked tool, so it has its own dedicated PreCompact event rather than being hooked via PreToolUse.
+
+=================================================
+11)
+
+A documentation team wants a PostToolUse hook that automatically runs a link checker after every file write to a documentation directory. The hook should only trigger for writes to files under docs/. What determines whether a hook fires for a given tool invocation?
+
+
+
+A
+Hook configuration supports an `if` field using permission-rule syntax like Edit(*.ts) to match the tool name and arguments together
+
+
+B
+Hooks support a `paths:` glob array in settings.json, the same field name .claude/rules/ files use, that filters which file writes fire the hook
+
+=================================================
+
+12)
+
+Claude Code hooks are filtered by two configuration fields. `matcher` selects the tool name (e.g., 'Write|Edit'). `if` uses permission-rule syntax to filter on tool name and arguments together, so `Edit(*.ts)` runs only for TypeScript files and `Write(docs/**)` runs only for writes under docs/. Without an `if` field, the hook fires on every invocation that matches the matcher.
+
+There is no `paths:` field on hooks. That frontmatter belongs to .claude/rules/ files. Hook path filtering is done with the `if` field using permission-rule syntax, so this conflates two different mechanisms.
+
+Example:
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "if": "Write(docs/**)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx markdown-link-check \"$CLAUDE_TOOL_INPUT_FILE_PATH\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+
+=================================================
+13)
+
+The team's CLAUDE.md specifies that all new microservices must include integration tests that verify API contract compliance and database migration rollback. A developer notices that Claude Code sometimes generates unit tests that mock the database instead of writing the required integration tests. What should the team add to their configuration?
+
+D
+A .claude/rules/ file with paths: ["**/*Test.java"] that instructs Claude Code to never use mocks
+
+
+B
+Tighten the CLAUDE.md test rule with criteria like real DB connections and contract assertions
+
+Why B is correct
+
+CLAUDE.md is the correct location for persistent test standards. Specifying concrete criteria (real database connections, API contract assertions) with examples of expected structure and fixtures gives Claude Code an unambiguous target. This addresses the root cause: the existing instructions were not specific enough about what 'integration tests' means in this codebase.
+
+Why D is wrong
+
+Banning mocks from all test files is overly broad — mocks are appropriate in many unit tests. The requirement is specifically that integration tests with real connections must be included, not that mocks must be eliminated.
+=================================================
+14)
+
+
+A moderation classification tool includes a `detected_patterns` array where the model lists specific patterns it identified (e.g. 'repeated slur targeting ethnicity'). Validation checks whether the detected patterns match the assigned category, and on mismatch retries with feedback like 'You classified this as spam but detected patterns of hate speech targeting ethnicity, please re-evaluate.' What is the primary benefit of the `detected_patterns` field in this workflow?
+
+
+C
+It lets validation detect reasoning inconsistencies and feed back targeted errors the model uses to self-correct.
+
+D
+It increases classification accuracy by forcing the model to identify specific patterns before assigning a category
+
+Why C is correct
+=================================================
+15)
+
+The detected_patterns field externalises the model's reasoning into structured data that can be programmatically validated against the conclusion. When patterns and category are inconsistent, the specific error feedback ('you detected hate speech patterns but classified as spam') gives the model actionable information to self-correct. This is the core benefit in a retry-with-error-feedback workflow.
+
+Why D is wrong
+
+While structured reasoning fields can improve accuracy, this framing misses the retry workflow context. The primary benefit is enabling programmatic validation of reasoning consistency and targeted feedback for self-correction.
+=================================================
+16)
+
+Your extraction pipeline uses tool_use with a JSON schema, so outputs always parse. Finance still reports invoices where line items do not sum to the stated total, and where the due date precedes the invoice date. The team wants retries to receive precise, per-field error messages. What should you add?
+
+
+A
+Tighter JSON schema constraints: numeric minimum and maximum bounds on every amount field and format checks on every date field
+
+
+C
+A Pydantic model whose validators encode the sum and date-order rules, feeding its validation errors into retries
+
+
+Why C is correct
+
+Cross-field semantic rules live in validation code; Pydantic validators express them and raise per-field errors the retry request can quote verbatim.
+
+Why A is wrong
+
+Range and format constraints check fields in isolation; both reported failures are relationships between fields, which a JSON schema cannot express.
+=================================================
+17)
+A CI pipeline validates that generated API docs match the codebase. It runs `claude -p 'Verify that all public API endpoints in src/api/ have corresponding documentation in docs/api/'` with `--output-format json`. The check consistently reports 100% coverage, yet manual audits regularly find undocumented endpoints. What is the most likely cause?
+
+D
+The CI pipeline needs a separate review step where a second Claude Code instance verifies the first instance's findings
+
+
+B
+Claude Code is doing a shallow pattern match, not a deep semantic comparison, and the prompt lacks validation criteria
+
+Why B is correct
+
+Without explicit validation criteria (e.g., 'for each exported function in src/api/, check that docs/api/ contains a section with the function name, parameters, and return type'), the model may perform a shallow check. Adding structured criteria, expected output format, and examples of what constitutes a gap produces reliable verification.
+
+Why D is wrong
+
+Adding a second instance to review the first adds latency and cost without addressing the root cause. If the first instance's prompt lacks clear validation criteria, the second instance reviewing the same vague output will draw the same flawed conclusions.
+
+=================================================
+PASSED
+=================================================
+1) The team wants three Claude Code instances working in parallel: one extracting the authentication service, one extracting the billing service, and one updating shared libraries. All three need to commit to the same repository without conflicts. What is the correct setup?
+
+Use git worktree to create three separate working directories, each on its own branch, with one Claude Code instance per worktree
+
+
+git worktree creates multiple working directories from the same repository, each checked out to a different branch. Each Claude Code instance operates in its own isolated file system while sharing the same git history. This eliminates file system conflicts between parallel instances.
+=================================================
+2)
+A web search agent has 9 tools: `web_search`, `url_fetch`, `html_parse`, `pdf_extract`, `image_ocr`, `translate`, `summarise`, `keyword_extract`, `sentiment_analysis`. In testing it frequently calls `summarise` and `sentiment_analysis` when it should only fetch raw data. How should the architect fix this?
+
+B
+Reduce the web search agent to the 4-5 data-fetching tools and move the analysis tools to the specialist agents.
+
+Why B is correct
+
+The recommended maximum is 4–5 tools per agent. The web search agent has 9 tools, causing it to use tools outside its intended role. Reducing to data-fetching tools enforces scoped access. The analysis tools (summarise, sentiment_analysis, keyword_extract) belong with the synthesis or analysis agents.
+=================================================
+3)
+
+A customer support agent's loop terminates when cumulative token usage exceeds a budget. During a complex billing investigation the budget is exhausted mid-task, after data gathering but before resolution, with stop_reason still `tool_use`. What architectural change addresses this?
+
+B
+When the budget is nearly gone and stop_reason is still 'tool_use', summarise progress and escalate to a human.
+
+Why B is correct
+
+When constraints prevent completion, the agent should degrade gracefully rather than terminating abruptly. Summarising progress and performing a structured handoff (customer ID, summary, root cause so far, recommended next steps) ensures no work is lost and the human agent can continue from where the AI left off.
+=================================================
+
+4)
+A documentation team uses Claude Code to generate runbooks for incident response procedures. The generated runbooks include specific command sequences and escalation paths. Why is human review especially critical for this type of generated documentation?
+
+B
+Runbooks are executed under incident pressure, where a wrong command could worsen an outage, and fluent LLM output can hide subtle errors.
+
+Why B is correct
+
+Runbooks have an unusually high blast radius: they are followed during stressful incidents when operators may not critically evaluate each step. An incorrect command (e.g., wrong database connection string, incorrect rollback procedure) could escalate an incident. LLM-generated instructions appear authoritative and well-structured, making subtle errors harder to spot without expert review.
+
+5)
+
+The refactoring team's Java naming convention must be applied on every run. A senior developer's user-level CLAUDE.md (~/.claude/CLAUDE.md) contradicts it, and reviewers have already caught Claude following the developer's personal preference over the team rule. Where should the team move the rule so it is guaranteed to be honoured?
+
+A
+Into the project's settings.json or a PreToolUse hook — enforcement-grade locations that the Claude Code client applies regardless of what the model decides
+
+
+Why A is correct
+
+Anthropic's memory docs are explicit that CLAUDE.md files are 'concatenated into context rather than overriding each other' and that 'if two rules contradict each other, Claude may pick one arbitrarily.' CLAUDE.md is delivered as a user message and the docs warn there's 'no guarantee of strict compliance.' The docs themselves point teams at the right alternative: 'Settings rules are enforced by the client regardless of what Claude decides to do. CLAUDE.md instructions shape Claude's behavior but are not a hard enforcement layer.' For a rule that must hold every time, move it to settings.json permissions or a hook — hooks run as shell commands at fixed lifecycle events and apply 'regardless of what Claude decides to do.'

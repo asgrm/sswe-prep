@@ -1,0 +1,39 @@
+# Step 1: Run Claude Code non-interactively in CI with the -p flag.
+#
+# WHY: `claude` on its own starts an INTERACTIVE session. In CI there is no
+# human at the keyboard, so the job hangs indefinitely waiting for input.
+# The -p flag (long form: --print) switches Claude Code to print mode:
+# it processes the prompt, prints the result to stdout and exits.
+#
+# EXAM NOTES (Domain 3, Question 10 in the official samples):
+#   - -p / --print is THE flag for non-interactive / CI use.
+#   - CLAUDE_HEADLESS=true does NOT exist (distractor).
+#   - --batch does NOT exist (distractor).
+
+name: Claude PR review (step 1 - non-interactive)
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so Claude can diff the PR branch against the base.
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Review PR (non-interactive)
+        # -p immediately after the command; the prompt follows as a string
+        # argument. Output goes to stdout, which the CI system captures in
+        # the job log. Without -p this step would hang until the job timeout.
+        run: |
+          claude -p "Analyse the changes in this pull request for security issues, error handling gaps, and test coverage."
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

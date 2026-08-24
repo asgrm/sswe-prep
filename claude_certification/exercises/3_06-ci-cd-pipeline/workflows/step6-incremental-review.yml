@@ -1,0 +1,90 @@
+# Step 6 (final): Incremental review - the complete pipeline.
+#
+# WHY: Without incremental context every push re-reviews the whole PR from
+# scratch and re-posts the same comments. When the same five issues appear on
+# every push regardless of fixes, developers stop reading them - duplicate
+# comments erode trust in the whole review bot.
+#
+# HOW: findings from each run are persisted per-PR (here via actions/cache).
+# The next run loads them, includes them in the prompt, and instructs Claude
+# to report ONLY (a) new issues and (b) previous issues still present.
+# Fixed issues silently disappear.
+#
+# This workflow combines all six steps:
+#   step 1: claude -p (non-interactive)
+#   step 2: --output-format json + --json-schema (structured findings)
+#   step 3: jq parse -> inline PR comments via gh api
+#   step 4: CLAUDE.md provides testing standards and severity criteria
+#   step 5: review runs as its own fresh session (no --continue/--resume)
+#   step 6: previous findings fed back in -> no duplicate comments
+
+name: Claude PR review (step 6 - incremental)
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    env:
+      EXERCISE_DIR: claude_certification/exercises/3_06-ci-cd-pipeline
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # ---- Load previous findings (empty on the first run) -----------------
+      # Cache key is unique per run; restore-keys prefix-matches the most
+      # recent previous run for this PR.
+      - name: Restore previous findings
+        uses: actions/cache/restore@v4
+        with:
+          path: previous-findings.json
+          key: claude-review-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          restore-keys: |
+            claude-review-pr-${{ github.event.pull_request.number }}-
+
+      - name: Review PR with incremental context
+        run: |
+          PREV=$(cat previous-findings.json 2>/dev/null || echo '{"findings":[]}')
+
+          claude -p \
+            --output-format json \
+            --json-schema "$(cat "$EXERCISE_DIR/scripts/findings-schema.json")" \
+            "Review this pull request for security issues, error handling gaps, and test coverage, using the severity criteria in CLAUDE.md.
+
+            Previous findings from the last review run: $PREV
+
+            Report ONLY:
+            1. New issues not present in the previous findings.
+            2. Issues from the previous findings that are still unaddressed.
+            Do NOT re-report issues that have been fixed since the last run." \
+            > findings.json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Post findings as inline PR comments
+        run: |
+          bash "$EXERCISE_DIR/scripts/post-inline-comments.sh" findings.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+
+      # ---- Persist this run's findings for the next push --------------------
+      - name: Store findings for next run
+        run: cp findings.json previous-findings.json
+
+      - name: Save findings cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: previous-findings.json
+          key: claude-review-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}

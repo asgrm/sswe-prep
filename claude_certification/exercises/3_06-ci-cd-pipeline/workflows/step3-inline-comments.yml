@@ -1,0 +1,45 @@
+# Step 3: Parse the JSON output and post findings as inline PR comments.
+#
+# WHY: A finding shown at the exact file:line it refers to is actionable;
+# a wall of text in the job log is not. Developers see the finding alongside
+# the code it references, with the severity visible.
+#
+# Builds directly on step 2: structured output -> jq extraction -> GitHub API.
+
+name: Claude PR review (step 3 - inline comments)
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write   # needed to create review comments
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Review PR (structured JSON findings)
+        run: |
+          claude -p \
+            --output-format json \
+            --json-schema "$(cat claude_certification/exercises/3_06-ci-cd-pipeline/scripts/findings-schema.json)" \
+            "Review this PR for security issues, error handling gaps, and test coverage. Report each finding with the file path, line number, severity (critical/major/minor) and a one-sentence message." \
+            > findings.json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Post findings as inline PR comments
+        run: |
+          bash claude_certification/exercises/3_06-ci-cd-pipeline/scripts/post-inline-comments.sh findings.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}

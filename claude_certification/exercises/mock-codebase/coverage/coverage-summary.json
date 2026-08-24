@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2024-11-18T02:14:07Z",
+  "reporter": "jest --coverage --coverageReporters=json-summary",
+  "files": {
+    "src/services/order.ts": { "lines": 87.5, "branches": 80.0, "functions": 100.0 },
+    "src/repos/order.ts": { "lines": 71.4, "branches": 62.5, "functions": 75.0 },
+    "src/lib/query-cache.ts": { "lines": 55.0, "branches": 50.0, "functions": 66.7 },
+    "src/services/refund.ts": { "lines": 12.0, "branches": 8.3, "functions": 33.3 },
+    "src/controllers/refund.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 },
+    "src/gateways/payment.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 },
+    "src/gateways/tax.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 },
+    "src/gateways/notification.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 },
+    "src/repos/customer.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 },
+    "src/db/postgres.ts": { "lines": 0.0, "branches": 0.0, "functions": 0.0 }
+  },
+  "total": { "lines": 31.2, "branches": 26.4, "functions": 38.1 }
+}

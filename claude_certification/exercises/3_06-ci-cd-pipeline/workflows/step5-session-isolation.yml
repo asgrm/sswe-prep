@@ -1,0 +1,48 @@
+# Step 5: Two independent Claude Code invocations - generation vs review.
+#
+# WHY: A session that generated code is a poor reviewer of that code. It
+# retains the reasoning that led to its decisions, which biases it toward
+# justifying them ("I already considered that edge case") instead of
+# evaluating the code on its own merits. An independent instance sees only
+# the code, not the rationale, so its review is more thorough.
+#
+# HOW isolation works: every `claude -p` invocation creates a NEW session
+# with no memory of previous ones. Isolation is therefore the default - you
+# only break it by explicitly passing --continue or --resume <session-id>.
+# So the rule is: for independent review, run a second plain `claude -p`
+# call and do NOT use --continue/--resume between the two steps.
+
+name: Claude generate + independent review (step 5)
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # ---- Session A: generation ------------------------------------------
+      - name: Generate tests (Session A)
+        run: |
+          claude -p "Generate unit tests for src/auth/middleware.ts following the testing standards in CLAUDE.md. Write them to src/auth/middleware.test.ts."
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # ---- Session B: independent review ----------------------------------
+      # A fresh `claude -p` call: no --continue, no --resume, no reference to
+      # Session A. The reviewer knows nothing about why the tests were written
+      # the way they were - it judges only what is on disk.
+      - name: Review generated tests (Session B - independent)
+        run: |
+          claude -p "Review the test file at src/auth/middleware.test.ts for coverage gaps, edge cases, and assertion quality. Do not assume the tests are correct."
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

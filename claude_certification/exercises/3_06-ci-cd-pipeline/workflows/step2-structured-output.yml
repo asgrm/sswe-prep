@@ -1,0 +1,49 @@
+# Step 2: Structured JSON output with --output-format json and --json-schema.
+#
+# WHY: CI output must be machine-parseable. Automated systems need structured
+# JSON to post inline PR comments, filter by severity and track findings
+# across runs. Free-form text cannot be reliably parsed by downstream tools.
+#
+# HOW:
+#   --output-format json   makes Claude Code emit JSON instead of plain text.
+#   --json-schema '<...>'  constrains the result to a JSON Schema you supply
+#                          as a string argument (here read from a file to keep
+#                          the workflow readable).
+#
+# ACCEPTANCE: the output is valid JSON conforming to the schema; every finding
+# has file, line, severity and message fields; `jq` can parse it without error.
+
+name: Claude PR review (step 2 - structured output)
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Review PR (structured JSON findings)
+        run: |
+          claude -p \
+            --output-format json \
+            --json-schema "$(cat claude_certification/exercises/3_06-ci-cd-pipeline/scripts/findings-schema.json)" \
+            "Review this PR for security issues, error handling gaps, and test coverage. Report each finding with the file path, line number, severity (critical/major/minor) and a one-sentence message." \
+            > findings.json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Validate the output is parseable JSON
+        # Fails the job if the output does not conform - this is the
+        # machine-parseability guarantee the rest of the pipeline relies on.
+        run: |
+          jq -e '.findings | type == "array"' findings.json
+          jq -r '.findings[] | "\(.file):\(.line) [\(.severity)] \(.message)"' findings.json
