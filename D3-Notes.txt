@@ -2,9 +2,12 @@
 2. Node.js
 2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
 
-2.1.3. continue video 54 00:00
-2.1.1. read docs
-2.1.2. make anki cards, do 2 repetitions on them
+work day -63 minutes from usual
+day off 0 minutes from usual
+
+2.1.1. continue video 124 00:00
+2.1.2. read docs (child_process, cluster, process, path, console(shallow glance over), os) + all marked as "!" starting line 466
+2.1.3. make anki cards, do 2 repetitions on them
 
 2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
 2.3. main article https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js + docs
@@ -19,13 +22,10 @@ already covered: [events]
 
 2.6.1. read:
   async_context
-  buffer
   child_process
   cluster
-  fs
-  http
   process
-  stream
+  web-streams-api
   timers
   worker_threads
   url
@@ -53,9 +53,8 @@ already covered: [events]
 
   util — only util.promisify, util.callbackify, util.types, util.inspect, util.parseArgs are all practically useful.
   v8 - shallow glance over
-  net - shallow glance over
   permissions - shallow glance over
 
-3. for JS consider source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards
+3. for JS consider source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards + https://developer.mozilla.org/ru/docs/Web/API/AbortController
 
 4. "System Design: Comprehensive Learning Journey" at learn

@@ -20,6 +20,7 @@ Before writing any card, cross-check every claim in the input against your knowl
 Identify any concepts in the input that are outdated, deprecated, superseded, or known to be insecure as of CURRENT_DATE. Consider RFCs, CVEs, official specification updates, and widely adopted industry guidance — not just what the input says.
 
 For each such concept found:
+
 - Do not silently drop it. Deprecated or superseded concepts still deserve a card, because understanding why something was abandoned is itself testable knowledge.
 - The card must clearly state that the concept is deprecated or discouraged as of approximately when, explain the concrete reason (what risk or limitation it introduced), and state what replaced it and why the replacement is better.
 - If the deprecation or the replacement itself has a date attached (e.g. an RFC publication date, a browser vendor drop date), include it in the answer so the reader has a concrete reference point.

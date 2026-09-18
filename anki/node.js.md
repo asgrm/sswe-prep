@@ -2028,3 +2028,699 @@ class MyReadable extends Readable {
 
 </details>
 <br>
+
+<details>
+<summary>80. What is net.Socket in Node.js, what stream type does it extend, and how is it normally obtained?</summary>
+
+net.Socket is Node's abstraction over a single connected endpoint: either a TCP connection or a streaming IPC endpoint (named pipes on Windows, Unix domain sockets elsewhere). It extends stream.Duplex, so it is readable and writable at the same time, supports pipe()/backpressure, and inherits the EventEmitter API ('data', 'end', 'error', 'close', ...).
+
+There are two normal ways to get one. Client side: net.createConnection() (or new net.Socket() followed by socket.connect()) returns a socket you use to talk to a server. Server side: Node constructs the socket for an accepted connection and passes it to the 'connection' listener of a net.Server.
+
+```js
+const net = require("node:net");
+
+// Client: Node creates and connects the socket for you.
+const client = net.createConnection({ port: 8000, host: "127.0.0.1" }, () => {
+  client.write("ping");
+});
+client.on("data", (chunk) => console.log(chunk.toString()));
+
+// Server: Node hands you an already-connected socket.
+const server = net.createServer((socket) => {
+  socket.pipe(socket); // echo
+});
+server.listen(8000);
+```
+
+Gotcha: socket.connect() exists but is rarely needed directly; it is intended for custom Socket subclasses or for reconnect logic on a socket you constructed yourself. Because a socket is a Duplex, calling socket.end() only half-closes it (sends FIN, stops writing); the readable side can still emit data until the peer closes. Use socket.destroy() to tear it down immediately.
+
+</details><br>
+
+<details>
+<summary>81. How can a connected TCP socket be handed to another thread in Node.js, and what happens to the original socket?</summary>
+
+A connected TCP net.Socket can be listed in the transferList of a worker_threads postMessage() call. The underlying OS handle moves to the receiving thread: the source socket is destroyed on the sending thread (any further use rejects with ERR_STREAM_DESTROYED rather than silently discarding data), and the socket continues to work normally on the receiving thread. This lets one thread accept connections and distribute them across a worker pool, i.e. a node:cluster-like model built on worker threads instead of processes.
+
+```js
+const net = require("node:net");
+const { Worker } = require("node:worker_threads");
+
+const worker = new Worker("./worker.js"); // receives { socket } messages
+
+const server = net.createServer((socket) => {
+  worker.postMessage({ socket }, [socket]); // socket must be in the transferList
+});
+server.listen(8000);
+```
+
+A listening net.Server can be transferred the same way, which moves the listening socket and its pending accept queue to the receiving thread.
+
+Gotcha: this is a recent addition to net (Node.js 24 line); on older runtimes the socket is simply not transferable and postMessage() throws. Because the send destroys the source socket, do not attach handlers or write to it after transferring, and never transfer the same socket twice. Errors surface as ERR_STREAM_DESTROYED, so a "socket vanished" symptom in the accepting thread is usually a use-after-transfer bug.
+
+</details><br>
+
+<details>
+<summary>82. How does TCP keep-alive differ from HTTP keep-alive, and why does confusing them cause bugs?</summary>
+
+In one line: TCP keep-alive asks "is this wire still connected?", HTTP keep-alive says "let's reuse this wire for several requests". They share a name and nothing else - enabling one does not enable the other.
+
+TCP keep-alive is a low-level heartbeat that lives in the OS network stack, enabled per socket with socket.setKeepAlive(). Once the connection has been idle for the configured delay, the kernel sends a tiny empty probe segment to the peer - no application data, just "you still there?". If several probes in a row go unanswered, the OS declares the connection dead and tears it down. Its two jobs are detecting a peer that vanished without a proper close, and generating enough traffic that routers, NAT boxes, and firewalls do not silently drop the connection from their state tables.
+
+HTTP keep-alive (persistent connections) is an application-level decision that has nothing to do with probing. Without it, every HTTP request opens a fresh TCP connection, does one request/response, and closes it - slow and wasteful, since every request repays the TCP handshake and any TLS handshake. HTTP keep-alive instead leaves the connection open so the next request/response can go over the same one. In Node it is controlled by entirely separate knobs: http.Agent({ keepAlive: true }) pools connections on the client, and server.keepAliveTimeout decides how long the server holds an idle persistent connection open.
+
+```js
+const http = require("node:http");
+
+// HTTP layer: reuse one connection for many requests (client side)
+const agent = new http.Agent({ keepAlive: true, maxSockets: 50 });
+
+// HTTP layer: how long the server holds an idle persistent connection
+const server = http.createServer(handler);
+server.keepAliveTimeout = 5000;
+
+// Transport layer: probe whether the peer is still alive - completely separate
+server.on("connection", (socket) => socket.setKeepAlive(true, 30000));
+```
+
+Gotcha - the classic production failure. Setting keepAlive: true on an http.Agent does not turn on TCP probes, so nothing on the client is ever checking whether a pooled connection is still alive. A load balancer, proxy, or NAT box on the path drops the idle connection after its own timeout without sending a FIN or RST, so the client never learns about it. The connection sits in the pool looking perfectly healthy, and the next request that picks it up fails with ECONNRESET or simply hangs until a timeout. This is the usual explanation for random intermittent connection errors in Node services behind a load balancer, and it looks non-deterministic because it depends on which pooled socket the next request happens to grab.
+
+The fix is to make sure you close idle connections before the middlebox does: set the HTTP-layer idle timeout (server.keepAliveTimeout, plus the matching client-side idle timeout) shorter than the shortest idle timeout of any hop on the path, and optionally enable TCP keep-alive as a backstop. One naming trap while doing this: http.Agent's keepAliveMsecs is the TCP keep-alive initial delay applied to pooled sockets, not the HTTP idle timeout - it does not control how long a connection stays in the pool.
+
+</details><br>
+
+<details>
+<summary>83. What exactly does socket.setTimeout() do in Node.js, and does it close the connection?</summary>
+
+It arms an idle-inactivity timer: if no activity occurs on the socket for the given number of milliseconds, the socket emits a 'timeout' event. By default net.Socket has no timeout. Crucially, the connection is not severed - Node only notifies you. The socket remains open and usable until you explicitly call socket.end() for a graceful half-close or socket.destroy() to tear it down. Passing 0 disables an existing idle timeout. The optional callback argument is registered as a one-time 'timeout' listener. The method returns the socket.
+
+```js
+socket.setTimeout(3000);
+socket.on("timeout", () => {
+  console.log("socket timeout");
+  socket.end(); // nothing closes unless you do this
+});
+
+// Equivalent one-shot form:
+socket.setTimeout(3000, () => socket.destroy());
+```
+
+Gotcha: it is an inactivity timer, not a total-duration or deadline timer. The clock resets on every read or write, so a peer that trickles one byte per second keeps the connection alive forever under any setTimeout value. It also does not fire an 'error' event, so a handler that only listens for 'error' and 'close' will never see the timeout, and the socket can sit open indefinitely leaking a file descriptor. And because 'timeout' does not close the socket, forgetting the end()/destroy() call is the single most common way this API is misused.
+
+</details><br>
+
+<details>
+<summary>84. Is socket.setTimeout() sufficient protection against slow-request (Slowloris-style) attacks on an HTTP server?</summary>
+
+No, and treating it as sufficient is an outdated framing. Because setTimeout() measures inactivity and resets on every byte, an attacker who sends a single header byte just under the timeout interval keeps hundreds of connections alive indefinitely and exhausts the server's connection capacity.
+s
+The current answer is total-duration limits, which are on by default rather than optional. http.Server.headersTimeout bounds the time allowed to receive the complete request headers, and http.Server.requestTimeout bounds the time allowed to receive the entire request including its body. requestTimeout was introduced in Node.js 14.11.0 defaulting to 0 (disabled), and was changed to default to 300000 ms in Node.js 18.0.0 (April 2022); headersTimeout defaults to 60000 ms.
+
+```js
+const http = require("node:http");
+const server = http.createServer(handler);
+
+server.headersTimeout = 10000; // full headers must arrive within 10s
+server.requestTimeout = 30000; // full request must arrive within 30s
+server.keepAliveTimeout = 5000; // idle persistent connection lifetime
+```
+
+Gotcha: these are deadlines, not inactivity timers, which is exactly why they defeat trickle attacks that setTimeout() cannot. Do not set requestTimeout to 0 to "fix" large uploads - raise it to a bounded value instead, or the Slowloris protection is gone. Also make sure requestTimeout is greater than headersTimeout, and remember that these apply to http.Server only; a raw net.Server needs equivalent deadline logic implemented by hand with setTimeout/clearTimeout around the parse phase.
+
+</details><br>
+
+<details>
+<summary>85. What is the difference between String.prototype.length and Buffer.byteLength(string, encoding), and when does it matter?</summary>
+
+String.prototype.length counts UTF-16 code units in the JavaScript string. Buffer.byteLength(string, encoding) counts how many bytes that string occupies once serialized with the given encoding (default 'utf8'). They only agree for pure ASCII text in a single-byte-per-char encoding.
+
+```js
+const s = "hello";
+s.length; // 5
+Buffer.byteLength(s, "utf8"); // 5
+
+const t = "héllo";
+t.length; // 5  (5 UTF-16 code units)
+Buffer.byteLength(t, "utf8"); // 6  ('é' is 2 bytes in UTF-8)
+
+"😀".length; // 2  (surrogate pair)
+Buffer.byteLength("😀", "utf8"); // 4
+```
+
+This matters for anything expressed in bytes: Content-Length, framing lengths, size limits, offsets into a Buffer.
+
+```js
+const body = JSON.stringify({ name: "José" });
+res.setHeader("Content-Length", Buffer.byteLength(body)); // correct
+// res.setHeader('Content-Length', body.length);          // wrong: truncates or hangs the response
+```
+
+Gotcha: Buffer.byteLength also accepts a Buffer, TypedArray, DataView or ArrayBuffer and then simply returns its .byteLength, ignoring the encoding argument. So passing an already-encoded value is safe but the encoding argument silently does nothing.
+
+</details><br>
+
+<details>
+<summary>86. In the Node.js http module, how do response.setHeader() and response.writeHead() interact, and what is the required call order?</summary>
+
+setHeader(name, value) stores a header in an internal, mutable map; it can be called repeatedly and read back with getHeader()/getHeaders() and removed with removeHeader(). writeHead(statusCode[, statusMessage][, headers]) finalizes the status line plus headers and marks them as sent. Therefore every setHeader() call must happen before writeHead() (and before the first write()/end(), which trigger implicit headers).
+
+```js
+res.setHeader("X-Request-Id", id);
+res.setHeader("Content-Type", "text/plain");
+res.writeHead(200, { "Content-Type": "application/json" }); // wins over the setHeader value
+res.end(body);
+
+res.setHeader("X-Late", "1"); // throws ERR_HTTP_HEADERS_SENT
+```
+
+Merge rule: headers set with setHeader() are merged with the object passed to writeHead(), and writeHead()'s values take precedence.
+
+Gotcha: if setHeader() was never called, the headers passed to writeHead() are written straight to the wire without being cached internally, so getHeader()/getHeaders() will not report them. Use setHeader() when you need headers to remain readable or modifiable later, for example in middleware.
+
+Since Node.js 11.10.0 writeHead() returns the response object, so chaining works: res.writeHead(204).end(). Check res.headersSent before attempting any header mutation in error handlers.
+
+</details><br>
+
+<details>
+<summary>87. When you call readable.pipe(writable), what happens to the writable stream once the source ends?</summary>
+
+By default pipe() calls writable.end() automatically when the readable emits 'end'. That is why streaming a file to an HTTP response needs no explicit close: the response is ended for you when the file is fully read.
+
+```js
+fs.createReadStream(path).pipe(res); // res.end() is called automatically
+```
+
+Pass { end: false } to keep the destination open, which is required when several sources feed one destination sequentially:
+
+```js
+a.pipe(dest, { end: false });
+a.on("end", () => b.pipe(dest)); // the last pipe ends dest
+```
+
+Gotchas: process.stdout and process.stderr are never ended by pipe(), regardless of the option, because they stay open for the process lifetime. And the auto-end only fires on a clean 'end'; if the source errors or is destroyed, the destination is left dangling, which is the core reason pipe() alone is not enough in production code.
+
+</details><br>
+
+<details>
+<summary>88. Why is readable.pipe() discouraged for production code, and what should be used instead?</summary>
+
+pipe() is not removed or formally deprecated, but Node.js documentation has recommended stream.pipeline() over it since Node 10 (2018), and the promise form since Node 15 (2020). pipe() has two concrete defects: it does not forward errors, and it does not destroy the other streams on failure.
+
+The consequences are real. An 'error' on the source or destination has no listener attached by pipe(), so it becomes an uncaught exception that crashes the process. If the destination fails, the source is never destroyed, leaking file descriptors and sockets. A destination that errors mid-transfer leaves a half-written file with no signal.
+
+```js
+// Discouraged:
+src.pipe(dest);
+
+// Node 15+, recommended:
+const { pipeline } = require('node:stream/promises');
+await pipeline(src, transform, dest);
+
+// Node 10+, callback form:
+const { pipeline } = require('node:stream');
+pipeline(src, transform, dest, (err) => { if (err) ... });
+```
+
+pipeline() propagates errors to one place, destroys every stream in the chain on failure or early termination, and accepts an AbortSignal via { signal } for cancellation.
+
+Gotcha: pipeline() returning successfully means the data reached the destination stream, not that it was durably written. For a file, fsync separately if durability matters.
+
+</details><br>
+
+<details>
+<summary>89. What is the simplest built-in way to consume an entire readable stream into a Buffer in modern Node.js?</summary>
+
+The node:stream/consumers module, added in Node.js 16.7.0, provides helpers that consume a whole stream and resolve to a single value: buffer(), arrayBuffer(), blob(), text() and json().
+
+```js
+const { buffer, text, json } = require("node:stream/consumers");
+
+const buf = await buffer(readable); // Buffer
+const str = await text(readable); // string, decoded as UTF-8
+const obj = await json(readable); // parsed JSON
+```
+
+They accept any of a Node stream.Readable, a web ReadableStream, or an async iterable, which makes them the one API that works across both stream worlds.
+
+Gotchas: they buffer the entire stream in memory, so never apply them to untrusted input without an independent size limit. The returned promise rejects if the stream errors, and the stream is fully consumed, so it cannot be read again afterwards. text() and json() always decode as UTF-8 and ignore any charset declared elsewhere.
+
+</details><br>
+
+<details>
+<summary>90. How do you collect a readable stream into a Buffer without any helper module?</summary>
+
+A Node readable stream is an async iterable, so iterate it, push each chunk into an array, and concatenate once at the end. This works on every Node version that supports for await and has no dependencies.
+
+```js
+async function streamToBuffer(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+```
+
+On Node.js 22 and newer the same thing is a one-liner, because Array.fromAsync drains an async iterable into an array:
+
+```js
+const buf = Buffer.concat(await Array.fromAsync(readable));
+```
+
+Gotcha: Buffer.concat requires every element to be a Buffer or Uint8Array. If stream.setEncoding() was called, the chunks arrive as strings and Buffer.concat throws a TypeError; either drop setEncoding and decode at the end, or join the strings instead. The same applies to object-mode streams, whose chunks are arbitrary values. Also note that concatenating copies the data, so peak memory is roughly twice the payload size at the moment of the concat.
+
+</details><br>
+
+<details>
+<summary>91. What is the security risk of buffering a whole request stream into memory, and how is it mitigated?</summary>
+
+Reading an incoming stream to completion allocates memory proportional to what the sender chooses to send. For any network-facing stream this is an unbounded allocation controlled by an attacker, and a handful of slow, very large uploads exhausts the heap and takes the process down. This is a denial-of-service class issue, not a theoretical one, and it applies equally to a manual chunk loop, stream/consumers, and any body parser.
+
+Do not trust the Content-Length header alone; it can be absent under chunked transfer encoding, or simply lie. Count the bytes you actually receive and destroy the stream when the cap is exceeded.
+
+```js
+async function readCapped(stream, limit) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of stream) {
+    size += chunk.length;
+    if (size > limit) {
+      stream.destroy();
+      throw Object.assign(new Error("Payload too large"), { statusCode: 413 });
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+```
+
+Respond with 413 Payload Too Large when the cap trips. Mainstream frameworks have shipped a default limit for exactly this reason (Express's express.json defaults to 100kb), so raw http handlers must supply their own rather than assuming one exists.
+
+Gotcha: the cap must also cover the decompressed size if you inflate a gzip body, otherwise a small compressed payload can expand into gigabytes (a zip bomb).
+
+</details><br>
+
+<details>
+<summary>92. How do you get a Buffer from a fetch() response body, and how do web streams relate to Node streams?</summary>
+
+fetch() is WHATWG-standard, so response.body is a web ReadableStream, not a Node stream.Readable. It has no 'data' events and no pipe() method. The Response object exposes its own consumption helpers, which is the direct route to bytes:
+
+```js
+const res = await fetch(url);
+const buf = Buffer.from(await res.arrayBuffer());
+// or: await res.text(), await res.json(), await res.bytes() (Node 22+, returns Uint8Array)
+```
+
+To cross between the two stream worlds, use the adapters on stream.Readable, available since Node.js 17:
+
+```js
+const { Readable } = require("node:stream");
+const nodeStream = Readable.fromWeb(res.body); // web -> Node
+const webStream = Readable.toWeb(nodeStream); // Node -> web
+```
+
+Gotchas: Buffer.from(arrayBuffer) creates a view that shares memory with the ArrayBuffer rather than copying, so mutating the Buffer mutates the underlying buffer; use Buffer.from(new Uint8Array(ab)) if you need an independent copy. arrayBuffer() buffers the whole response in memory, so the size-limit rule applies. A response body can only be consumed once; call res.clone() first if you need it twice.
+
+</details><br>
+
+<details>
+<summary>93. Why does a server send multiple Set-Cookie headers while a client sends only one Cookie header?</summary>
+
+The two directions of cookie transport use deliberately different shapes, defined in RFC 6265.
+
+Server to client: one Set-Cookie header line per cookie. Set-Cookie cannot be folded into a single comma-separated list the way ordinary HTTP headers can, because the Expires attribute contains a comma in its date format ("Expires=Wed, 09 Jun 2027 10:18:14 GMT"), which would make the list unparseable.
+
+```
+Set-Cookie: sessionId=abc123; HttpOnly; Secure; Path=/; Max-Age=3600
+Set-Cookie: theme=dark; Secure; Path=/; Max-Age=86400
+```
+
+Client to server: one Cookie header carrying all applicable name=value pairs joined by "; ", with no attributes. Attributes such as Path, HttpOnly and Max-Age are instructions to the browser only and are never echoed back.
+
+```
+Cookie: sessionId=abc123; theme=dark
+```
+
+Gotcha: because attributes are not sent back, a server cannot tell from the Cookie header which domain or path a cookie came from, nor whether it was set as Secure. Two different cookies with the same name from different paths both appear, indistinguishable, in the same Cookie header. Cookie prefixes exist specifically to work around this blindness.
+
+</details><br>
+
+<details>
+<summary>94. How do you read headers that appear multiple times in an incoming HTTP message?</summary>
+
+In the Node http module, request.headers and response.headers are lowercased objects where duplicates have already been collapsed, and the collapsing rule depends on the header:
+
+set-cookie is always an array, even when there is exactly one value. A small set of headers including host, authorization, content-length and user-agent discard duplicates and keep only the first. Everything else is joined into a single string with ", ".
+
+```js
+res.headers["set-cookie"]; // ['a=1; Path=/', 'b=2; Path=/']  (always an array)
+res.headers["accept"]; // 'text/html, application/json'   (joined)
+req.rawHeaders; // flat [name, value, name, value, ...], nothing collapsed
+```
+
+Use rawHeaders when the original casing, ordering or exact duplication matters, for example when proxying.
+
+Gotcha: never split a set-cookie string on commas yourself. Expires dates contain commas, so naive splitting produces broken cookie fragments.
+
+</details><br>
+
+<details>
+<summary>95. What does the Vary response header do in HTTP caching?</summary>
+
+A cache keys a stored response by request method and URL. Vary extends that key: it lists the request headers whose values must also match before a stored response may be reused. It exists because content negotiation lets one URL return different bytes depending on what the client asked for, and without Vary the cache would hand the wrong variant to the next client.
+
+```
+GET /page
+Accept-Encoding: gzip
+
+200 OK
+Content-Encoding: gzip
+Cache-Control: max-age=3600
+Vary: Accept-Encoding
+```
+
+Now the cached entry is only reused for a later request whose Accept-Encoding value matches; a client that cannot decompress gets a fresh request instead of a gzip body it cannot read. Multiple headers are comma separated, for example Vary: Accept-Encoding, Accept-Language.
+
+The rule of thumb: any request header your server branches on when producing the response body must appear in Vary. This applies to the private browser cache and to shared caches such as CDNs and reverse proxies alike.
+
+Security gotcha: when you reflect the request Origin into Access-Control-Allow-Origin, you must send Vary: Origin. Without it a shared cache stores one response containing another site's origin and replays it, which either breaks CORS or leaks a cross-origin response to a site that was never allowed to read it.
+
+Performance gotchas: Vary: \* means the response is never reusable from cache. Vary: User-Agent is close to that in practice, because user agent strings are near unique, so it fragments the cache into single-use entries. Vary: Cookie has the same effect for logged-in traffic, and is dangerous if any part of the response is user specific but the cache is shared; prefer Cache-Control: private or no-store for per-user responses. Matching is done on the raw header value, so "gzip, deflate" and "deflate, gzip" count as different variants.
+
+</details><br>
+
+<details>
+<summary>96. How do ETag and If-None-Match revalidate a stale cached response?</summary>
+
+ETag is an opaque version identifier the server attaches to a response. Its content is entirely up to the server, commonly a hash of the body or a revision number. The client stores it with the cached copy and, once that copy goes stale, sends it back in If-None-Match instead of re-downloading blindly.
+
+```
+HTTP/1.1 200 OK
+ETag: "33a64df5"
+Cache-Control: max-age=3600
+
+GET /index.html HTTP/1.1
+If-None-Match: "33a64df5"
+
+HTTP/1.1 304 Not Modified      // unchanged: no body, client reuses its cached copy
+HTTP/1.1 200 OK                // changed: new ETag plus the full new body
+```
+
+The win is bandwidth: an unchanged resource costs one small header exchange rather than the whole payload. The response is still a round trip, so it does not remove latency the way a fresh max-age hit does.
+
+Gotchas: the value must be sent in double quotes, and a leading W/ marks a weak validator ("same meaning" rather than byte identical), which cannot be used for range requests. A 304 carries no body but should repeat headers that update freshness, such as Cache-Control and ETag. If both ETag and Last-Modified are present, the server compares If-None-Match first, because Last-Modified has only one-second resolution and misses rapid edits.
+
+</details><br>
+
+<details>
+<summary>97. What makes a cookie a session cookie, and how long does it actually live?</summary>
+
+A cookie set with neither Max-Age nor Expires is a session cookie. It is deleted when the current session ends. Any cookie that does carry one of those attributes is a permanent cookie instead.
+
+```
+Set-Cookie: sessionId=abc123; HttpOnly; Secure; Path=/            // session cookie
+Set-Cookie: sessionId=abc123; HttpOnly; Secure; Max-Age=3600      // permanent, 1 hour
+```
+
+Gotcha: what counts as the end of the "current session" is defined by the browser, not by the standard. Some browsers restore the previous session when restarting, which restores the session cookies with it, so a session cookie can in practice last indefinitely. Closing the browser is not a reliable way to end a session.
+
+</details><br>
+
+<details>
+<summary>98. What does the If-Range request header do, and why is it needed to resume an interrupted download?</summary>
+
+If-Range makes a Range request conditional on the resource not having changed. The client sends the validator it received with the bytes it already holds. If the validator still matches, the server honours the Range and answers 206 Partial Content with just the requested bytes. If it no longer matches, the server ignores the Range and answers 200 OK with the entire resource, so the client throws away its partial data and restarts from scratch.
+
+```
+GET /big.iso HTTP/1.1
+Range: bytes=1048576-
+If-Range: "33a64df5"
+
+HTTP/1.1 206 Partial Content        // unchanged: append these bytes to what we have
+Content-Range: bytes 1048576-4194303/4194304
+
+HTTP/1.1 200 OK                     // changed: full body, discard the partial file
+Content-Length: 5242880
+```
+
+Without it, resuming is unsafe: a plain Range request against a resource that changed since the first fragment silently splices bytes from two different versions into one corrupt file. The choice of 200 rather than an error status is what makes this a single round trip. Compare If-Match, which answers 412 Precondition Failed on a mismatch and forces the client to issue a second request for the full resource.
+
+Gotchas: the validator must be a strong one. A weak ETag (W/"...") is compared with the strong comparison function and therefore never matches, so it always degrades to a full 200; Last-Modified may be used instead of an ETag but only when the server can treat the date as strong, since its one-second resolution can hide an edit. Use one validator or the other, never both. If-Range is ignored unless the same request also carries a Range header, and clients must not send it without one.
+
+</details><br>
+
+<details>
+<summary>99. How do HTTP range requests and chunked Transfer-Encoding differ, and can they be used together?</summary>
+
+They solve opposite problems and are orthogonal. A range request is client driven: the resource has a known total size and the client asks for a subset of it, which is what makes seeking in a video, resuming a download, and reading a slice of a large file possible. Chunked transfer encoding is server driven framing: the body is sent as a sequence of length-prefixed chunks terminated by a zero-length chunk, so the server can start writing before it knows the total length, without buffering the whole response to compute Content-Length. Chunked improves time to first byte; Range reduces how much is transferred.
+
+```
+HTTP/1.1 206 Partial Content        // Range: a known-size resource, a subset of it
+Content-Range: bytes 0-1023/146515
+Content-Length: 1024
+
+HTTP/1.1 200 OK                     // chunked: unknown total length, no Content-Length
+Transfer-Encoding: chunked
+
+1a
+<first chunk of 26 bytes>
+0
+
+```
+
+They are compatible in either combination, including together: a 206 response may itself be chunked, in which case it carries Content-Range but no Content-Length.
+
+Current-practice gotcha: Transfer-Encoding is HTTP/1.1 only. HTTP/2 (RFC 9113, 2022) and HTTP/3 (RFC 9114) forbid it as a connection-specific header field, because framing is native to the protocol: a response streams as DATA frames ending with END_STREAM, so unknown-length bodies need no special header. Over those versions, only the Range mechanism from this card still applies.
+
+Other gotchas: chunked is applied by Node automatically when you write a response body without setting Content-Length, so it is usually not something you opt into explicitly. A response generated on the fly under chunked encoding is generally not resumable with Range, because there is no stable stored representation to take a byte offset into.
+
+</details><br>
+
+<details>
+<summary>100. How do you implement Range support for a file in a raw Node.js http handler?</summary>
+
+Node's http module does nothing with the Range header; you have to advertise support, parse the header, and build the 206 yourself. The pieces are Accept-Ranges: bytes on the normal response, a parsed start and end, Content-Range plus a Content-Length covering only the slice, and fs.createReadStream with start and end options.
+
+```js
+const fs = require("node:fs");
+const { stat } = require("node:fs/promises");
+const { pipeline } = require("node:stream/promises");
+
+function parseSingleRange(header, size) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m) return null; // multi-range or unknown unit: ignore it
+  const [, s, e] = m;
+  let start, end;
+  if (s === "") {
+    // bytes=-500 means the last 500 bytes
+    if (e === "") return null;
+    start = Math.max(0, size - Number(e));
+    end = size - 1;
+  } else {
+    start = Number(s);
+    end = e === "" ? size - 1 : Math.min(Number(e), size - 1);
+  }
+  if (start > end || start >= size) return "unsatisfiable";
+  return { start, end };
+}
+
+async function serveFile(req, res, path, type) {
+  const { size } = await stat(path);
+  res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Content-Type", type);
+
+  const parsed = req.headers.range && parseSingleRange(req.headers.range, size);
+
+  if (parsed === "unsatisfiable") {
+    res.writeHead(416, { "Content-Range": `bytes */${size}` }).end();
+    return;
+  }
+  if (!parsed) {
+    // no or unsupported Range: send it all
+    res.writeHead(200, { "Content-Length": size });
+    await pipeline(fs.createReadStream(path), res);
+    return;
+  }
+
+  const { start, end } = parsed;
+  res.writeHead(206, {
+    "Content-Length": end - start + 1,
+    "Content-Range": `bytes ${start}-${end}/${size}`,
+  });
+  await pipeline(fs.createReadStream(path, { start, end }), res);
+}
+```
+
+Gotchas: Accept-Ranges must be on the plain 200 response too, otherwise clients never attempt a range in the first place. Never derive the reply from an unvalidated header value; feeding the parsed numbers straight into a stream without clamping them against the real file size is how you get either a hang or an unsatisfiable read. Pair this with ETag or Last-Modified so clients can send If-Range, since the file may change between two requests.
+
+</details><br>
+
+<details>
+<summary>101. What is http.Agent responsible for, and what decides whether a socket is pooled or destroyed after a response completes?</summary>
+
+An Agent manages connection persistence and reuse for HTTP client requests. Per host and port it keeps a queue of pending requests and serves them over a single socket until the queue is empty. What happens to the socket then depends on the keepAlive option: with keepAlive it goes into a pool of free sockets and waits to be reused by a later request to the same host and port, without it the socket is destroyed and the next request opens a new connection.
+
+```js
+const http = require("node:http");
+
+const agent = new http.Agent({
+  keepAlive: true, // pool the socket after the response instead of destroying it
+  keepAliveMsecs: 5_000, // how long an idle pooled socket is kept
+  maxSockets: 10, // concurrent sockets per host:port; default Infinity
+  maxFreeSockets: 256, // idle sockets retained per host:port
+});
+
+http.get({ host: "example.com", path: "/", agent }, (res) => res.resume());
+```
+
+The saving is per reuse: a pooled socket skips the TCP three-way handshake, the TLS handshake for HTTPS, and the slow-start ramp, which for a chatty client dominates the cost of small requests.
+
+Two things are outside the client's control. A server may close a pooled idle connection at any time, in which case it is removed from the pool and the next request dials a new one; and a server may refuse to serve more than one request per connection, in which case nothing is poolable and every request gets a fresh connection. The Agent still works in both cases, it just loses the reuse.
+
+Currency gotcha: the default flipped. Up to Node.js 18, http.globalAgent used keepAlive: false, so code that never configured an Agent paid a new handshake per request. Since Node.js 19.0.0 (October 2022) the global agents have keepAlive: true with idle sockets kept for about 5 seconds, so reuse is now the default behaviour and advice written before that is inverted.
+
+Other gotcha: TCP Keep-Alive, which pooled sockets enable, is unrelated to HTTP keep-alive. TCP Keep-Alive sends probe packets to detect a dead peer; HTTP keep-alive is the decision to send another request over an already-open connection.
+
+</details><br>
+
+<details>
+<summary>102. How do you keep one long-lived HTTP request from occupying a slot in the agent's connection pool, and why should an unused Agent be destroyed?</summary>
+
+An Agent does bookkeeping on every socket it hands out. A socket serving a request is tracked in agent.sockets, and a socket counts against maxSockets for as long as it is tracked there; when the response finishes it moves to agent.freeSockets for reuse, or is destroyed. A socket leaves this bookkeeping entirely when it emits either 'close' (its normal end of life) or 'agentRemove'.
+
+That matters for a request that stays open for minutes or hours, such as a server-sent-events stream, a long poll, or a huge download. It holds its slot the whole time, so with a bounded maxSockets a handful of such requests can starve every other request to that host, which then queues indefinitely with no timeout of its own. 'agentRemove' is the documented escape hatch: it is not a TCP-level event, it is an internal signal the Agent listens for, and you emit it yourself on the socket to make the Agent forget the socket.
+
+```js
+http
+  .get({ host: "example.com", path: "/events", agent }, (res) => {
+    res.on("data", handleEvent); // stays open indefinitely
+  })
+  .on("socket", (socket) => {
+    socket.emit("agentRemove"); // agent stops tracking it from here on
+  });
+```
+
+The request itself is unaffected: the socket keeps working and the response streams normally. Only the Agent's ownership is severed, so the socket no longer counts towards maxSockets and will never be returned to the free pool when it eventually ends. The 'socket' event is the right hook because it fires when a socket is actually assigned to the request, which may be later than the call itself if the request had to queue.
+
+The other half is cleanup. Idle pooled sockets are unrefed, so they do not keep the process alive when nothing is outstanding, but they still hold an operating-system file descriptor and a connection slot on the server. Unref only removes the event-loop reference; it does not close anything, and an Agent that becomes unreachable does not release its sockets either, because garbage collection has no bearing on open handles. Hence the practice of calling agent.destroy() when an Agent is no longer in use.
+
+Gotchas: this makes the connection single use, so do not reach for 'agentRemove' as a general way to opt out of pooling; agent: false is the tool for that. And an Agent created per request or per user and then dropped leaks connections until each socket happens to time out, which is the usual cause of a slowly climbing file-descriptor count in a client-heavy process.
+
+</details><br>
+
+<details>
+<summary>103. Does fetch() in Node.js use http.Agent, and how is its connection pooling configured?</summary>
+
+No. Node's global fetch is implemented by undici, which has its own connection management built on a Dispatcher, with Agent and Pool implementations of that interface. It never consults node:http, so http.globalAgent, a custom Agent, maxSockets, keepAlive and the agent request option have no effect whatsoever on a fetch() call.
+
+</details><br>
+
+<details>
+<summary>104. Why do requests over a keep-alive connection pool intermittently fail with ECONNRESET, and how is that handled?</summary>
+
+It is an unavoidable race in connection reuse. The server closes an idle pooled connection when its own idle timeout expires and sends a FIN; the client, which cannot know this yet, picks that socket out of the pool and writes a request onto it. The server has already torn the connection down, so it answers with a RST, and the client surfaces ECONNRESET for a request the server application never saw. Nothing was processed, and the error says nothing about the request itself.
+
+The race can be narrowed but not closed, so the handling is two-sided. Keep the client's idle timeout below the server's, so the client discards sockets first instead of gambling on them, and retry a request that failed at the socket level before any response byte arrived.
+
+```js
+const agent = new http.Agent({ keepAlive: true, keepAliveMsecs: 30_000 });
+// nginx keepalive_timeout defaults to 75s, an AWS ALB to 60s: stay under it
+
+function isIdleSocketFailure(err) {
+  return err.code === "ECONNRESET" || err.code === "EPIPE";
+}
+// retry once when this fires and no response has started
+```
+
+Retry safety follows from idempotency: GET, HEAD, PUT and DELETE can be resent freely, whereas a POST may only be resent when you know it was never processed, which for this specific failure mode is exactly the case, since a reset connection carried no response at all. Do not retry on an error that arrives mid-response, because then the server did act on the request.
+
+Currency gotcha: this failure class became far more common in code that never asked for it, because keepAlive went from off to on by default for the global agents in Node.js 19.0.0. A client that worked for years without retry logic can start seeing occasional resets purely from a Node upgrade.
+
+</details><br>
+
+<details>
+<summary>105. What is an HTTP trailer section, and what problem does it solve that ordinary headers cannot?</summary>
+
+A trailer section is a block of header-like fields sent after the message body instead of before it. Ordinary headers must be fully written before the first byte of the body, so they can only carry values that are known up front. A trailer carries metadata that can only be computed once the body has finished streaming.
+
+The canonical cases are an integrity digest over content that is generated on the fly, a final status for an operation whose success is not known until the last row is produced, and post-hoc metrics such as the number of records actually emitted.
+
+```js
+const hash = crypto.createHash("sha256");
+res.writeHead(200, { "Content-Type": "application/json", Trailer: "Digest" });
+for await (const row of rows) {
+  const chunk = JSON.stringify(row) + "\n";
+  hash.update(chunk);
+  res.write(chunk); // body goes out before the digest exists
+}
+res.addTrailers({ Digest: "sha-256=" + hash.digest("base64") });
+res.end(); // end() flushes the trailer section
+```
+
+The alternative without trailers is to buffer the whole response in memory to compute the digest first, which defeats the point of streaming.
+
+Gotcha: trailers are advisory metadata, not a place to put anything the receiver needs in order to start processing the body, because by definition the receiver has already consumed the entire body before it sees them.
+
+</details><br>
+
+<details>
+<summary>106. How do trailers work in HTTP/2 and HTTP/3, where there is no chunked transfer encoding?</summary>
+
+Chunked transfer encoding does not exist in HTTP/2 or HTTP/3; framing is handled by the protocol itself. Trailers are instead a second HEADERS frame sent after the DATA frames, carrying the END_STREAM flag. There is no Content-Length restriction and no announcement requirement, so trailers are structurally cheaper and more reliable than in HTTP/1.1.
+
+```js
+// node:http2 compatibility API
+server.on("request", (req, res) => {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.write(payload);
+  res.addTrailers({ digest: "sha-256=..." }); // h2 field names must be lowercase
+  res.end();
+});
+```
+
+The most widespread production use of trailers is gRPC, which runs over HTTP/2 and puts its final call status in the trailer fields grpc-status and grpc-message. That is what makes a server-streaming gRPC call able to report a mid-stream failure after it has already sent a 200 and some data.
+
+Gotcha: HTTP/2 requires lowercase field names, and a proxy translating HTTP/2 to HTTP/1.1 must reintroduce chunked encoding to carry the trailers, which is a common place for them to be lost.
+
+</details><br>
+
+<details>
+<summary>107. How does a server cancel in-flight work when the client disconnects mid-request?</summary>
+
+By propagating an AbortSignal tied to the request's lifetime into every downstream call. When the client goes away, the request is destroyed before completion, the signal aborts, and the database query or outbound HTTP call that is still running is torn down instead of finishing into a socket nobody is reading.
+
+Node exposes this directly as IncomingMessage signal, added in v26.1.0. It aborts when the message is destroyed before completion, or when the underlying socket closes before request handling or response reading finishes.
+
+```js
+http
+  .createServer(async (req, res) => {
+    try {
+      const upstream = await fetch("https://example.com/api", {
+        signal: req.signal,
+      });
+      res.end(JSON.stringify(await upstream.json()));
+    } catch (err) {
+      if (err.name === "AbortError") return; // client left, nothing to answer
+      res.statusCode = 500;
+      res.end("Internal Server Error");
+    }
+  })
+  .listen(3000);
+```
+
+Without this, a client that closes the tab leaves the server holding an expensive query whose result can never be delivered, which under load turns abandoned requests into real resource exhaustion.
+
+It replaces a hand-rolled AbortController aborted from the request's close event, which was error-prone because close also fires on success, so an unguarded handler cancelled work on the happy path.
+
+```js
+// pre-v26.1.0 equivalent
+const ac = new AbortController();
+req.on("close", () => {
+  if (!req.complete) ac.abort(); // the guard is the part people omit
+});
+```
+
+The even older aborted event and message.aborted boolean have been deprecated since v16.12.0 and v17.0.0 for covering only one teardown path; the documented replacement is close plus message.destroyed.
+
+Gotcha: the signal is created lazily on first property access, so no AbortController is allocated for handlers that never touch it. That makes the property cheap to have but means touching req.signal on every request in generic middleware reintroduces the allocation the design was avoiding.
+
+</details><br>
