@@ -2724,3 +2724,1756 @@ The even older aborted event and message.aborted boolean have been deprecated si
 Gotcha: the signal is created lazily on first property access, so no AbortController is allocated for handlers that never touch it. That makes the property cheap to have but means touching req.signal on every request in generic middleware reintroduces the allocation the design was avoiding.
 
 </details><br>
+
+<details>
+<summary>108. What does the bash builtin disown do, and what problem does it solve?</summary>
+
+When a terminal closes, the shell receives `SIGHUP` (the "hangup" signal), and an interactive bash resends `SIGHUP` to every job in its job table before exiting, which kills background jobs you started with `&`. `disown` removes a job from the shell's job table, so the shell no longer tracks it and will not forward the hangup signal. The process keeps running after you close the terminal or log out.
+
+```sh
+long_running_script.sh &    # background job, still tied to this shell
+disown                      # detach the most recent background job
+
+jobs                        # list background jobs, e.g. [1]+ Running ./script.sh &
+disown %1                   # detach job number 1
+disown -a                   # detach all jobs
+disown -r                   # detach only running (not stopped) jobs
+disown -h %1                # keep job 1 in the table but mark it to NOT receive SIGHUP
+```
+
+With `-h` the job stays visible to `jobs` and can still be brought back with `fg`, it is only shielded from `SIGHUP`.
+
+Gotcha: `disown` does not redirect output. If the job writes to the terminal and the terminal goes away, writes fail or the process gets `SIGPIPE`, so redirect `stdout` and `stderr` to a file first (`cmd >out.log 2>&1 &`).
+
+</details><br>
+
+<details>
+<summary>109. How does nohup differ from disown for keeping a process alive after the terminal closes?</summary>
+
+Both protect a process from the hangup signal but at different moments. `nohup` is a command you put in front of another command before starting it: it launches the process with `SIGHUP` set to ignored and, if `stdout` is a terminal, redirects output to `nohup.out`. `disown` is a shell builtin applied after the job is already running in the background: it removes the job from the shell's job table so the shell never sends it `SIGHUP`.
+
+```sh
+nohup ./long_task.sh > task.log 2>&1 &   # decide up front, output redirected
+
+./long_task.sh &                         # already running, decide later
+disown
+```
+
+</details><br>
+
+<details>
+<summary>110. What are the sections of the Unix man pages, and how do you open a specific one?</summary>
+
+`man` groups documentation into numbered sections because the same name can exist in several: `open` is both a shell command and a C system call. Standard Linux sections are:
+
+- `1` (user commands);
+- `2` (system calls, the kernel interface, documented as C functions with their headers such as `#include <fcntl.h>`);
+- `3` (library functions, the C library, for example `printf`);
+- `4` (special files in `/dev`);
+- `5` (file formats and configuration files);
+- `6` (games);
+- `7` (miscellaneous conventions and protocols);
+- `8` (system administration commands).
+
+Some systems add 9 for kernel internals. The section number goes before the name.
+
+```sh
+man open          # first match in search order, usually section 1 if it exists
+man 2 open        # the open() system call
+man 3 printf      # the C library printf()
+man 1 printf      # the shell printf command
+man 2 syscalls    # overview list of all Linux system calls
+man -k socket     # keyword search across all sections (same as apropos)
+man man           # how man itself works, including the section list
+```
+
+</details><br>
+
+<details>
+<summary>111. How do you do arithmetic in bash, and what does $(( )) mean?</summary>
+
+Bash treats everything as strings by default: `x=1+2` stores the literal text `1+2`. `$(( expression ))` is arithmetic expansion: the shell evaluates the contents as an integer expression and substitutes the result. Inside it, variable names do not need the `$` prefix. The related `(( expression ))` without the leading `$` evaluates the expression for its side effects or truth value and returns an exit status (0 if the result is non-zero), which makes it the natural form for conditions and assignments.
+
+```sh
+x=4; y=3
+echo $(($x + $y))     # 7, works
+echo $((x + y))       # 7, preferred: no $ needed inside
+echo $((x * y ** 2))  # 36, ** is exponent
+echo $((7 / 2))       # 3, integer division truncates
+echo $((16#ff))       # 255, base prefix
+
+(( x++ ))             # assignment / side effect, no output
+if (( x > y )); then echo "x is bigger"; fi
+```
+
+Gotcha: bash arithmetic is 64-bit integer only. `$((1 / 3))` is `0` and `$((1.5 + 1))` is a syntax error. For decimals use `bc -l`, `awk`, or `printf '%.2f'`. Division by zero aborts the expression with an error, and leading zeros make a number octal (`$((010))` is 8).
+
+</details><br>
+
+<details>
+<summary>112. In what order does bash resolve a command name you type?</summary>
+
+When bash reads a command word it searches in a fixed order and runs the first match:
+
+- aliases (if the word is an alias, and alias expansion is on, which it is only in interactive shells by default, the text is replaced and resolution restarts on the replacement);
+- functions (a shell function with that exact name);
+- builtins (commands implemented inside bash itself, such as `echo`, `cd`, `export`, `type`);
+- executables (found by searching the directories listed in `$PATH` from left to right; bash caches the location in a hash table so later calls skip the search).
+
+Gotcha: because functions win over `PATH` executables, a function named `node` silently shadows the real `node`. Conversely, builtins win over `PATH`, so `/usr/bin/echo` is only used if you call it by full path or via `spawn` from another program that does not use a shell.
+
+</details><br>
+
+<details>
+<summary>113. How do bash aliases work, and how do you make one permanent?</summary>
+
+An alias is a text substitution applied to the first word of a command before anything else is resolved. The related commands are:
+
+- `alias name="replacement"` (defines it for the current shell process only);
+- `unalias name` (removes it);
+- `alias` with no arguments (lists all of them);
+- `type name` (shows what a name resolves to).
+
+Because aliases live in the shell's memory, they vanish when the shell exits and are not visible to child processes or other terminals. To make one permanent, add the definition to the startup file that interactive shells read, `~/.bashrc` for bash, then reload it with `source ~/.bashrc` or open a new terminal.
+
+```sh
+alias runplay="node /path/to/playground.js"
+runplay                      # runs node /path/to/playground.js, tab completion works
+type runplay                 # runplay is aliased to `node /path/to/playground.js'
+unalias runplay
+
+echo 'alias runplay="node /path/to/playground.js"' >> ~/.bashrc
+source ~/.bashrc             # reload without restarting the terminal
+```
+
+</details><br>
+
+<details>
+<summary>114. How do you define, call, and remove a shell function in bash?</summary>
+
+A shell function is a named block of commands that runs in the current shell. Arguments are available as positional parameters:
+
+- `$1` (the first argument);
+- `$2` (the second, and so on);
+- `$@` (all of them);
+- `$#` (their count).
+
+Functions can be typed directly at the prompt or placed in `~/.bashrc` to persist. `declare -f name` prints a function's definition and `unset -f name` removes it (plain `unset name` also works in bash when no variable with that name exists, but `-f` is explicit and required in some shells).
+
+```sh
+greet() {
+  local who="$1"            # local keeps the variable out of the global scope
+  echo "Hello, $who (${#} args)"
+}
+
+greet "Alice" "extra"       # Hello, Alice (2 args)
+declare -f greet            # show the definition
+unset -f greet              # remove it
+```
+
+Gotcha: functions run in the caller's shell, so without `local` every assignment leaks into the global scope, and `exit` inside a function exits the whole shell rather than just the function (use `return`). The alternative keyword form `function greet { ... }` is bash-specific; the `name() { ... }` form is POSIX and works everywhere.
+
+</details><br>
+
+<details>
+<summary>115. What is the PATH variable, how do you inspect and extend it, and why do child processes see it?</summary>
+
+`PATH` is an environment variable holding a colon-separated list of directories. When you type a command that is not an alias, function, or builtin, the shell searches those directories left to right for an executable file with that name, so `ls` runs as `/bin/ls` or `/usr/bin/ls` because those directories are in `PATH`. The name `bin` stands for binaries. Since `PATH` is exported, every child process inherits it, which is why `process.env.PATH` in a Node program shows the same value as `$PATH` in the shell that launched it.
+
+```sh
+echo "$PATH" | tr ':' '\n'       # one directory per line
+which node                       # first match in PATH
+command -v node                  # same, portable
+
+PATH="$PATH:/opt/mytools/bin"    # append for this shell session only
+PATH="/opt/mytools/bin:$PATH"    # prepend so it overrides same-named commands
+
+echo 'export PATH="$PATH:/opt/mytools/bin"' >> ~/.bashrc   # persist
+```
+
+Gotcha: order matters, because the first match wins. Version managers such as `nvm` switch Node versions by prepending the chosen version's `bin` directory to `PATH`.
+
+</details><br>
+
+<details>
+<summary>116. What is the difference between a shell variable and an environment variable, and how are they passed to child processes?</summary>
+
+A plain assignment `foo=123` creates a shell variable that exists only inside the current shell process. `export foo=123` marks it as an environment variable, which means it is copied into the environment of every child process the shell starts from then on. Prefixing a single command with an assignment, `foo=123 node index.js`, exports the variable for that one command only. The related commands are:
+
+- `unset foo` (removes the variable);
+- `env` or `printenv` (lists the current environment);
+- `export -n foo` (turns an environment variable back into a shell-only one).
+
+```sh
+a=1
+node -e 'console.log(process.env.a)'        # undefined, a was not exported
+
+export a=1
+node -e 'console.log(process.env.a)'        # 1
+
+b=2 node -e 'console.log(process.env.b)'    # 2, only for this command
+echo "$b"                                   # empty, b never existed in the shell
+```
+
+In Node, the `env` option of `spawn`, `exec`, and `fork` controls what the child receives; it defaults to `process.env`.
+
+```js
+import { spawn } from "node:child_process";
+spawn("node", ["worker.js"], { env: { ...process.env, MODE: "test" } });
+```
+
+Gotcha: the `env` option replaces the whole environment instead of merging, so `env: { MODE: "test" }` alone drops `PATH` and the child may fail with `ENOENT`. Environment is copied at process start, so a parent changing its variables later has no effect on children already running, and children can never modify the parent's environment.
+
+</details><br>
+
+<details>
+<summary>117. How does process.env behave in Node.js on Windows and inside worker threads, and what happens when you assign to it?</summary>
+
+`process.env` is a live view of the process environment, but it has platform and threading quirks. On Windows environment variable names are case-insensitive, so `process.env.path`, `process.env.Path`, and `process.env.PATH` all read the same value; on Unix they are three different variables. Assigning any value converts it to a string, so `process.env.PORT = 3000` stores `"3000"` and `process.env.DEBUG = undefined` stores the string `"undefined"`; use `delete process.env.DEBUG` to remove a variable. Each worker thread gets its own copy of `process.env`, taken from the parent thread at creation or from the `env` option of the `Worker` constructor; changes made in one thread are invisible to the others, and only changes made in the main thread reach the operating system or native addons. On Windows the worker's copy is case-sensitive, unlike the main thread's.
+
+```js
+import { Worker, SHARE_ENV } from "node:worker_threads";
+
+process.env.PORT = 3000;
+console.log(typeof process.env.PORT); // "string"
+
+new Worker("./w.js"); // gets a snapshot copy of process.env
+new Worker("./w.js", { env: { MODE: "x" } }); // gets only this
+new Worker("./w.js", { env: SHARE_ENV }); // shares the parent's object, writes visible both ways
+```
+
+Gotcha: because workers copy the environment at start, calling `process.loadEnvFile()` or setting variables after a worker exists does not affect it. On Windows `Object.keys(process.env)` returns the names in whatever case the system stored them, so code that iterates keys must compare case-insensitively to stay portable.
+
+</details><br>
+
+<details>
+<summary>118. How are Unix file permissions displayed by ls -l, and how do you change them with chmod?</summary>
+
+Every file has three permission sets, each with read (`r`), write (`w`), and execute (`x`) bits: one for the owning user, one for the owning group, and one for everyone else. `ls -l` prints them as a 10-character string. The first character is the file type:
+
+- `-` (regular file);
+- `d` (directory);
+- `l` (symlink);
+- `s` (socket);
+- `p` (named pipe);
+- `c` or `b` (device).
+
+The next three triplets are user, group, and others, with `-` in place of a missing permission. `chmod` changes them either symbolically (who `u`/`g`/`o`/`a`, operator `+`/`-`/`=`, bits `rwx`) or with octal digits where `r` is 4, `w` is 2, `x` is 1.
+
+```sh
+ls -l script.sh
+# -rwxr-xr--  1 alice dev  512 Oct  4 10:00 script.sh
+#  ^ type   ^user ^group ^others
+
+chmod u-rw script.sh      # remove read and write from the owner
+chmod u+x script.sh       # add execute for the owner
+chmod go-w script.sh      # remove write from group and others
+chmod a+r script.sh       # add read for everyone
+chmod 755 script.sh       # rwxr-xr-x in octal
+chmod 644 notes.txt       # rw-r--r--
+```
+
+Gotcha: the symbolic form takes one operator per clause, so `chmod u-r-w` is a syntax error; write `u-rw` or `u-r,u-w`. On directories `x` means permission to enter and traverse, not to run, and `r` without `x` lets you list names but not open the files. `chown user:group file` changes ownership and usually needs `sudo`.
+
+</details><br>
+
+<details>
+<summary>119. Does a shell script need the .sh extension, and what is required to run one directly as ./script.sh?</summary>
+
+The `.sh` extension is only a convention for humans and editors; the kernel and the shell ignore it. A script is a text file, not a compiled executable, so something must interpret it. There are two ways to run it. Passing it to an interpreter explicitly, `bash script.sh`, works with any name and needs only read permission. Running it directly as `./script.sh` requires the execute bit (`chmod +x`) and a shebang line, `#!` followed by the interpreter path as the first line, which tells the kernel what program to launch to read the file.
+
+```sh
+#!/usr/bin/env bash
+# file: deploy (no extension, still fine)
+echo "deploying $1"
+```
+
+```sh
+bash deploy prod          # interpreter named explicitly
+chmod +x deploy
+./deploy prod             # kernel reads the shebang and runs /usr/bin/env bash deploy prod
+```
+
+Gotcha: without a shebang the kernel refuses with `ENOEXEC`; an interactive bash then falls back to running the file with itself, but programs such as Node's `spawn("./script.sh")` get an error instead. A file saved on Windows with CRLF line endings fails with `bad interpreter: /bin/bash^M` because the carriage return becomes part of the interpreter path; fix with `dos2unix` or by saving with LF endings. `#!/usr/bin/env bash` finds bash via `PATH`, which is more portable than hard-coding `/bin/bash`.
+
+</details><br>
+
+<details>
+<summary>120. What is a shebang line, how does the kernel use it, and why is #!/usr/bin/env preferred over a fixed interpreter path?</summary>
+
+A shebang (also called hashbang) is the first line of a script, starting with the two characters `#!` followed by the path of an interpreter. When you execute a file directly (`./script.js`), the kernel reads its first bytes; if they are `#!`, it treats the rest of the line as the interpreter command and runs it with the script path appended: `<interpreter> [one optional argument] <path-to-script>`. So `./hello.js` becomes `/usr/bin/env node ./hello.js`. The `#` makes the line a comment for the interpreter itself, so it is ignored once the program starts. Using `/usr/bin/env node` instead of a hard-coded path such as `/usr/local/bin/node` makes `env` look the interpreter up in `PATH`, so the script works wherever Node is installed (including version managers such as `nvm`).
+
+```sh
+#!/bin/bash              # bash script
+#!/bin/sh                # POSIX shell
+#!/usr/bin/python3       # Python at a fixed path
+#!/usr/bin/env python3   # Python found via PATH
+#!/usr/bin/env node      # Node.js found via PATH
+```
+
+```js
+#!/usr/bin/env node
+// hello.js
+const name = process.argv[2] || "World";
+console.log(`Hello, ${name}!`);
+```
+
+```sh
+chmod +x hello.js        # execute permission is also required
+./hello.js Alice         # Hello, Alice!
+node hello.js Alice      # still works, the shebang is just a comment here
+```
+
+Gotcha: the shebang must be the very first bytes of the file, so a UTF-8 byte order mark or a blank line before it breaks it, as does a CRLF line ending (`bad interpreter: node^M`). Without a shebang the kernel returns `ENOEXEC`; an interactive bash then falls back to running the file as a shell script, while `spawn` from Node fails. On Linux everything after the interpreter path is passed as a single argument, so `#!/usr/bin/env node --harmony` does not work; use `#!/usr/bin/env -S node --harmony` (GNU coreutils 8.30+, 2018) or set options inside the script.
+
+</details><br>
+
+<details>
+<summary>121. What does the source command (or .) do, and how is it different from running a script normally?</summary>
+
+Running `bash file.sh` or `./file.sh` starts a new shell process that executes the file and exits; any variables, functions, aliases, or directory changes it makes disappear with that process. `source file.sh`, or its POSIX spelling `. file.sh`, reads the file and executes every line inside the current shell, as if you had typed them at the prompt. Everything the file defines therefore stays available afterward. This is how `~/.bashrc` is loaded, and why reloading it after an edit is done with `source ~/.bashrc`.
+
+```sh
+# helpers.sh
+export API_URL="http://localhost:3000"
+hello() { echo "hi from helpers"; }
+cd /tmp
+```
+
+```sh
+bash helpers.sh; hello; pwd      # "hello: command not found", pwd unchanged
+source helpers.sh; hello; pwd    # "hi from helpers", now in /tmp
+. helpers.sh                     # identical to source
+```
+
+Gotcha: because the file runs in your shell, an `exit` statement inside it closes your terminal, and `set -e` or `set -u` inside it changes the options of your interactive session. `source` searches `PATH` for a bare filename, so use `./helpers.sh` or an absolute path for a local file. `source` is a bash and zsh name; strict POSIX `sh` only knows `.`.
+
+</details><br>
+
+<details>
+<summary>122. What are login, non-login, interactive, and non-interactive shells, and which startup files does each read?</summary>
+
+A shell is a login shell when it is the first process of a session, for example an `ssh` session, a console login, the shell a WSL terminal opens, or `bash -l`. A login bash reads `/etc/profile` and then the first existing of `~/.bash_profile`, `~/.bash_login`, `~/.profile`. A shell is interactive when it is attached to a terminal and shows a prompt; an interactive non-login bash (a new tab in a terminal emulator) reads `~/.bashrc`. A non-interactive shell runs a script or a single `-c` command without a prompt and reads none of those files, only the file named in `$BASH_ENV` if set.
+
+Node's `child_process.exec` runs `/bin/sh -c "command"`: non-login and non-interactive. So `exec("ll")` fails with `ll: not found` because the alias in `~/.bashrc` was never loaded, and on Debian and Ubuntu `/bin/sh` is `dash`, which never reads `~/.bashrc` at all.
+
+Gotcha: `exec("source ~/.bashrc && ll")` is a fragile fix. Many `~/.bashrc` files return early when the shell is non-interactive.
+
+</details><br>
+
+<details>
+<summary>123. How does child_process.exec differ from child_process.spawn in Node.js, and which shell does exec use?</summary>
+
+`exec(command, options, callback)` passes the whole command string to a shell, `/bin/sh -c command` on Unix and the program named by `process.env.ComSpec` (normally `cmd.exe`) on Windows, and buffers all output until the process exits, then calls the callback with `stdout` and `stderr` strings. Because a shell is involved, pipes, redirections, globs, and environment expansion work, but arguments must be quoted carefully. `spawn(file, args, options)` executes the file directly: Node looks the name up in `PATH`, passes `args` as an array with no quoting or interpretation, uses no shell unless `shell: true`, and returns a `ChildProcess` whose `stdout` and `stderr` are streams.
+
+```js
+import { exec, spawn } from "node:child_process";
+
+exec("ls -l | wc -l", { shell: "/bin/bash" }, (err, stdout, stderr) => {
+  console.log(stdout.trim()); // pipes work because a shell runs it
+});
+
+const child = spawn("echo", ["hello", "world"]); // no shell, PATH lookup of echo
+child.stdout.on("data", (chunk) => process.stdout.write(chunk));
+```
+
+`echo` works with `spawn` even though it is a shell builtin, because a real executable also exists (`whereis echo` shows `/usr/bin/echo`). Pure builtins such as `cd`, `alias`, or `export` have no file and fail with `ENOENT`.
+
+Gotcha: `exec` has a `maxBuffer` limit (1 MiB by default) and kills the child with an error if output exceeds it, so use `spawn` for large or streaming output. Never build an `exec` string from user input, since it is a shell injection vector; `spawn` with an argument array avoids that by design.
+
+</details><br>
+
+<details>
+<summary>124. When should you use execFile instead of exec in Node.js, and how does execFile compare to spawn?</summary>
+
+`exec` and `execFile` both buffer the whole output and hand it to a callback, so they feel alike, but `exec` starts a shell and `execFile` does not. The shell is what interprets pipes, globs, `&&`, and variable expansion, and it is also what turns untrusted input into a command injection: `exec("convert " + userFile)` runs anything a user hides in the file name. `execFile("convert", [userFile])` passes the name as one literal argument, so no shell feature can fire. It is also slightly faster because no `sh` process is started. Make `execFile` the default for running a known program with arguments, and fall back to `exec` only when you truly need shell syntax.
+
+```
+                          exec                      execFile
+Spawns a shell            yes                       no
+Command format            one string "ls -la"       file + args array
+Shell features | * &&     yes                       no
+Injection risk            high with user input      low
+Performance               slightly slower           slightly faster
+```
+
+`execFile` and `spawn` differ in how output arrives, not in whether a shell is used (neither uses one by default).
+
+```
+                          execFile                        spawn
+Output delivery           buffered, all at once           streamed in chunks
+Result via                callback or promise             events on stdout / stderr
+Memory usage              holds all output                constant, chunks processed as they arrive
+Output size limit         maxBuffer, default 1 MiB,       none
+                          exceeded = child killed
+timeout option            built in                        built in (since v15.13 / v14.18)
+Best for                  short commands, small output    long-running or large / continuous output
+```
+
+```js
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const run = promisify(execFile);
+
+const { stdout } = await run("ffprobe", [
+  "-v",
+  "error",
+  "-show_format",
+  inputPath,
+]);
+```
+
+Rule of thumb:
+
+- `execFile` (run a known program and read its result);
+- `exec` (when you need pipes or globbing);
+- `spawn` (streaming or very large output);
+- `fork` (another Node script with IPC).
+
+Gotcha: on Windows, `.bat` and `.cmd` files are not executables and cannot be started by `execFile` or `spawn` directly; you must pass `{ shell: true }` (which brings the injection risk back) or run `cmd.exe` with `/c` and the script as arguments. `execFile` still has the `maxBuffer` limit, so switch to `spawn` as soon as output may exceed 1 MiB.
+
+</details><br>
+
+<details>
+<summary>125. What are PID and PPID, and how does an operating system start a new process?</summary>
+
+Every process has a unique process ID (`PID`) and records the ID of the process that created it (`PPID`). A new process is created in two steps on Unix: the parent calls `fork()`, which makes a copy of itself, and the copy calls `execve(path, argv, envp)`, which asks the kernel to load the executable file from storage into memory and start it with the given arguments. The child inherits the parent's environment variables, open file descriptors including `stdin`, `stdout`, and `stderr`, the current working directory, user and group IDs, and the nice value. This forms a tree: on Linux `PID 1` is `init` or `systemd`, the ancestor of all user processes; `PID 0` is the kernel's idle task, which has no parent and appears as the parent of `PID 1`.
+
+```sh
+echo $$                       # PID of the current shell
+echo $PPID                    # its parent
+ps -o pid,ppid,cmd -p $$      # inspect any process
+pstree -p                     # the whole tree
+```
+
+```js
+console.log(process.pid, process.ppid);
+```
+
+Gotcha: when a parent dies first, its children are not killed; they are orphaned and re-parented to `PID 1` (or to a designated subreaper), which is how daemons are traditionally created. The kernel itself is not a process in this tree, it is the code that implements `fork` and `exec`.
+
+</details><br>
+
+<details>
+<summary>126. What is the difference between a process's virtual size and its resident set size on Unix, and which one does a memory limit care about?</summary>
+
+Every process gets its own virtual address space, divided into pages (usually 4 KB). Reserving address space costs nothing; the operating system only backs a page with physical RAM the first time the process touches it. That gives two different sizes. The virtual size (VSZ) is everything the process has reserved: heap arenas, memory-mapped files, thread stacks, shared libraries. It can be gigabytes and says little about real usage. The resident set size (RSS) is the set of pages currently sitting in physical RAM. RSS excludes pages that were reserved but never touched and pages that were swapped out, and it includes shared pages such as the executable and `libc`, counted in full for every process that maps them.
+
+```sh
+ps -o pid,vsz,rss,cmd -p $$        # sizes in KB
+cat /proc/$$/status | grep -E 'VmSize|VmRSS'
+cat /proc/$$/smaps_rollup | grep -E '^(Rss|Pss)'   # Pss divides shared pages fairly
+```
+
+```js
+console.log(process.memoryUsage.rss()); // the same RSS number from inside Node, in bytes
+```
+
+Gotcha: container and cgroup memory limits, and therefore the Linux OOM killer, look at resident memory of the whole group of processes, so RSS is the number that gets you killed, not the virtual size and not the JavaScript heap. Summing RSS over several processes overcounts shared pages; the proportional set size (PSS) in `smaps_rollup` splits shared pages between the processes that use them and gives a fair total. RSS also does not shrink promptly after memory is freed, because allocators keep pages for reuse.
+
+</details><br>
+
+<details>
+<summary>127. When should you use path.win32 or path.posix instead of the default path module in Node.js?</summary>
+
+The `path` module adapts to the operating system Node is running on: on Windows it uses `\` as separator and understands drive letters, on Unix it uses `/`. When you need to manipulate paths for a different system than the one you run on, or need identical results everywhere, use the explicit flavors. `path.win32` always applies Windows rules and `path.posix` always applies POSIX rules, regardless of the host OS. Typical cases are building paths for a remote machine, generating URLs or archive entries (always `/`), or writing tests that must pass on both platforms.
+
+```js
+import path from "node:path";
+
+path.join("a", "b"); // "a/b" on Linux, "a\\b" on Windows
+path.posix.join("a", "b"); // "a/b" everywhere
+path.win32.join("a", "b"); // "a\\b" everywhere
+
+path.win32.basename("C:\\temp\\file.txt"); // "file.txt" even on Linux
+path.posix.basename("C:\\temp\\file.txt"); // "C:\\temp\\file.txt", backslash is not a separator
+```
+
+Gotcha: `path.win32` accepts both `\` and `/` as separators, but `path.posix` treats `\` as an ordinary filename character. Paths inside URLs, `import` specifiers, and `.zip` or `.tar` archives are always POSIX style, so use `path.posix` for them even on Windows.
+
+</details><br>
+
+<details>
+<summary>128. What is the difference between path.join() and path.resolve() in Node.js, and when does each one touch the current working directory?</summary>
+
+Both build a path from segments and normalize the result (collapsing `..`, `.`, and repeated separators), but they answer different questions. `path.join(...segments)` simply concatenates the segments with the platform separator and normalizes; the result is relative if the first segment is relative and it never consults the current working directory.
+`path.resolve(...segments)` produces an absolute path. It processes the segments from right to left, prepending each one until an absolute path has been formed, and if none of the segments is absolute it finally prepends `process.cwd()`.
+That is why a later absolute segment discards everything before it, and why `path.resolve()` with no arguments returns the current working directory. `resolve` also removes a trailing separator unless the result is the root.
+
+```js
+import path from "node:path";
+
+path.join("/foo", "bar", "baz/asdf", "quux", ".."); // "/foo/bar/baz/asdf"
+path.join("foo", "/bar"); // "foo/bar"  (join never makes it absolute)
+path.join("", ""); // "."
+
+path.resolve("/foo/bar", "./baz"); // "/foo/bar/baz"
+path.resolve("/foo/bar", "/tmp/file/"); // "/tmp/file"  ("/tmp/file/" is absolute, "/foo/bar" is dropped)
+path.resolve("wwwroot", "static_files/png/", "../gif/image.gif");
+// "/home/me/node/wwwroot/static_files/gif/image.gif" when cwd is /home/me/node
+path.resolve(); // same as process.cwd()
+```
+
+Gotcha: because `resolve` depends on `process.cwd()` whenever no segment is absolute, the same call can return different paths depending on where the program was started; anchor file paths to `__dirname` or `import.meta.dirname` to avoid that.
+
+</details><br>
+
+<details>
+<summary>129. What does path.parse() do in Node.js, and what does it return?</summary>
+
+`path.parse(pathString)` splits a path string into its parts and returns an object with five string properties:
+
+- `root` (the leading `/` or `C:\\` of an absolute path, empty otherwise);
+- `dir` (everything before the last separator);
+- `base` (the last segment, name plus extension);
+- `ext` (the extension including the dot);
+- `name` (`base` without `ext`).
+
+A trailing separator is ignored. It only works on the string and never touches the file system.
+
+```js
+import path from "node:path";
+
+path.parse("/home/user/dir/file.txt");
+// { root: "/", dir: "/home/user/dir", base: "file.txt", ext: ".txt", name: "file" }
+```
+
+Gotcha: `ext` is taken from the last dot only, so `archive.tar.gz` gives `".gz"`, and a dotfile such as `.bashrc` gives an empty `ext` with `name` equal to `".bashrc"`.
+
+</details><br>
+
+<details>
+<summary>130. What is the current working directory, and how do you read, change, and pass it to a child process in Node.js?</summary>
+
+Every process has a current working directory (CWD): the directory against which relative paths are resolved. The shell shows it with `pwd` and changes it with `cd`. A child process inherits the CWD of its parent at start. In Node, `process.cwd()` returns it and `process.chdir(dir)` changes it for the running process. The `cwd` option of `spawn`, `exec`, `execFile`, and `fork` sets the directory the child starts in; it defaults to `process.cwd()`.
+
+```sh
+pwd                     # /home/alice/project
+cd src && pwd           # /home/alice/project/src
+```
+
+```js
+import { spawn } from "node:child_process";
+
+console.log(process.cwd());
+process.chdir("/tmp");
+console.log(process.cwd()); // /tmp
+
+spawn("ls", ["-l"], { cwd: "/var/log", stdio: "inherit" });
+```
+
+Gotcha: a child cannot change its parent's directory, which is why `cd` must be a shell builtin and why `exec("cd /tmp")` has no effect on the Node process. `process.chdir` is not available inside `worker_threads`. If `cwd` points to a directory that does not exist, `spawn` fails with a misleading `ENOENT` error that looks like the executable is missing.
+
+</details><br>
+
+<details>
+<summary>131. Why does require or import find a relative file but fs does not, and how do you fix it in Node.js?</summary>
+
+Module loading and the file system resolve relative paths against different bases. `require("./data.json")` and `import "./data.json"` resolve relative to the directory of the file that contains the statement. `fs.readFile("./data.json")` and every other `fs` call resolve relative to the process's current working directory, which is wherever the user ran `node` from. If you start the program from another directory the module is still found but the `fs` call fails with `ENOENT`. The fix is to build an absolute path from the current file's directory: `__dirname` in CommonJS, or `import.meta.dirname` in ES modules (added in Node 20.11 and 21.2, early 2024).
+
+```js
+// CommonJS
+const path = require("node:path");
+const fs = require("node:fs");
+const file = path.resolve(__dirname, "./data.json");
+fs.readFileSync(file, "utf8");
+```
+
+```js
+// ES modules
+import path from "node:path";
+import fs from "node:fs";
+const file = path.resolve(import.meta.dirname, "./data.json");
+fs.readFileSync(file, "utf8");
+
+// Node before 20.11:
+import { fileURLToPath } from "node:url";
+const legacy = fileURLToPath(new URL("./data.json", import.meta.url));
+```
+
+Gotcha: `path.resolve` with a relative first argument still uses the CWD, so always pass `__dirname` or `import.meta.dirname` as the base; `path.join(__dirname, "./data.json")` gives the same result here because `__dirname` is already absolute.
+
+</details><br>
+
+<details>
+<summary>132. How can you make a Node.js console write to files instead of the terminal?</summary>
+
+The global `console` is an instance of the `Console` class created with `process.stdout` and `process.stderr` as its two output streams. You can construct your own `Console` with any writable streams, for example file streams from `fs.createWriteStream`. Methods such as `log` and `info` write to the first stream, while `error` and `warn` write to the second, so you get the same API and formatting as the normal console but with a different destination. `stderr` is optional: if you pass only `stdout`, warnings and errors go to that same stream, which is handy for a single combined log file. The constructor also accepts the streams positionally as `new Console(stdout, stderr)`.
+
+```js
+import fs from "node:fs";
+import { Console } from "node:console";
+
+const output = fs.createWriteStream("./stdout.log", { flags: "a" });
+const errorOutput = fs.createWriteStream("./stderr.log", { flags: "a" });
+const logger = new Console({ stdout: output, stderr: errorOutput });
+
+logger.log("This goes to stdout.log");
+logger.error("This goes to stderr.log");
+```
+
+Gotcha: file streams are asynchronous, so calling `process.exit()` right after logging can truncate the last lines; set `process.exitCode` and let the event loop drain, or end the streams and wait for `finish`. For simple cases the shell can do the same without code changes: `node app.js > stdout.log 2> stderr.log`.
+
+</details><br>
+
+<details>
+<summary>133. What does console.trace() do in Node.js, and when is it worth using in a production application?</summary>
+
+`console.trace(message, ...args)` prints the message prefixed with `Trace:` followed by the current call stack to `stderr`, without throwing or stopping anything. It answers "who called this?" at a point where you cannot attach a debugger. Its legitimate production uses are:
+
+- finding an unexpected caller, by logging the stack once from a deprecated or supposedly dead code path so the log aggregator reveals who still uses it;
+- recording where a resource was acquired, so a leaked connection, handle, or timer can be traced to its creation site rather than to where the leak was noticed;
+- guarded diagnostics, left in the code behind an environment flag so an engineer can switch them on for one instance without a deploy.
+
+```js
+let warned = false;
+export function legacySave(doc) {
+  if (!warned) {
+    warned = true;
+    console.trace("legacySave() still in use, migrate the caller");
+  }
+  return save(doc);
+}
+```
+
+Gotcha: capturing a stack is slow, so never call it unguarded on a hot path. It writes raw multi-line text to `stderr`, bypassing structured logging, log levels, and correlation IDs, so in a real service prefer `logger.warn({ stack: new Error().stack }, msg)`. The stack shows only the synchronous frames of the current tick plus what async stack traces can reconstruct, so for "how did this request get here" use `AsyncLocalStorage` with a request ID instead.
+
+</details><br>
+
+<details>
+<summary>134. What are the standard file descriptors 0, 1, and 2, and how do shell redirection operators use them?</summary>
+
+Every process starts with three open file descriptors:
+
+- `0` (`stdin`);
+- `1` (`stdout`);
+- `2` (`stderr`).
+
+Redirection operators rewire these before the command runs:
+
+- `n>file` (sends descriptor `n` to a file, truncating it);
+- `n>>file` (appends instead of truncating);
+- `n<file` (reads descriptor `n` from a file);
+- `2>&1` (makes descriptor 2 point wherever descriptor 1 currently points);
+- `/dev/null` (a special file that discards everything written to it).
+
+The descriptor number is optional: `>file` means `1>file` and `<file` means `0<file`.
+
+```sh
+node app.js > out.txt              # stdout to file (overwrite), same as 1>out.txt
+node app.js >> out.txt             # append
+node app.js < input.txt            # file as stdin, same as 0<input.txt
+node app.js < in.txt > out.txt     # both at once
+node app.js > out.txt 2> err.txt   # stdout and stderr to separate files
+node app.js > out.txt 2>&1         # both into one file, order matters
+node app.js &> out.txt             # bash shortcut for the line above
+node app.js 2> /dev/null           # discard stderr
+```
+
+Gotcha: redirections are applied left to right, so `node app.js 2>&1 > out.txt` sends `stderr` to the terminal (where `stdout` pointed at that moment) and only `stdout` to the file. Writing `2>&1 out.txt` without the `>` passes `out.txt` as an argument to the program instead of redirecting. `>` truncates the file before the command starts, so `sort data.txt > data.txt` empties the input.
+
+</details><br>
+
+<details>
+<summary>135. What does the pipe operator | do in bash, and what happens to stderr and exit status in a pipeline?</summary>
+
+`command1 | command2` connects the `stdout` (descriptor 1) of the first process to the `stdin` (descriptor 0) of the second. Both processes start at the same time and data flows through a kernel buffer as it is produced; when the writer exits, the reader sees end of file. Pipes can be chained, and any program that reads `stdin` and writes `stdout` can take part, which is how small Unix tools compose.
+
+```sh
+echo "123" | node app.js                        # app.js reads "123\n" on stdin, then EOF
+echo "123" | node app.js | tr 'a-z' 'A-Z'       # app output upper-cased
+echo "123" | node app.js > out.txt 2> err.txt   # redirections apply to the last stage
+ps aux | grep node | wc -l
+```
+
+```js
+// app.js: read everything from stdin
+let input = "";
+process.stdin.on("data", (c) => (input += c));
+process.stdin.on("end", () => console.log("got", input.trim()));
+```
+
+Gotcha: only `stdout` goes through the pipe; `stderr` still reaches the terminal. Use `2>&1 |` or bash's `|&` to pipe both. The exit status of a pipeline is that of the last command, so a failing first stage is hidden unless you enable `set -o pipefail`.
+
+</details><br>
+
+<details>
+<summary>136. How do &&, ||, and ; chain commands in bash, and what decides whether the next command runs?</summary>
+
+Every command ends with an exit status: `0` means success, anything else means failure, and the shell stores the last one in `$?`. The chaining operators look at that status:
+
+- `a && b` (runs `b` only if `a` succeeded);
+- `a || b` (runs `b` only if `a` failed);
+- `a ; b` (runs `b` regardless).
+
+These let you express "compile and then run only if compilation worked" on a single line without an `if` statement.
+
+```sh
+gcc app.c -o app && ./app              # run only if the compile succeeded
+mkdir build || echo "already exists"   # fallback on failure
+cd /tmp ; ls                           # run both no matter what
+npm test && git push || echo "tests failed, not pushed"
+echo $?                                # status of the last command
+```
+
+Gotcha: `a && b || c` is not a true if/else: `c` also runs when `a` succeeds but `b` fails. Use `if a; then b; else c; fi` when that matters. `&&` and `||` have equal precedence and are evaluated left to right, and a newline acts like `;`.
+
+</details><br>
+
+<details>
+<summary>137. How do head and tail select part of a file or stream, and how do you skip lines from the start or end?</summary>
+
+`head` prints the beginning of its input and `tail` the end, 10 lines each by default. `-n N` sets the line count (the shorthand `-N` also works) and `-c N` counts bytes instead of lines. Both read from files or from `stdin`, so they fit in pipelines. A plus sign changes the meaning of the count: `tail -n +K` means "output from line K to the end", with line K included. Because output starts at line K, exactly K minus 1 lines are skipped, so `tail -n +3` prints line 3 onward and drops lines 1 and 2; to skip 3 lines you write `tail -n +4`. A minus sign on `head` is the mirror image: GNU `head -n -K` means "everything except the last K lines". `cat` alone cannot skip lines; combine it with these or use `sed`.
+
+```sh
+head file.txt              # first 10 lines
+head -n 20 file.txt        # first 20
+head -5 file.txt           # first 5, shorthand
+head -c 100 file.txt       # first 100 bytes
+
+tail file.txt              # last 10 lines
+tail -n 20 file.txt        # last 20
+tail -c 100 file.txt       # last 100 bytes
+tail -f app.log            # keep printing as the file grows
+
+tail -n +3 file.txt                # start AT line 3, so lines 1-2 are skipped
+tail -n +4 file.txt                # start at line 4, so 3 lines are skipped
+tail -n +3 file.txt | head -n -5   # from line 3 onward, then drop the last 5
+sed -n '3,$p' file.txt             # same as tail -n +3: print lines 3 to end
+sed '1,2d' file.txt                # same result phrased as "delete lines 1-2"
+```
+
+Gotcha: `head -n -K` (negative count) is a GNU coreutils extension; on macOS and BSD `head` it is an error, so use `sed '$d'` in a loop or install `coreutils` (`ghead`). `tail -f` keeps following a deleted or rotated file's old inode; `tail -F` re-opens by name, which is what you want for log rotation.
+
+</details><br>
+
+<details>
+<summary>138. What is a Unix domain socket, how does it appear in the file system, and how do you use one from Node.js?</summary>
+
+A Unix domain socket (also called an IPC socket, address family `AF_UNIX`) is a two-way communication channel between processes on the same machine. Instead of an IP address and port it is identified by a path in the file system. The path is a rendezvous point, not a data file: `ls -l` shows type `s` and size `0`, and nothing is ever written to disk, following the Unix idea that everything is addressed like a file. Data moves through kernel memory without the TCP/IP stack, so it is faster than loopback TCP, and access is controlled with ordinary file permissions. In Node the `net` module uses the same `Socket` API as TCP; only the address changes.
+
+```js
+// server.js
+import net from "node:net";
+import fs from "node:fs";
+const PATH = "/tmp/node_c_socket";
+fs.rmSync(PATH, { force: true }); // remove a stale socket file
+net
+  .createServer((conn) => {
+    conn.on("data", (d) => conn.write(`echo: ${d}`));
+  })
+  .listen(PATH);
+
+// client.js
+const client = net.createConnection({ path: "/tmp/node_c_socket" });
+client.write("hello");
+client.on("data", (d) => console.log(String(d)));
+```
+
+```sh
+ls -l /tmp/node_c_socket
+# srwxr-xr-x 1 alice alice 0 Oct  4 10:00 /tmp/node_c_socket
+```
+
+Databases such as PostgreSQL (`/var/run/postgresql/.s.PGSQL.5432`) and MySQL (`/var/run/mysqld/mysqld.sock`) accept both Unix sockets and TCP.
+
+Gotcha: the socket file is not removed when the server crashes, and `listen` on an existing path fails with `EADDRINUSE`, so unlink it first. Windows has no Unix sockets in the same form; Node maps the same API to named pipes with paths like `\\?\pipe\myapp`. Linux also supports abstract sockets whose name starts with a null byte and that need no cleanup.
+
+</details><br>
+
+<details>
+<summary>139. What does Windows use instead of Unix domain sockets, and how does Node.js map the same net API onto it?</summary>
+
+The Windows equivalent of a Unix domain socket is the named pipe. Named pipes live in a separate kernel namespace managed by the Named Pipe File System and are addressed as `\\.\pipe\<name>`; nothing is created on disk, so there is no socket file to delete and no stale-path problem after a crash. A named pipe is bidirectional, works in byte or message mode, is protected by a Windows security descriptor (ACL), and, unlike a Unix socket, can be opened from another machine over SMB as `\\server\pipe\<name>`. Node's `net` module is built on libuv, which implements its pipe handle with Unix domain sockets on Unix and with named pipes on Windows, so the same JavaScript works on both platforms and only the address changes. Node requires the `\\?\pipe\` or `\\.\pipe\` prefix, and in a JavaScript string every backslash must be doubled. The IPC channel that `child_process.fork` opens between parent and child is also a named pipe on Windows.
+
+```js
+import net from "node:net";
+
+const ADDRESS =
+  process.platform === "win32"
+    ? "\\\\.\\pipe\\myapp" // the string \\.\pipe\myapp
+    : "/tmp/myapp.sock";
+
+net.createServer((conn) => conn.end("hello")).listen(ADDRESS);
+net
+  .createConnection({ path: ADDRESS })
+  .on("data", (d) => console.log(String(d)));
+```
+
+```powershell
+Get-ChildItem \\.\pipe\          # list the live named pipes
+```
+
+</details><br>
+
+<details>
+<summary>140. What is inter-process communication, and how does it differ from networking?</summary>
+
+Inter-process communication (IPC) is the set of mechanisms an operating system offers for processes on the same machine to exchange data, all mediated by the kernel using the machine's RAM. Networking moves data between different machines through protocols such as TCP and UDP, with serialization, checksums, and routing at every hop. Because IPC never leaves memory, it has far lower latency and higher throughput. Common IPC mechanisms are:
+
+- anonymous pipes (the `|` in a shell and the `stdio` pipes of a child process);
+- named pipes (FIFOs, pipes with a path in the file system);
+- Unix domain sockets (bidirectional channels addressed by a path);
+- signals (a notification without payload, such as `SIGTERM`);
+- message queues (kernel-managed queues of discrete messages);
+- shared memory (one region of memory mapped into both processes, which exchange only addresses or offsets rather than copying the data).
+
+```js
+// Node examples of each class
+import { fork } from "node:child_process";
+import { Worker } from "node:worker_threads";
+
+const child = fork("./child.js"); // pipe-based IPC channel
+child.send({ hello: "world" }); // serialized message
+
+const shared = new SharedArrayBuffer(1024); // shared memory within one process
+new Worker("./worker.js", { workerData: shared });
+```
+
+Gotcha: TCP to `127.0.0.1` is still networking as far as the kernel is concerned: it goes through the full TCP/IP stack and costs more than a Unix socket. Shared memory is the fastest option because nothing is copied, but it provides no synchronization, so readers and writers need locks or atomics (`Atomics.wait` and `Atomics.notify` in JavaScript) to avoid races.
+
+</details><br>
+
+<details>
+<summary>141. How does the Node.js cluster module work, and how are incoming connections shared between workers?</summary>
+
+The `cluster` module runs several copies of the same Node program as separate OS processes so a server can use more than one CPU core. The first process is the primary; `cluster.fork()` starts a worker, which is a child process (built on `child_process.fork`) running the same script with `cluster.isWorker` true. The operating system decides which core each process runs on. When a worker calls `server.listen(port)`, it does not bind the port itself: the primary binds it, accepts connections, and hands them to workers round-robin (the default on every platform except Windows, controlled by `cluster.schedulingPolicy`). Because `cluster.fork()` is only allowed in the primary, every cluster script branches on `cluster.isPrimary`.
+
+```js
+import cluster from "node:cluster";
+import http from "node:http";
+import os from "node:os";
+
+if (cluster.isPrimary) {
+  for (let i = 0; i < os.availableParallelism(); i++) cluster.fork();
+  cluster.on("exit", (worker, code) => {
+    console.log(`worker ${worker.process.pid} died (${code}), restarting`);
+    cluster.fork();
+  });
+} else {
+  http
+    .createServer((req, res) => res.end(`handled by ${process.pid}`))
+    .listen(3000);
+}
+```
+
+Workers and the primary talk over the IPC channel with `worker.send()` and `process.on("message")`. If the primary dies, the IPC channel closes and each worker exits, so the primary is usually kept small and limited to supervision and restarting workers.
+
+Gotcha: workers share nothing in memory, so sessions or caches held in a worker are invisible to the others; use an external store such as Redis or sticky sessions. `cluster.isMaster` and `setupMaster` were deprecated in Node 16 (2021) in favor of `isPrimary` and `setupPrimary`. `os.availableParallelism()` (Node 18.14+) is preferred over `os.cpus().length` because it respects container CPU limits.
+
+</details><br>
+
+<details>
+<summary>142. What does cluster.schedulingPolicy control in Node.js, what are its two values, and why is round-robin the default?</summary>
+
+`cluster.schedulingPolicy` decides which process accepts incoming connections when several workers share one port. It is a two-way switch, not a pluggable load balancer. With `cluster.SCHED_RR` (round-robin) the primary owns the listening socket and is the only process that calls `accept()`; each accepted connection is passed to the next worker in turn over the IPC channel using handle passing. With `cluster.SCHED_NONE` the primary instead sends the listening handle itself to every worker, all workers wait in `accept()` on the same socket, and the kernel decides who gets each connection.
+
+```js
+import cluster from "node:cluster";
+
+cluster.schedulingPolicy = cluster.SCHED_NONE; // must come before the first fork()
+if (cluster.isPrimary) {
+  cluster.fork();
+}
+```
+
+```sh
+NODE_CLUSTER_SCHED_POLICY=none node server.js    # same switch without changing code, 'rr' or 'none'
+```
+
+</details><br>
+
+<details>
+<summary>143. What does cluster.setupPrimary() change in Node.js, and which worker setting can it not control?</summary>
+
+By default `cluster.fork()` starts a worker running the same script as the primary (`process.argv[1]`) with the same arguments and with `stdio` inherited from the primary. `cluster.setupPrimary(settings)` changes those defaults for every later `fork()` call. The useful settings are:
+
+- `exec` (a different file to run as the worker, so primary and worker code can live in separate files without `if (cluster.isPrimary)` branching);
+- `args` and `execArgv` (arguments for the worker script and for Node itself, such as `--inspect` or `--max-old-space-size`);
+- `silent` (pipes worker `stdout` and `stderr` through the primary instead of the terminal, so logs can be prefixed or collected);
+- `stdio`, `cwd`, `uid`, `gid`, `serialization`, `windowsHide` (the usual `child_process.fork` options).
+
+Settings are cumulative, are visible afterwards in `cluster.settings`, and only affect workers forked after the call; running workers are untouched. The one thing it cannot set is `env`, because environment is per worker and is passed directly as `cluster.fork(env)`.
+
+```js
+import cluster from "node:cluster";
+
+cluster.setupPrimary({
+  exec: "worker.js",
+  args: ["--use", "https"],
+  silent: true,
+});
+cluster.fork(); // https worker, output piped to the primary
+
+cluster.setupPrimary({ args: ["--use", "http"] });
+cluster.fork({ PORT: "8080" }); // http worker, env passed per fork
+
+cluster
+  .fork({ PORT: "8081" })
+  .process.stdout.on("data", (d) => process.stdout.write(`[w] ${d}`));
+```
+
+Gotcha: it can only be called in the primary, and calling it also freezes `cluster.schedulingPolicy`.
+
+</details><br>
+
+<details>
+<summary>144. What does the silent option of cluster.setupPrimary() change about worker output, and why must the primary then read the worker's streams?</summary>
+
+With the default `silent: false`, workers inherit the primary's standard streams: a worker's `console.log` goes straight to the same terminal or `stdout` as the primary, because both processes write to the same underlying file descriptors. With `silent: true`, the worker's `stdout` and `stderr` are instead connected to the primary through pipes. Their output arrives in the primary as readable streams, `worker.process.stdout` and `worker.process.stderr`, and nothing reaches the terminal unless the primary forwards it. Reasons to do this are:
+
+- prefixing each line with the worker id or PID so interleaved logs stay readable;
+- writing worker logs to a file or a logging service instead of the console;
+- filtering, parsing, or aggregating output in one place;
+- keeping the terminal quiet.
+
+```js
+import cluster from "node:cluster";
+
+cluster.setupPrimary({ silent: true });
+
+const worker = cluster.fork();
+worker.process.stdout.on("data", (d) =>
+  process.stdout.write(`[worker ${worker.id}] ${d}`),
+);
+worker.process.stderr.on("data", (d) =>
+  process.stderr.write(`[worker ${worker.id}] ${d}`),
+);
+```
+
+Gotcha: if the primary attaches no listener, the output is simply lost, and if nobody drains the pipe its kernel buffer fills up; on Windows, where pipe writes are synchronous, the worker then blocks on its next `console.log`, and on POSIX the pending writes pile up in the worker's memory instead. Always consume or redirect both streams. A `data` chunk is not guaranteed to be a whole line, so a per-chunk prefix can land in the middle of a line; use `readline.createInterface` on the stream for line-accurate prefixes. For finer control than `silent`, `setupPrimary` also accepts a full `stdio` array, the same as `child_process.fork`.
+
+</details><br>
+
+<details>
+<summary>145. How do you implement sticky sessions in Node.js so the same client always reaches the same worker, and why does the worker's HTTP server never call listen()?</summary>
+
+Sticky sessions mean every connection from one client is handled by the same worker, which matters when a worker keeps per-client state in memory, for example WebSocket connections or an in-process session store. The cluster module's own balancing cannot do this, so you bypass it: the primary is the only process that listens, it chooses a worker from a hash of the client IP, and it hands the raw accepted socket to that worker with `worker.send(message, socket)`. The worker runs an ordinary `http.Server` that never calls `listen()`; instead it injects each received socket with `server.emit("connection", socket)`, which is how any `net.Server` or `http.Server` can serve a connection it did not accept itself. Because the workers never listen on the port, cluster's round-robin never activates and your hash is the only balancing in play.
+
+```js
+import cluster from "node:cluster";
+import net from "node:net";
+import http from "node:http";
+import os from "node:os";
+
+if (cluster.isPrimary) {
+  const workers = [];
+  for (let i = 0; i < os.availableParallelism(); i++)
+    workers.push(cluster.fork());
+
+  const pick = (ip) => {
+    // same IP -> same index -> same worker
+    let hash = 0;
+    for (const ch of ip) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return workers[hash % workers.length];
+  };
+
+  net
+    .createServer({ pauseOnConnect: true }, (socket) => {
+      pick(socket.remoteAddress).send("sticky", socket);
+    })
+    .listen(3000);
+} else {
+  const server = http.createServer((req, res) =>
+    res.end(`worker ${process.pid}\n`),
+  );
+  process.on("message", (msg, socket) => {
+    if (msg !== "sticky") return;
+    server.emit("connection", socket); // feed the socket into the HTTP server
+    socket.resume(); // it was paused in the primary
+  });
+}
+```
+
+`pauseOnConnect: true` stops the primary from reading any bytes before the hand-off, so the worker sees the request from its first byte.
+
+Gotcha: all clients behind one NAT or corporate proxy share an IP and land on one worker, and if a worker dies the `workers` array must be rebuilt or every hash shifts to a different worker. Production code usually uses the same idea through `@socket.io/sticky` or moves stickiness out of Node entirely, to a load balancer with cookie affinity or a shared Redis session store so that any worker can serve any client.
+
+</details><br>
+
+<details>
+<summary>146. How do child_process, cluster, and worker_threads compare in Node.js, and how does each communicate?</summary>
+
+All three let a Node program use more than one CPU, but at different isolation levels:
+
+- `child_process` (starts a new OS process running any program, with its own PID and memory);
+- `cluster` (a layer over `child_process.fork` specialized for running copies of the same server and sharing a port);
+- `worker_threads` (a thread inside the same process with its own V8 isolate and event loop, so a separate JavaScript heap, but able to share raw memory through `SharedArrayBuffer`).
+
+```
+                 New OS process  New V8 instance              Own PID    Memory
+child_process    yes             yes (if the child is Node)   yes        isolated
+cluster          yes             yes                          yes        isolated
+worker_threads   no              yes (isolate in same proc)   no         isolated heap,
+                                                                         shareable via SharedArrayBuffer
+```
+
+Communication: processes (`child_process`, `cluster`) use the IPC channel with `child.send()` / `process.send()` and the `message` event, serializing each message (JSON by default, structured clone with `serialization: "advanced"`). Threads use `postMessage()` with structured clone, or write directly into a `SharedArrayBuffer` coordinated with `Atomics`.
+
+```js
+// process style
+import { fork } from "node:child_process";
+const child = fork("./task.js");
+child.on("message", (m) => console.log("from child:", m));
+child.send({ start: true });
+// in task.js: process.on("message", (m) => process.send({ done: true }));
+
+// thread style
+import { Worker } from "node:worker_threads";
+const w = new Worker("./task-worker.js");
+w.on("message", (m) => console.log("from worker:", m));
+w.postMessage({ start: true });
+```
+
+Gotcha: use `worker_threads` for CPU-heavy JavaScript (parsing, hashing, image math), `cluster` for scaling a network server across cores, and `child_process` for running other programs such as `ffmpeg`. Threads start faster and cost less memory than processes, but a crash in native code inside a worker can take down the whole process, whereas a crashed child process is isolated.
+
+</details><br>
+
+<details>
+<summary>147. What is the JavaScript Atomics object, what problem does it solve for worker_threads, and when should production code use it?</summary>
+
+`Atomics` is a built-in object with static methods that read and write memory in a `SharedArrayBuffer` as single indivisible operations. It exists because a `SharedArrayBuffer` is the one kind of memory several threads can see at once, and ordinary JavaScript has no way to make concurrent access safe: `counter[0]++` is really read, add, write, and two threads interleaving those steps lose an update. `Atomics.add`, `Atomics.load`, `Atomics.store`, and `Atomics.compareExchange` perform each step atomically, so no thread can slip in between. `Atomics.wait(array, index, expected, timeout)` puts a thread to sleep while a slot still holds `expected`, and `Atomics.notify(array, index, count)` wakes waiters, so a thread can wait for new data without spinning in a loop. This is the same idea as a futex on Linux or a condition variable in other languages. The methods only work on integer typed arrays such as `Int32Array` or `BigInt64Array` over a `SharedArrayBuffer`.
+
+```js
+// main.js
+import { Worker } from "node:worker_threads";
+const sab = new SharedArrayBuffer(8);
+const shared = new Int32Array(sab); // shared[0] = flag, shared[1] = payload
+new Worker("./worker.js", { workerData: sab });
+
+Atomics.store(shared, 1, 42); // publish the payload
+Atomics.store(shared, 0, 1); // set the flag
+Atomics.notify(shared, 0, 1); // wake one waiter
+
+// worker.js
+import { workerData } from "node:worker_threads";
+const shared = new Int32Array(workerData);
+Atomics.wait(shared, 0, 0); // sleep while flag is still 0
+console.log(Atomics.load(shared, 1)); // 42, no copy, no serialization
+```
+
+In everyday production code you rarely call `Atomics` yourself. Workers normally talk with `postMessage`, `workerData`, or a pool library such as `piscina`, and large buffers are moved with `postMessage(buffer, [buffer])`, which transfers ownership without copying. `Atomics` is reserved for cases where message passing itself is the bottleneck:
+
+- high-frequency job queues or ring buffers between threads;
+- shared counters and flags read by many workers;
+- a worker that must block synchronously until the main thread answers (the trick behind `synckit`);
+- WebAssembly threads, whose mutexes are implemented with `Atomics.wait` and `Atomics.notify`.
+
+Libraries such as `piscina`, `synckit`, Emscripten, and `comlink` hide it internally.
+
+Gotcha: `Atomics.wait` blocks the whole thread, so browsers forbid it on the main thread; use `Atomics.waitAsync`, which returns a promise, when blocking is unacceptable. `cluster` and `child_process` cannot use it at all, because separate processes do not share a `SharedArrayBuffer`. Treat shared-memory code like writing a lock in C: keep it inside a small, well-tested helper rather than scattered through business logic.
+
+</details><br>
+
+<details>
+<summary>148. What does child_process.fork() do in Node.js, and how do parent and child exchange messages?</summary>
+
+`fork(modulePath, args, options)` is a special case of `spawn` that always starts a new Node.js process (using `process.execPath`) running the given module, and opens an extra IPC channel alongside `stdin`, `stdout`, and `stderr`. It returns a `ChildProcess` like `spawn`, with two additions: `child.send(message)` and the `message` event. Inside the child, `process.send(message)` and `process.on("message")` are the other end of the channel. Messages are serialized (JSON by default), so functions and class instances do not survive the trip. The channel is bidirectional.
+
+```js
+// parent.js
+import { fork } from "node:child_process";
+const child = fork("./child.js", ["--mode", "fast"]);
+child.on("message", (msg) => {
+  console.log("child says:", msg);
+  child.disconnect(); // close the channel so both can exit
+});
+child.send({ job: 42 });
+
+// child.js
+process.on("message", (msg) => {
+  process.send({ result: msg.job * 2 });
+});
+```
+
+Gotcha: `process.send` is `undefined` when the process was not started with an IPC channel, so guard with `if (process.send)` in modules that can run standalone. An open channel keeps both event loops alive; call `disconnect()` or `child.unref()` when finished. You can get the same channel with `spawn` by adding `"ipc"` to the `stdio` array, which is how `fork` is implemented.
+
+</details><br>
+
+<details>
+<summary>149. How can a Node.js parent pass a TCP server or socket to a child process with send(), and where is this used in production?</summary>
+
+`subprocess.send(message, sendHandle)` accepts a second argument that is a live network handle: a `net.Server` (including `http.Server`, which extends it), a `net.Socket`, or a `dgram.Socket`. Node does not serialize the object; it duplicates the underlying operating system file descriptor and sends it over the IPC channel, so the child ends up with a working server or socket bound to the same port or connection. The child receives it as the second argument of its `message` listener. This is how one process can bind a port and let other processes serve it, which is otherwise impossible because two processes cannot normally listen on the same port.
+
+```js
+// parent.js
+import { fork } from "node:child_process";
+import { createServer } from "node:net";
+
+const child = fork("./child.js");
+const server = createServer((socket) => socket.end("handled by parent\n"));
+server.listen(1337, () => child.send("server", server));
+
+// child.js
+process.on("message", (m, server) => {
+  if (m === "server") {
+    server.on("connection", (socket) => socket.end("handled by child\n"));
+  }
+});
+```
+
+After this both processes accept connections on port 1337 and the operating system picks which one gets each client. Individual connections can be routed the same way: `child.send("socket", socket)` hands one accepted connection to one specific child.
+
+In production this mechanism is mostly used indirectly. The `cluster` module is built on it: in round-robin mode the primary accepts each connection and sends the socket handle to a chosen worker, and in the shared mode it sends the listening server handle to every worker. Direct uses are:
+
+- privilege separation (a parent running as root binds port 80 or 443, hands the server to children, then the children drop privileges);
+- sticky sessions (a connection must reach a particular worker, for example WebSocket servers hashing on client IP, as the `sticky-session` package does);
+- zero-downtime restarts (a supervisor keeps the listening socket and passes it to a freshly started version of the application).
+
+Gotcha: once a server handle is sent, the parent still owns its copy and still accepts connections unless you close it or remove its listeners, which is why the example above answers from both processes. Sending a `net.Socket` closes the parent's copy by default (pass `{ keepOpen: true }` to keep it). The send is asynchronous and the handle must not be used in the parent while it is in flight. Only these network handles can be passed, not arbitrary file descriptors or pipes, and the receiving side must be a Node process connected through an IPC channel.
+
+</details><br>
+
+<details>
+<summary>150. Why does an open IPC channel keep a Node.js parent and child from exiting, and how do you let them finish?</summary>
+
+Node exits a process when its event loop has no referenced handles left: no timers, no pending I/O, no open server. The IPC channel created by `fork()` is an open handle in both the parent and the child, and it stays open until one side closes it. So after the child has sent its result, both event loops still wait for a possible next message and neither process exits; the script prints its answer and hangs. There are three fixes. `child.disconnect()` in the parent, or `process.disconnect()` in the child, closes the channel, both sides get a `disconnect` event, and each process exits once its own work is done. Alternatively keep the channel open but stop counting it: `child.unref()` only unrefs the process handle, so the channel also needs `child.channel.unref()` (mirror in the child: `process.channel.unref()`, with `ref()` to start waiting again).
+
+```js
+// parent.js
+import { fork } from "node:child_process";
+const child = fork("./child.js");
+child.on("message", (result) => {
+  console.log(result); // 42
+  child.disconnect(); // without this line both processes hang
+});
+child.send(21);
+
+// child.js
+process.on("message", (n) => process.send(n * 2));
+
+// long-lived helper the parent may never talk to again:
+const helper = fork("./helper.js");
+helper.unref();
+helper.channel.unref(); // parent can exit, helper keeps running
+```
+
+Gotcha: `fork` is just `spawn(process.execPath, [module, ...args], { stdio: ["pipe", "pipe", "pipe", "ipc"] })`; the `"ipc"` slot creates the channel and passes its descriptor to the child via `NODE_CHANNEL_FD`, which is what makes `process.send` appear. Use `spawn` with an `"ipc"` slot yourself to run a different Node binary or to combine messaging with `"inherit"` stdio. The `stdout` and `stderr` pipes from `stdio: "pipe"` are also handles that keep the parent alive, so a fully independent background child needs `detached: true`, `stdio: "ignore"`, and `unref()`.
+
+</details><br>
+
+<details>
+<summary>151. How do you start a child process from Node.js that keeps running after the parent exits, and what do detached, unref, and stdio do in that setup?</summary>
+
+Three separate things tie a child to its parent, and each needs its own option:
+
+- `detached: true` (the operating system groups the child with the parent's session and process group, so a signal sent to the group, for example Ctrl+C in the terminal or `SIGHUP` when it closes, reaches the child too; this option makes the child the leader of a new process group and session on Unix, the `setsid` call, and on Windows gives it its own console instead);
+- `subprocess.unref()` (the parent's event loop counts the child as a referenced handle and keeps the parent alive until the child exits; this call removes it from that count so the parent can exit on its own);
+- `stdio: "ignore"` or file descriptors from `fs.openSync` (the default `stdio` pipes connect the child's output to the parent, which both keeps the parent alive and breaks the child's writes once the parent is gone; these give the child somewhere else to write).
+
+```js
+import { openSync } from "node:fs";
+import { spawn } from "node:child_process";
+
+const out = openSync("./out.log", "a");
+const err = openSync("./out.log", "a");
+
+const subprocess = spawn("node", ["./daemon.js"], {
+  detached: true, // own session: terminal signals no longer reach it
+  stdio: ["ignore", out, err], // no stdin, stdout and stderr appended to a file
+});
+subprocess.unref(); // parent may exit now; child keeps running
+console.log("started", subprocess.pid);
+```
+
+Gotcha: a child can outlive its parent even without `detached`, since Unix never kills children automatically when the parent dies; `detached` only decides whether it shares the terminal's signals. `unref()` does not take effect while an IPC channel is open; call `subprocess.disconnect()` or `subprocess.channel.unref()` as well. Keep the `pid` (write it to a file) if you ever need to stop the daemon, because after the parent exits nothing else refers to it. For anything long-lived in production prefer a real supervisor such as `systemd`, `pm2`, or a container orchestrator, which also restarts the process when it crashes.
+
+</details><br>
+
+<details>
+<summary>152. How do you make sure a child process started in Node.js is always stopped when the code that owns it finishes, and what is the modern way to express that?</summary>
+
+The modern way is explicit resource management: the `using` declaration, supported natively since Node 24 (2025). A variable declared with `using` is tied to the block it lives in; when the block ends for any reason, a normal return, a thrown error, or an early `break`, JavaScript automatically calls the value's `[Symbol.dispose]()` method. `ChildProcess` implements that method by killing the process, so a child declared with `using` can never be left running by accident. The ownership is visible in the code: the child lives exactly as long as the scope that created it.
+
+```js
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+
+async function render(job) {
+  using worker = spawn("node", ["./render.js", job.id], { stdio: "inherit" });
+  const [code] = await once(worker, "exit"); // normal path: wait for it
+  if (code !== 0) throw new Error(`render failed with ${code}`);
+} // if we got here by throwing or timing out,
+// worker is killed automatically
+
+await using db = await openDatabase(); // async variant for resources with [Symbol.asyncDispose]()
+```
+
+Before this, the usual pattern was to create an `AbortController` for every child and pass `signal: ac.signal`, then call `ac.abort()` in a `finally` block or shutdown hook. The Node documentation marked that use of `AbortSignal`, as a general tool for tearing down long-lived resources, as deprecated in 2025 and points to `using` instead. `AbortSignal` is still correct for its original purpose, cancellation that arrives from outside: a user pressing cancel, an HTTP client disconnecting, or `AbortSignal.timeout(ms)` giving up after a deadline.
+
+Gotcha: `using` only works on objects that have a dispose method; add `[Symbol.dispose]()` or `[Symbol.asyncDispose]()` to your own classes to opt in. Node 24 gives `ChildProcess` the synchronous `Symbol.dispose` only, so `using` works but `await using` on a child does not yet; check your version. Disposal sends `SIGTERM` and does not wait for the process to exit, so if you need the exit code you still have to await the `exit` event yourself, as the example does.
+
+</details><br>
+
+<details>
+<summary>153. How do you run a command in the background in bash, and how do you find and stop it later?</summary>
+
+Appending `&` to a command starts it as a background job: the shell prints the job number and PID, for example `[1] 12345`, and returns to the prompt immediately while the process keeps running. The job-control commands are:
+
+- `jobs` (lists the shell's background jobs);
+- `fg %1` (brings job 1 back to the foreground);
+- `bg %1` (resumes a stopped job in the background);
+- `$!` (holds the PID of the most recent background process).
+
+Any process can be found with `ps` and terminated with `kill`.
+
+```sh
+node server.js &            # [1] 12345
+jobs                        # [1]+ Running  node server.js &
+echo $!                     # 12345
+
+ps aux | grep "node server" # find it later, from any terminal
+kill 12345                  # send SIGTERM, polite request to exit
+kill -9 12345               # SIGKILL, cannot be caught, last resort
+kill %1                     # by job number in the same shell
+```
+
+Pressing Ctrl+Z stops a foreground process and `bg` then continues it in the background.
+
+Gotcha: background jobs are still children of the shell and receive `SIGHUP` when the terminal closes, so use `disown` or `nohup` for anything that must outlive the session. A background job that reads from the terminal is stopped by the kernel with `SIGTTIN` until you `fg` it.
+
+</details><br>
+
+<details>
+<summary>154. What is the difference between the exit and close events of a Node.js ChildProcess, and what do their arguments mean?</summary>
+
+`exit` fires when the process itself has finished running.
+
+`close` fires when the process has finished and all its output streams (stdout/stderr) have been fully read and closed.
+
+</details><br>
+
+<details>
+<summary>155. What is the Unix niceness value, how does it affect CPU scheduling, and how do you start a process with a given niceness?</summary>
+
+Every process has a nice value that tells the scheduler how willing it is to yield CPU time to others. On Linux the range is `-20` to `19` (BSD and macOS use `-20` to `20`). The default is `0`. A higher number is "nicer", which means lower priority; `19` yields to everything, `-20` gets the largest share. `nice -n adjustment command` starts a command with its niceness changed by the given amount relative to the current value. Children inherit the parent's niceness, so applying `nice` to a script covers everything it spawns.
+
+```sh
+nice -n 19 ffmpeg -i original.mov out.mp4   # low priority, stays polite to other processes
+nice -n 10 ./backup.sh                      # medium
+sudo nice -n -20 ./latency-critical         # high priority, negative needs root
+ps -o pid,ni,cmd -p <PID>                   # NI column shows the value
+```
+
+Any user can raise a nice value (lower the priority); only root or a process with `CAP_SYS_NICE` can lower it or go negative. Kernel and system daemons often run at negative values.
+
+Gotcha: niceness is relative and only matters when CPUs are contended. On an idle machine a nice-19 process still gets a full core. It controls CPU share only, not disk or network, so for I/O-heavy jobs use `ionice` (for example `ionice -c3` for the idle class). From Node you can wrap the command, `spawn("nice", ["-n", "19", "ffmpeg", ...])`, to keep a transcoding job from starving your API server.
+
+</details><br>
+
+<details>
+<summary>156. How do you change the niceness of a process that is already running, and how do you inspect it?</summary>
+
+`nice` only sets the niceness at launch. `renice` changes it afterward for an existing process by PID, for all processes of a user, or for a process group. The modern syntax on Linux and macOS is `renice -n value -p PID`; the older form `renice value PID` is still widely used and accepted. To see the current value, use the `NI` column in `ps -l`, `ps -o ni`, `top`, or `htop`.
+
+```sh
+renice -n 19 -p 1234           # make PID 1234 as polite as possible
+renice -n 5 -u alice           # all processes owned by alice
+sudo renice -n -5 -p 1234      # raise priority, root only
+
+ps -o pid,ni,cmd -p 1234       # NI column
+top                            # NI column; PR is kernel priority, roughly 20 + NI
+```
+
+Gotcha: the same permission rules apply as for `nice`: an unprivileged user can only increase a process's niceness, and on Linux cannot lower it back afterward even to its previous value, unless `RLIMIT_NICE` (`ulimit -e`) allows it. `renice` on a process affects only that process, not children it already started, since each child has its own copy of the value.
+
+</details><br>
+
+<details>
+<summary>157. How can a Node.js program set the scheduling priority of itself or another process?</summary>
+
+The `os` module exposes the niceness mechanism portably. `os.setPriority(pid, priority)` sets the priority of the given process, and `os.setPriority(priority)` applies it to the current process; `os.getPriority(pid)` reads it. Values range from `-20` (highest priority) to `19` (lowest), matching Unix niceness, and `os.constants.priority` provides named levels:
+
+- `PRIORITY_LOW` (19);
+- `PRIORITY_BELOW_NORMAL` (10);
+- `PRIORITY_NORMAL` (0);
+- `PRIORITY_ABOVE_NORMAL` (-7);
+- `PRIORITY_HIGH` (-14);
+- `PRIORITY_HIGHEST` (-20).
+
+On Windows Node maps these ranges onto the six Windows priority classes, so the same code works there too. A typical use is lowering the priority of a CPU-hungry child such as `ffmpeg` so the main server stays responsive.
+
+```js
+import { spawn } from "node:child_process";
+import os from "node:os";
+
+const ffmpeg = spawn("ffmpeg", [
+  "-y",
+  "-i",
+  "input.mov",
+  "-threads",
+  "2",
+  "output.mp4",
+]);
+os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_LOW); // same as 19
+console.log(os.getPriority(ffmpeg.pid)); // 19
+
+// alternative: let the OS do it at launch
+spawn("nice", ["-n", "19", "ffmpeg", "-y", "-i", "input.mov", "output.mp4"]);
+```
+
+Gotcha: the operating system's permission rules still apply, so lowering the value below the current one (raising priority) throws `EACCES` on Linux unless the process runs as root, and `PRIORITY_HIGHEST` on Windows requires elevated privileges. Priority limits CPU share only; to limit how many cores a tool like `ffmpeg` uses, pass its own `-threads` option.
+
+</details><br>
+
+<details>
+<summary>158. What does the spawn event of a Node.js ChildProcess tell you, how does it relate to the error event, and why can it fire even when the command fails?</summary>
+
+`spawn` is emitted once the operating system has successfully started the child process. It comes before every other event and before any `stdout` or `stderr` data, so it is the first moment the `pid` is known to be valid and the point at which setup that depends on a running process can begin, for example writing a pid file or starting a watchdog timer. If the process cannot be started at all, `spawn` is never emitted and `error` is emitted instead, typically with `ENOENT` when the executable is not in `PATH` or `EACCES` when it is not executable. `error` also fires when a `kill()` fails or an IPC message cannot be delivered. In the start-up failure case `exit` may never follow, so a child without an `error` handler crashes the parent with an unhandled error.
+
+```js
+import { spawn } from "node:child_process";
+
+const child = spawn("ffmpeg", ["-i", "in.mov", "out.mp4"]);
+
+child.once("spawn", () => console.log("running as pid", child.pid));
+child.once("error", (err) => {
+  if (err.code === "ENOENT")
+    console.error("ffmpeg is not installed or not in PATH");
+  else console.error("could not start or signal the process:", err);
+});
+child.on("exit", (code, signal) => console.log("exit", code, signal));
+```
+
+Gotcha: `spawn` only confirms that the first program started. `spawn("bash", ["-c", "some-command"])`, or any call with `shell: true`, emits `spawn` as soon as the shell itself is running, even if the shell then fails to find `some-command`. That failure shows up later as a non-zero `code` on `exit` (127 for "command not found" in POSIX shells), not as an `error` event, so when a shell is involved you must check the exit code as well.
+
+</details><br>
+
+<details>
+<summary>159. What do process exit codes mean, and why does a process killed by a signal report a code above 128?</summary>
+
+When a process ends it hands an exit code, an integer from 0 to 255, back to whoever launched it: a shell, a CI runner, Docker, or a Node parent. `0` means success. Small non-zero values are chosen by the program itself to describe failures; Node's own codes include:
+
+- `1` (uncaught fatal exception);
+- `9` (invalid command-line argument);
+- `13` (unsettled top-level `await`).
+
+A process that is killed by a signal has no exit code of its own, so the shell reports `128 + N`, where `N` is the signal number. The high bit (128) therefore means "terminated by a signal" and the low bits carry which one, which keeps `130` from being confused with a program that deliberately exited with code `2`.
+
+```
+Signal           Number   Reported code
+SIGHUP           1        129
+SIGINT (Ctrl+C)  2        130
+SIGABRT          6        134
+SIGKILL          9        137
+SIGTERM          15       143
+```
+
+```sh
+node -e "process.kill(process.pid, 'SIGABRT')"; echo $?    # 134
+node -e "process.exitCode = 3"; echo $?                    # 3
+```
+
+Gotcha: `137` in a Docker or Kubernetes log means `SIGKILL`, almost always the OOM killer because the container exceeded its memory limit; `143` means the orchestrator asked the process to stop with `SIGTERM` and it did. Only the shell applies the `128 + N` convention: a Node parent watching a child gets `code` `null` and `signal` `"SIGKILL"` on the `exit` event instead. Codes above 255 wrap around, so `process.exit(256)` is reported as `0`.
+
+</details><br>
+
+<details>
+<summary>160. Why is calling process.exit() usually a mistake in Node.js, and what should you do instead to set the exit code?</summary>
+
+A Node process exits by itself as soon as the event loop has no more work: no timers, no open sockets or servers, no pending I/O. `process.exit(code)` is a hard stop that ends the process immediately, abandoning everything still queued, including writes to `stdout` that may be asynchronous when `stdout` is a pipe or, on Windows, a terminal. A usage message printed just before `process.exit(1)` can therefore come out truncated or not at all. The recommended pattern is to set `process.exitCode` and let the process end naturally; the property becomes the exit status when the process exits on its own or when `process.exit()` is later called without an argument. When the program must stop because of an error, throwing an uncaught error is safer than `process.exit()`, because Node flushes synchronous output and runs the normal shutdown path with code `1`.
+
+```js
+// what not to do
+if (!argsValid) {
+  printUsage(); // may still be in flight
+  process.exit(1); // kills the process before stdout drains
+}
+
+// recommended
+if (!argsValid) {
+  printUsage();
+  process.exitCode = 1; // exit happens when the event loop is empty
+}
+```
+
+Gotcha: `process.exit()` is still right when something keeps the loop alive on purpose and you really want to stop now.
+
+</details><br>
+
+<details>
+<summary>161. What can a listener for the Node.js process exit event do, and why does asynchronous work scheduled inside it never run?</summary>
+
+The `exit` event is emitted on `process` when the process is about to end, either because the event loop ran dry or because `process.exit()` was called, and the listener receives the exit code. After all `exit` listeners have returned, the process terminates immediately; the event loop never turns again. Anything the listener schedules asynchronously, a timer, a promise continuation, an `fs` callback, a `write` to a pipe, is silently abandoned. Listeners must therefore perform only synchronous operations: writing a final log line with `fs.writeSync`, deleting a pid file with `fs.unlinkSync`, or flushing an in-memory buffer synchronously.
+
+```js
+process.on("exit", (code) => {
+  setTimeout(() => console.log("this will never run"), 0);
+  fs.writeSync(1, `exiting with ${code}\n`); // synchronous: this works
+  fs.rmSync("./app.pid", { force: true }); // synchronous: this works
+});
+```
+
+Gotcha: `exit` is not emitted when the process is killed by a signal it does not handle (`SIGKILL`, or `SIGTERM` without a listener), so it is not a reliable place for cleanup that matters; handle `SIGTERM` and `SIGINT` explicitly and do the asynchronous shutdown there. The event `beforeExit` is the asynchronous counterpart: it fires when the loop is empty but the process has not committed to exiting yet, so scheduling more work there keeps the process alive, which is useful for a final flush to a remote log service.
+
+</details><br>
+
+<details>
+<summary>162. How should the uncaughtException event be used in Node.js, and why is resuming normal operation after it unsafe?</summary>
+
+`uncaughtException` fires on `process` when an error propagates all the way up without being caught, for example a throw inside a callback or an `EventEmitter` `error` event with no listener. Without a listener Node prints the stack trace and exits with code `1`. Adding a listener replaces that default, so the process keeps running, and that is the trap. The exception interrupted some operation half way: a database transaction may be open, a lock held, a response half written, in-memory state partially updated. The Node documentation compares resuming to pulling the power cord during an upgrade: nine times out of ten nothing happens, the tenth time the system is corrupted. The correct use is to perform synchronous cleanup of resources such as file descriptors and handles, log the error, and then shut down, letting a supervisor (systemd, pm2, Kubernetes) start a fresh process.
+
+```js
+process.on("uncaughtException", (err, origin) => {
+  fs.writeSync(2, `${origin}: ${err.stack}\n`); // synchronous logging
+  releaseLocksSync();
+  process.exit(1); // never continue serving
+});
+```
+
+Gotcha: `process.setUncaughtExceptionCaptureCallback(fn)` installs a single capture function instead; while it is set, the `uncaughtException` event is not emitted at all, and it cannot be combined with the deprecated `domain` module. To observe crashes without changing behavior, for example to report to Sentry, use the `uncaughtExceptionMonitor` event, which runs before the normal handling and does not prevent the exit. The same reasoning applies to `unhandledRejection`, which since Node 15 (2020) also terminates the process by default.
+
+</details><br>
+
+<details>
+<summary>163. How does a Node.js process receive operating system signals, which ones cannot be handled, and how does Windows differ?</summary>
+
+The `process` object emits an event named after each signal in upper case, such as `SIGINT` or `SIGTERM`, when the operating system delivers it. Installing a listener replaces the default action, which for both of those is to terminate, so a process with a `SIGINT` listener no longer dies on Ctrl+C and must exit itself. This is the hook for graceful shutdown: stop accepting connections, finish in-flight requests, close database pools, then exit. `SIGKILL` and `SIGSTOP` cannot be listened for; the kernel enforces them without consulting the process. Signal events are only available on the main thread, not inside worker threads.
+
+```js
+process.stdin.resume(); // keep the process alive for the demo
+
+function shutdown(signal) {
+  console.log(`received ${signal}, closing`);
+  server.close(() => process.exit(0)); // stop listening, finish in-flight requests
+  setTimeout(() => process.exit(1), 10_000).unref(); // hard deadline
+}
+process.on("SIGINT", shutdown); // Ctrl+C in the terminal
+process.on("SIGTERM", shutdown); // kill <pid>, docker stop, kubernetes
+
+process.kill(otherPid, "SIGTERM"); // send one; signal 0 only checks the pid exists
+```
+
+Gotcha: Windows has no POSIX signals. Node emulates a few: Ctrl+C in a console still emits `SIGINT`, and `process.kill()` or `subprocess.kill()` with `SIGINT`, `SIGTERM`, or `SIGKILL` terminates the target unconditionally without running its handlers, after which the parent reports a signal-terminated child. Graceful shutdown on Windows therefore needs another channel, such as an IPC message. On Unix, `docker stop` sends `SIGTERM` and waits 10 seconds before `SIGKILL`, so a shutdown that takes longer gets code `137`.
+
+</details><br>
+
+<details>
+<summary>164. What kind of streams are process.stdin, process.stdout, and process.stderr in Node.js, when are writes to them synchronous, and how do you detect a terminal?</summary>
+
+The three standard streams are created lazily, and their class depends on what file descriptors 0, 1, and 2 are connected to when the process starts. There are three cases:
+
+- `tty.ReadStream` and `tty.WriteStream` (connected to a terminal; they extend `net.Socket` and add terminal features such as `isTTY`, `columns`, `rows`, and `getColorDepth()`);
+- `net.Socket` (connected to a pipe or socket, for example `node app.js | grep x` or a child started with `stdio: "pipe"`);
+- `SyncWriteStream` (connected to a regular file, as in `node app.js > out.txt`; an internal plain `Writable` that calls `fs.writeSync` and is not a socket at all).
+
+So the statement "stdout is a `net.Socket`" is true for terminals and pipes but false for files. Node reuses the socket class because libuv exposes pipes, Unix sockets, and TTYs through the same stream handle.
+
+```sh
+node -e "console.error(process.stdout.constructor.name)"            # in a real terminal: WriteStream (tty)
+node -e "console.error(process.stdout.constructor.name)" | cat      # pipe:     Socket
+node -e "console.error(process.stdout.constructor.name)" > o.txt    # file:     SyncWriteStream
+```
+
+The class decides whether a write is synchronous, and the rules differ by platform:
+
+```
+Target             POSIX           Windows
+Files              synchronous     synchronous
+Terminals (TTY)    synchronous     asynchronous
+Pipes and sockets  asynchronous    synchronous
+```
+
+Synchronous writes keep output in order and guarantee it is on its way before `process.exit()` returns, which is why a message printed to a terminal survives an immediate exit on Linux but one printed to a pipe may be lost. `console.log` writes to `process.stdout` and `console.error` to `process.stderr`, so the same rules apply to them.
+
+The portable way to find out which case you are in is `isTTY`, not the constructor:
+
+```sh
+node -p "Boolean(process.stdout.isTTY)"           # true
+node -p "Boolean(process.stdout.isTTY)" | cat     # false
+echo foo | node -p "Boolean(process.stdin.isTTY)" # false
+```
+
+```js
+if (process.stdout.isTTY) {
+  console.log("\x1b[32mcolored output\x1b[0m"); // a human is watching: colors, progress bars
+} else {
+  console.log("plain output for pipes and logs");
+}
+```
+
+Gotcha: when it is a socket, `process.stdout` is `Duplex` by inheritance, but its readable side is never used and calling `end()` on it throws, because closing standard output from inside a program is almost never intended. A synchronous write blocks the event loop until it completes; a file write is nearly instant, but a pipe whose reader is slow or stalled, or a sluggish terminal, can block the loop repeatedly, so heavy production logging to `stdout` on Windows, or to files anywhere, can hurt throughput. Dedicated loggers batch writes or move them to a worker.
+
+</details><br>
+
+<details>
+<summary>165. What does process.loadEnvFile() do in Node.js, and how does it compare to the --env-file flag and the dotenv package?</summary>
+
+`process.loadEnvFile(path)` reads a `.env` file (default `./.env`) and copies its `KEY=value` lines into `process.env`, giving Node a built-in replacement for the `dotenv` package. Variables that already exist in the environment are not overwritten, so real deployment settings win over the file. The same parser is available as `util.parseEnv(text)`, which returns an object without touching `process.env`, and the `--env-file=path` command-line flag loads the file before any code runs. `--env-file-if-exists` (Node 22.9) does the same without failing when the file is missing.
+
+```
+# .env
+PORT=3000
+DB_URL="postgres://localhost/app"   # quotes and comments are supported
+```
+
+```js
+import { loadEnvFile } from "node:process";
+loadEnvFile(); // or loadEnvFile("./config/.env.local")
+console.log(process.env.PORT); // "3000"
+```
+
+```sh
+node --env-file=.env server.js
+```
+
+</details><br>
+
+<details>
+<summary>166. What is process.dlopen() in Node.js, when would you call it instead of require(), and why must you pass a module object?</summary>
+
+`process.dlopen(module, filename, flags)` is the low-level function that loads a compiled native addon, a shared library with the `.node` extension written in C or C++ against Node-API. `require()` calls it internally whenever the resolved file ends in `.node`, so application code almost never uses it directly. The `module` argument must be an object shaped like `{ exports: {} }`, because the addon's initialization code attaches its exported functions to `module.exports`; nothing is returned. The optional `flags` come from `os.constants.dlopen`: the default `RTLD_LAZY` resolves symbols when first used, `RTLD_NOW` resolves all of them before the call returns so a missing symbol fails immediately.
+
+```js
+import { dlopen } from "node:process";
+import { constants } from "node:os";
+import { fileURLToPath } from "node:url";
+
+const module = { exports: {} };
+dlopen(
+  module,
+  fileURLToPath(new URL("./local.node", import.meta.url)),
+  constants.dlopen.RTLD_NOW,
+);
+module.exports.foo(); // call into C++
+
+// the usual alternative in ES modules
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const addon = require("./local.node");
+```
+
+</details><br>
+
+<details>
+<summary>167. What is the Node.js permission model, and what does process.permission.has() check?</summary>
+
+The permission model is an opt-in sandbox for the current process. Starting Node with `--permission` denies file system access, child process spawning, worker threads, native addons, and WASI by default, and you grant each capability back with flags such as `--allow-fs-read=/app/*`, `--allow-fs-write=/tmp/*`, `--allow-child-process`, `--allow-worker`, and `--allow-addons`. `process.permission.has(scope, reference)` lets code check at runtime whether an operation would be allowed, so it can degrade gracefully. Scopes include `fs`, `fs.read`, `fs.write`, `child`, `worker`, and in newer releases `openssl.store` and `ffi`; the optional reference narrows the check to a specific path for file system scopes.
+
+```sh
+node --permission --allow-fs-read=/app/* --allow-fs-write=/app/logs/* server.js
+```
+
+```js
+process.permission.has("fs.read"); // false: not all of the file system
+process.permission.has("fs.read", "/app/config.json"); // true
+process.permission.has("fs.write", "/etc/passwd"); // false
+process.permission.has("child"); // false unless --allow-child-process
+```
+
+Gotcha: `process.permission` is only defined when the process runs with `--permission`; guard with optional chaining in libraries. The model restricts what JavaScript in this process may ask Node to do; it is not a security boundary against native addons (which is why they are blocked by default) and it does not isolate memory or network access, so it complements containers and operating system users rather than replacing them.
+
+</details><br>
+
+<details>
+<summary>168. What do the fields returned by process.memoryUsage() mean, and which one should you watch for a given kind of problem?</summary>
+
+`process.memoryUsage()` returns five byte counts:
+
+- `rss` (resident set size, the physical RAM the whole process occupies: V8 heap, compiled code, thread stacks, native allocations, Buffers, and loaded libraries; the footprint a container limit cares about);
+- `heapTotal` (how much memory V8 has obtained for the JavaScript heap);
+- `heapUsed` (the part of that heap currently occupied by objects, including garbage not yet collected, so it rises and falls with garbage collection and is always at most `heapTotal`);
+- `external` (memory of C++ objects tied to JavaScript objects but allocated outside the V8 heap, such as `Buffer` backing stores and external strings);
+- `arrayBuffers` (memory of all `ArrayBuffer` and `SharedArrayBuffer` instances, including every Node `Buffer`; a subset of `external`).
+
+Roughly, `rss` is the big box and the heap and `external` sit inside it next to things Node does not break out.
+
+```js
+const a = process.memoryUsage();
+const buf = Buffer.alloc(100 * 1024 * 1024);
+buf.fill(1); // touch the pages so they become resident
+const b = process.memoryUsage();
+console.log((b.arrayBuffers - a.arrayBuffers) / 1e6); // ~100
+console.log((b.heapUsed - a.heapUsed) / 1e6); // ~0: Buffers are not on the heap
+console.log((b.rss - a.rss) / 1e6); // ~100
+
+console.log(process.memoryUsage.rss()); // much faster when you only need rss
+```
+
+Practical rule:
+
+- `heapUsed` (watch for leaks of JavaScript objects);
+- `external` and `arrayBuffers` (watch in Buffer-heavy code);
+- `rss` (watch for how close you are to a real limit).
+
+Gotcha: `rss` does not shrink promptly after garbage collection because V8 and the C allocator keep freed pages for reuse, so a high `rss` with a low `heapUsed` is usually not a leak. The full `memoryUsage()` call walks memory pages and can be slow, so do not call it on every request.
+
+</details><br>
+
+<details>
+<summary>169. How does process.memoryUsage() behave with worker threads and with cluster workers, and why does summing rss across them overcount?</summary>
+
+Worker threads live in the same operating system process but each has its own V8 isolate and heap. So when a worker calls `process.memoryUsage()`, `rss` is process-wide and identical to the main thread's value, while `heapTotal`, `heapUsed`, `external`, and `arrayBuffers` describe only the calling thread. The main thread's heap numbers do not include any worker's heap. To see worker memory, measure inside each worker and report it with `postMessage`, or use `worker.getHeapStatistics()` on recent Node versions, and cap a worker's heap with the `resourceLimits` option such as `maxOldGenerationSizeMb`. Cluster workers are separate processes, each with its own heap and its own `memoryUsage()`; the primary learns nothing about them unless each worker sends its numbers over IPC.
+
+```js
+// worker.js: report to the parent
+import { parentPort } from "node:worker_threads";
+setInterval(() => parentPort.postMessage(process.memoryUsage()), 10_000);
+
+// cluster worker: same idea over IPC
+setInterval(() => process.send({ mem: process.memoryUsage() }), 10_000);
+
+// main thread: cap a worker's heap
+new Worker("./worker.js", { resourceLimits: { maxOldGenerationSizeMb: 256 } });
+```
+
+Gotcha: adding `rss` across threads double counts because it is one number for the process; adding `rss` across cluster processes overcounts shared pages, mainly the Node binary and shared libraries, which every process counts in full. A `SharedArrayBuffer` is one block of memory but appears in `arrayBuffers` of every thread that holds it. In containers the OOM killer looks at the cgroup's total resident memory of all processes plus some kernel memory, never at `heapUsed`, so a healthy-looking heap in every worker can still get the container killed.
+
+</details><br>
+
+<details>
+<summary>170. How do queueMicrotask() and process.nextTick() differ in Node.js, why does their order change between CommonJS and ES modules, and which should new code use?</summary>
+
+Both defer a function until the current synchronous code finishes, before the event loop moves on to timers or I/O, but they use different queues. `queueMicrotask()` adds to the microtask queue managed by V8, the same queue used for promise `then`, `catch`, and `finally` handlers. `process.nextTick()` adds to a separate queue managed by Node. Whenever Node drains the next-tick queue, it drains the microtask queue immediately afterwards. In a CommonJS module the top-level code runs outside both queues, so after it finishes Node drains next-tick callbacks first and then microtasks. An ES module is itself evaluated as part of the microtask queue, so Node is already draining microtasks when the module body runs: new microtasks run as part of that drain, and the next-tick queue is only processed afterwards. The same three lines therefore print in opposite orders.
+
+```js
+// CommonJS (require)              // ES module (import)
+Promise.resolve().then(() => console.log("resolve"));
+queueMicrotask(() => console.log("microtask"));
+process.nextTick(() => console.log("nextTick"));
+// nextTick, resolve, microtask    // resolve, microtask, nextTick
+```
+
+The Node documentation marks `process.nextTick()` as legacy (stability 3, from Node 22.7, 2024) and recommends `queueMicrotask()` for userland code, because it is a web standard that behaves the same in browsers, Deno, and Node, and because its ordering relative to promises is predictable. `nextTick` remains for the one thing it does differently: it runs before any promise job in CommonJS, and it accepts extra arguments that are passed to the callback, which with `queueMicrotask()` requires a closure or `fn.bind(undefined, a, b)`.
+
+Gotcha: both queues are drained to exhaustion before the loop continues, so a callback that keeps scheduling itself with either API starves timers and I/O forever; use `setImmediate()` to yield to the loop. Errors thrown inside a `queueMicrotask()` callback surface as `uncaughtException`, not as a rejected promise.
+
+</details><br>
+
+<details>
+<summary>171. What does "releasing Zalgo" mean in asynchronous JavaScript, and how does queueMicrotask() keep an API consistently asynchronous?</summary>
+
+An API releases Zalgo when it is sometimes synchronous and sometimes asynchronous depending on internal state. The classic case is a cache: on a miss the result arrives after an `await`, so the event or callback fires later; on a hit the data is available immediately, and if the code emits right away the event fires during the call itself, before the caller has had a chance to attach a listener. The same caller code then works on a miss and silently breaks on a hit, which depends on timing and is hard to reproduce. The fix is to defer the synchronous path so it behaves like the asynchronous one. `queueMicrotask()` is the right tool: the callback runs as soon as the current call stack unwinds, which is early enough to feel immediate but late enough that the caller's next statements, including `on("load", ...)`, have executed.
+
+```js
+class DataHandler extends EventEmitter {
+  async load(key) {
+    const hit = this._cache.get(key);
+    if (hit !== undefined) {
+      queueMicrotask(() => this.emit("load", hit)); // always asynchronous
+      return;
+    }
+    const data = await fetchData(key);
+    this._cache.set(key, data);
+    this.emit("load", data);
+  }
+}
+
+const handler = new DataHandler();
+handler.load("user:1");
+handler.on("load", (data) => console.log(data)); // now works on hit and miss alike
+```
+
+Gotcha: `process.nextTick()` would also work here but runs before any promise handler in CommonJS, so the `load` event could fire before `then` callbacks the caller expects to run first; `queueMicrotask()` keeps event emission in the same queue as promises. Promise-returning functions avoid the problem automatically, since `then` handlers are always asynchronous even when the promise is already resolved.
+
+</details><br>
+
+<details>
+<summary>172. What is the BREACH attack, and why does HTTP response compression over HTTPS make it possible?</summary>
+
+BREACH (Browser Reconnaissance and Exfiltration via Adaptive Compression of Hypertext), presented at Black Hat USA in August 2013, is a side-channel attack that recovers secrets such as CSRF tokens or session identifiers from HTTPS responses. TLS encrypts the body but does not hide its length. When the server compresses the body with gzip, deflate or brotli and that body contains both a secret and something the attacker controls (for example a reflected query parameter), the attacker guesses the secret one character at a time: a guess that matches a prefix of the secret gives the LZ77 stage a longer repeat, the compressed body shrinks by a byte or so, and the attacker reads that size difference off the encrypted traffic. A few thousand requests are enough to recover a token. The attack needs three conditions at once:
+
+- `Content-Encoding` compression applied at the HTTP level (gzip, deflate, br, zstd);
+- attacker-controlled input reflected into the response body;
+- a static secret present in the same response body.
+
+A common server-side remediation is to exclude responses that carry secrets from compression:
+
+```js
+import compression from "compression";
+
+app.use(
+  compression({
+    filter: (req, res) => {
+      if (res.getHeader("X-No-Compression")) return false; // responses with tokens opt out
+      return compression.filter(req, res);
+    },
+  }),
+);
+```
+
+Gotcha: HTTPS by itself is not a mitigation, because TLS 1.2 and TLS 1.3 both expose ciphertext length. HTTP/2 and HTTP/3 are equally affected, since body compression is independent of the transport protocol. BREACH is still a live concern as of 2026; it is TLS-level compression (the CRIME attack) that has been removed from the protocols.
+
+</details><br>
+
+<details>
+<summary>173. How do you decompress truncated or incomplete data with Node.js zlib without getting an error?</summary>
+
+By default a zlib decompressor finishes with `Z_FINISH`, which requires the full stream including its end marker and trailer; truncated input fails with `Z_BUF_ERROR` ("unexpected end of file"). When the data is known to be incomplete, or you only want to inspect the beginning of a large compressed file, change the flush mode used on the last chunk with the `finishFlush` option so the decompressor returns whatever it has decoded so far. The equivalents per format are:
+
+- `zlib.constants.Z_SYNC_FLUSH` (deflate, gzip, zlib formats);
+- `zlib.constants.BROTLI_OPERATION_FLUSH` (Brotli);
+- `zlib.constants.ZSTD_e_flush` (Zstandard, available since Node.js 22.15 and 23.8, released in 2025).
+
+```js
+import zlib from "node:zlib";
+
+const full = zlib.gzipSync("line one\nline two\nline three\n");
+const truncated = full.subarray(0, full.length - 10); // trailer and some data missing
+
+zlib.gunzip(truncated, (err) => console.log(err.code)); // Z_BUF_ERROR
+
+zlib.gunzip(
+  truncated,
+  { finishFlush: zlib.constants.Z_SYNC_FLUSH },
+  (err, out) => {
+    if (err) throw err;
+    console.log(out.toString()); // "line one\nline two\nline three"
+  },
+);
+```
+
+The same option works on stream constructors such as `zlib.createGunzip({ finishFlush: zlib.constants.Z_SYNC_FLUSH })`.
+
+Gotcha: because the end of the stream is never reached, the trailing checksum (Adler-32 for zlib, CRC-32 for gzip) is never verified, so silently corrupted data can pass through. Use this only when you accept partial, unverified output.
+
+</details><br>
+
+<details>
+<summary>174. Which zlib options control compression speed and per-stream memory in Node.js, and when should you tune them?</summary>
+
+The `level` option (0 to 9, or `-1` for `Z_DEFAULT_COMPRESSION`, which is level 6) has by far the biggest effect on speed. Higher levels search harder for repeats and produce smaller output but take longer; lower levels produce bigger output much faster. Level 0 stores the data without compressing, level 1 is the fastest real compression and level 9 the slowest. Memory settings are a secondary speed factor: with more memory zlib processes more data per write call, so Node.js makes fewer calls into zlib and runs a little faster. The per-stream memory options are:
+
+- `windowBits` (log2 of the LZ77 look-back window, default 15; a compressor spends `1 << (windowBits + 2)` bytes on it, 128 KiB, a decompressor only `1 << windowBits`, 32 KiB);
+- `memLevel` (compression-only internal state such as hash tables, default 8, costing `1 << (memLevel + 9)` bytes, 128 KiB);
+- `chunkSize` (the single output buffer each stream holds, default 16 KiB).
+
+So a compressor at the defaults holds about 256 KiB plus the chunk, a decompressor about 32 KiB plus the chunk. Each decrement of `windowBits` or `memLevel` halves its term at the price of a worse compression ratio, which matters only when many streams run at once: a thousand concurrent compressing responses hold roughly 256 MiB of zlib state.
+
+```js
+import zlib from "node:zlib";
+
+zlib.createGzip({ level: 1 }); // fastest, largest output, good for dynamic responses
+zlib.createGzip({ level: 9 }); // smallest output, slowest, for assets compressed once
+zlib.createGzip({ windowBits: 14, memLevel: 7 }); // ~128 KiB of state instead of ~256 KiB
+```
+
+Rule of thumb: keep the defaults for most applications, use `level` to choose between speed and size, and lower `windowBits` and `memLevel` only with many concurrent zlib streams or tight memory limits.
+
+Gotcha: a decompressor's window must be at least as large as the one the compressor used, otherwise zlib fails with `Z_DATA_ERROR` ("invalid window size"), so you cannot shrink `windowBits` freely when reading data produced elsewhere; `windowBits: 0` on decompression adopts the size from the zlib header.
+
+</details><br>
+
+<details>
+<summary>175. What does zlib.crc32() in Node.js compute, how are checksums chained, and when must it not be used?</summary>
+
+`zlib.crc32(data, value)` computes a 32-bit Cyclic Redundancy Check of `data` and returns it as an unsigned 32-bit integer. It was added in Node.js 22.2 and 20.15 (2024). Its parameters are:
+
+- `data` (`string`, `Buffer`, `TypedArray` or `DataView`; a string is encoded as UTF-8 before the computation);
+- `value` (optional starting value, a 32-bit unsigned integer, default 0).
+
+Passing the previous result as `value` continues the checksum, so chaining over consecutive chunks yields exactly the CRC of the concatenated data, which is how you checksum a stream without buffering it.
+
+```js
+import zlib from "node:zlib";
+
+let crc = zlib.crc32("hello"); // 907060870
+crc = zlib.crc32("world", crc); // 4192936109
+zlib.crc32("helloworld"); // 4192936109, same as the chained result
+```
+
+CRC-32 is designed to detect accidental corruption in transmission and storage (it is the checksum used in gzip trailers, ZIP entries and PNG chunks). It is not suitable for cryptographic authentication: it is linear, so an attacker can modify data and fix up the checksum trivially. For integrity against an adversary use `crypto.createHash('sha256')` or an HMAC.
+
+Gotcha: the return value is unsigned, so compare it with other unsigned results; a library that returns a signed 32-bit integer for the same data gives a negative number that must be converted with `>>> 0` before comparison.
+
+</details><br>

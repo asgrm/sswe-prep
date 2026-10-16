@@ -2,12 +2,20 @@
 2. Node.js
 2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
 
-work day -63 minutes from usual
-day off 0 minutes from usual
+work day -98 minutes from usual
+day off -6 minutes from usual
 
-2.1.1. continue video 124 00:00
-2.1.2. read docs (child_process, cluster, process, path, console(shallow glance over), os) + all marked as "!" starting line 466
+2.1.1. continue video 186 00:00
+2.1.2. read docs (
+  https://nodejs.org/docs/latest/api/worker_threads.html
+  https://nodejs.org/docs/latest/api/v8.html (shallow glance over)
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
+)
 2.1.3. make anki cards, do 2 repetitions on them
+
 
 2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
 2.3. main article https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js + docs
@@ -22,20 +30,14 @@ already covered: [events]
 
 2.6.1. read:
   async_context
-  child_process
-  cluster
-  process
   web-streams-api
   timers
   worker_threads
   url
-  path
-  os
   perf_hooks
   modules + esm + typescript
   globals
   environment_variables
-  zlib
 
 2.6.2 read with constrains
 
@@ -55,6 +57,18 @@ already covered: [events]
   v8 - shallow glance over
   permissions - shallow glance over
 
-3. for JS consider source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards + https://developer.mozilla.org/ru/docs/Web/API/AbortController
+3. for JS consider source
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management for filling anki cards +
+  https://developer.mozilla.org/ru/docs/Web/API/AbortController
+  https://javascript.info/weakref-finalizationregistry
+  https://javascript.info/proxy
+  https://javascript.info/weakmap-weakset
+  https://javascript.info/generators
+  https://javascript.info/closure
 
 4. "System Design: Comprehensive Learning Journey" at learn
+
+5. more on DB
+6. go over toD2_2.txt and to_D2_5.txt
+7. other not covered in "topics" folder
+8. go over "anki" and "topic" folders at least 3 times except files started with _
