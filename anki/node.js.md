@@ -957,24 +957,7 @@ Gotcha: the ReadableStream returned is a WHATWG web stream, not a Node.js stream
 </details><br>
 
 <details>
-<summary>40. What is MessageChannel and how do its two ports relate to each other?</summary>
-
-MessageChannel is a web-standard API that creates a pair of connected ports. Whatever is posted into one port comes out the other. It is the primitive underlying structured inter-context communication — most commonly used between a main thread and a Worker, or between two Workers, when the two sides should not share a direct object reference.
-
-```js
-const { port1, port2 } = new MessageChannel();
-
-port1.onmessage = ({ data }) => console.log("received:", data);
-port2.postMessage("hello");
-// → received: hello
-```
-
-Each side holds one port. Communication is bidirectional — both ports can send and receive. When you are done, call port.close() to release the channel and allow garbage collection.
-
-</details><br>
-
-<details>
-<summary>41. How does posting a Blob over MessageChannel differ from posting a plain object or a transferable, and why is this safe?</summary>
+<summary>40. How does posting a Blob over MessageChannel differ from posting a plain object or a transferable, and why is this safe?</summary>
 
 postMessage handles different value types in one of three ways:
 
@@ -1004,7 +987,7 @@ This is safe precisely because Blob is immutable. Because no receiver can mutate
 </details><br>
 
 <details>
-<summary>42. What is a practical use case for posting the same Blob to multiple MessageChannel recipients?</summary>
+<summary>41. What is a practical use case for posting the same Blob to multiple MessageChannel recipients?</summary>
 
 The pattern is useful any time you need to fan a single binary payload out to multiple consumers without making upfront copies or reading the raw bytes more than once per consumer.
 
@@ -1031,7 +1014,7 @@ The key property being exploited is lazy copying: memory for the data is duplica
 </details><br>
 
 <details>
-<summary>43. How do you join multiple Buffers into one?</summary>
+<summary>42. How do you join multiple Buffers into one?</summary>
 
 Use `Buffer.concat(list_of_buffers [, totalLength])`. It takes an array of Buffer or Uint8Array instances and returns a single new Buffer with their contents joined in order. If the list is empty, a zero-length Buffer is returned. `totalLength` is optional. If omitted, it is calculated automatically by summing the lengths of all items. Providing it explicitly skips that summation (minor performance win).
 
@@ -1040,7 +1023,7 @@ Gotcha: Buffer.concat() may allocate from the internal pool the same way Buffer.
 </details><br>
 
 <details>
-<summary>44. What is the difference between Buffer.from(typedArray) and Buffer.from(typedArray.buffer)?</summary>
+<summary>43. What is the difference between Buffer.from(typedArray) and Buffer.from(typedArray.buffer)?</summary>
 
 Passing a TypedArray copies only the bytes the view exposes into a new independent Buffer — no memory is shared. Passing the underlying .buffer (the ArrayBuffer itself) creates a view over the entire backing memory, ignoring any offset or length the TypedArray was created with, and mutations on either side are immediately visible through the other.
 
@@ -1061,7 +1044,7 @@ The bug is silent — no error is thrown, you just get unexpected bytes.
 </details><br>
 
 <details>
-<summary>45. Does modifying a Buffer affect other Buffers copied from it?</summary>
+<summary>44. Does modifying a Buffer affect other Buffers copied from it?</summary>
 
 No. Buffer.from(buffer) copies the data into a new independent Buffer. The two share no memory — mutations to one are not visible in the other.
 
@@ -1080,7 +1063,7 @@ This is the opposite of Buffer.from(arrayBuffer), which shares memory. Buffer.fr
 </details><br>
 
 <details>
-<summary>46. How do you compare two Buffers?</summary>
+<summary>45. How do you compare two Buffers?</summary>
 
 buf.compare(target) compares bytes lexicographically and returns 0 (equal), -1 (buf sorts before target), or 1 (buf sorts after target). Works directly as a Array.sort comparator via the static Buffer.compare.
 
@@ -1100,7 +1083,7 @@ buf2.compare(buf1); // 1  — buf2 sorts after buf1
 </details><br>
 
 <details>
-<summary>47. How do you copy bytes from one Buffer into another?</summary>
+<summary>46. How do you copy bytes from one Buffer into another?</summary>
 
 buf.copy(target[, targetStart[, sourceStart[, sourceEnd]]]) copies a range of bytes from buf into target, which must be a Buffer or Uint8Array. All offset parameters default to 0 / buf.length. Returns the number of bytes copied.
 
@@ -1115,7 +1098,7 @@ src.copy(dst, 0, 6, 11); // copies 'world' into dst starting at offset 0
 </details><br>
 
 <details>
-<summary>48. How do you read numeric values from a Buffer at a specific byte offset?</summary>
+<summary>47. How do you read numeric values from a Buffer at a specific byte offset?</summary>
 
 Use the typed read methods. readUInt8(offset) is the most common — reads one unsigned byte. For multi-byte numbers you pick the type and byte order (BE = big-endian, LE = little-endian).
 
@@ -1133,7 +1116,7 @@ The full family follows the pattern read[U]Int[8|16|32|64]BE/LE, with float and 
 </details><br>
 
 <details>
-<summary>49. How do you get a slice of a Buffer without copying?</summary>
+<summary>48. How do you get a slice of a Buffer without copying?</summary>
 
 buf.subarray(start, end) returns a new Buffer that references the same memory as the original — no copy is made. Mutations in the subarray are visible in the original and vice versa.
 
@@ -1150,7 +1133,7 @@ To get an independent copy instead, use Buffer.from(buf.subarray(0, 5)).
 </details><br>
 
 <details>
-<summary>50. How do you write a string into an existing Buffer at a specific offset?</summary>
+<summary>49. How do you write a string into an existing Buffer at a specific offset?</summary>
 
 buf.write(string[, offset[, length]][, encoding]) writes a string into buf at the given offset, returning the number of bytes written. Defaults: offset 0, length buf.length - offset, encoding utf8.
 
@@ -1167,7 +1150,7 @@ Gotcha: if the string is longer than length allows, it is truncated silently. Al
 </details><br>
 
 <details>
-<summary>51. How do you write a numeric value into a Buffer at a specific byte offset?</summary>
+<summary>50. How do you write a numeric value into a Buffer at a specific byte offset?</summary>
 
 The numeric write methods follow the same naming pattern as the read methods: write[U]Int[8|16|32|64]BE/LE, plus float and double variants. Each takes a value and an offset, and returns the offset plus the number of bytes written.
 
@@ -1184,7 +1167,7 @@ console.log(buf); // <Buffer 7f 01 00 ff>
 </details><br>
 
 <details>
-<summary>52. What is File and how does it differ from Blob?</summary>
+<summary>51. What is File and how does it differ from Blob?</summary>
 
 File extends Blob and adds two pieces of metadata: a file name and a last-modified timestamp. Everything else — immutability, async access, MIME type, thread-safe sharing — is inherited from Blob unchanged.
 
@@ -1212,7 +1195,7 @@ form.append("upload", file); // name comes from the File itself
 </details><br>
 
 <details>
-<summary>53. Can fs.open() + createReadStream() be used on non-file resources?</summary>
+<summary>52. Can fs.open() + createReadStream() be used on non-file resources?</summary>
 
 Yes. On Linux everything is a file descriptor, so `fs.open()` works on character devices, serial ports, sound cards, and virtual files — not just regular files. `createReadStream()` simply wraps the descriptor in Node's stream interface; the kernel doesn't distinguish.
 
@@ -1245,7 +1228,7 @@ stream.read(0); // flush stream state machine to act on it
 </details><br>
 
 <details>
-<summary>54. How does autoClose affect file descriptor lifetime in createReadStream?</summary>
+<summary>53. How does autoClose affect file descriptor lifetime in createReadStream?</summary>
 
 With the default `autoClose: true` the file descriptor is closed automatically on `'end'` or `'error'`. Set it to `false` when you need to reuse the same `FileHandle` across multiple streams — one `open()`, many reads.
 
@@ -1271,7 +1254,7 @@ Gotcha: with `autoClose: false`, errors also leave the descriptor open — alway
 </details><br>
 
 <details>
-<summary>55. What does filehandle.datasync() do and when would you use it?</summary>
+<summary>54. What does filehandle.datasync() do and when would you use it?</summary>
 
 Writes don't go straight to disk — the OS buffers them in memory and flushes whenever it wants, for performance. `datasync()` forces that flush immediately, blocking until the data is physically on disk. Unlike `sync()`, it skips flushing metadata (last modified time, file size, permissions) — saving unnecessary I/O when you only care that the content survived.
 
@@ -1298,7 +1281,7 @@ Gotcha: `datasync()` is a real I/O wait — calling it after every single write 
 </details><br>
 
 <details>
-<summary>56. How do you clear a file's content without deleting it?</summary>
+<summary>55. How do you clear a file's content without deleting it?</summary>
 
 `filehandle.truncate(0)` sets the file size to zero, wiping all content while keeping the file and its descriptor open.
 
@@ -1316,7 +1299,7 @@ If value passed to truncate greater than file length it will be filled with empt
 </details><br>
 
 <details>
-<summary>57. How do you check if a file is readable/writable?</summary>
+<summary>56. How do you check if a file is readable/writable?</summary>
 
 `fsPromises.access()` with permission flags — fulfills if the process has access, rejects if not.
 
@@ -1340,7 +1323,7 @@ Gotcha: never use this before `open()` — another process can change the file b
 </details><br>
 
 <details>
-<summary>58. How do you reference files relative to the current module in ESM?</summary>
+<summary>57. How do you reference files relative to the current module in ESM?</summary>
 
 In CommonJS `__dirname` gave you the current file's directory. ESM doesn't have it — use `import.meta.url` instead, which is the URL of the current file.
 
@@ -1357,7 +1340,7 @@ Gotcha: plain relative paths like `'./package.json'` are relative to where you _
 </details><br>
 
 <details>
-<summary>59. How do you use an async generator as a transform stage in a pipeline?</summary>
+<summary>58. How do you use an async generator as a transform stage in a pipeline?</summary>
 
 An `async function*` can sit between streams in `pipeline` — it receives the previous stream as `source` and yields transformed chunks downstream.
 
@@ -1383,7 +1366,7 @@ await pipeline(
 </details><br>
 
 <details>
-<summary>60. How do you use an async generator as the source in a pipeline?</summary>
+<summary>59. How do you use an async generator as the source in a pipeline?</summary>
 
 Pass it as the first argument — it produces data from scratch with no incoming stream.
 
@@ -1399,7 +1382,7 @@ Gotcha: if the generator is the source and you ignore `signal`, the pipeline **w
 </details><br>
 
 <details>
-<summary>61. Can you rewind a readable stream after unpiping it?</summary>
+<summary>60. Can you rewind a readable stream after unpiping it?</summary>
 
 No. After `unpipe()`, re-piping resumes from wherever the underlying resource left off — the stream has no "rewind" concept.
 
@@ -1429,7 +1412,7 @@ Gotcha: after `unpipe()`, `readableFlowing` becomes `false` — even re-attachin
 </details><br>
 
 <details>
-<summary>62. How do you reliably detect when a stream has fully finished?</summary>
+<summary>61. How do you reliably detect when a stream has fully finished?</summary>
 
 `stream.finished()` resolves when a stream is no longer readable or writable — for any reason (end, error, destroy). Unlike listening to `'end'` directly, it works on both Readables and Writables, and fires on errors and early destroys too.
 
@@ -1474,7 +1457,7 @@ await finished(rs, { cleanup: true });
 </details><br>
 
 <details>
-<summary>63. When do you use stream.destroy() vs stream.end()?</summary>
+<summary>62. When do you use stream.destroy() vs stream.end()?</summary>
 
 `end()` is a graceful shutdown — flushes all buffered data before closing. `destroy()` is immediate and violent — drops buffered data, releases the resource right now, no waiting.
 
@@ -1513,7 +1496,7 @@ Gotcha: calling `destroy()` while writes are still buffered means those writes m
 </details><br>
 
 <details>
-<summary>64. What is backpressure in Node.js streams and what happens if you ignore it?</summary>
+<summary>63. What is backpressure in Node.js streams and what happens if you ignore it?</summary>
 
 Backpressure is the signal a Writable sends when it can't keep up with incoming data. It triggers exactly when `.write()` returns `false` — meaning the internal buffer has exceeded `highWaterMark` (default 16kb) or the write queue is busy.
 
@@ -1565,7 +1548,7 @@ Gotcha: the cost of ignoring backpressure is not theoretical. Benchmarks from th
 </details><br>
 
 <details>
-<summary>65. What does cork/uncork actually do and when does it help?</summary>
+<summary>64. What does cork/uncork actually do and when does it help?</summary>
 
 `cork()` buffers all `write()` calls in memory instead of forwarding them to the underlying resource immediately. `uncork()` flushes them all at once.
 
@@ -1606,7 +1589,7 @@ stream.uncork(); // counter = 0 — flushes now
 </details><br>
 
 <details>
-<summary>66. What is the correct pattern for using cork/uncork?</summary>
+<summary>65. What is the correct pattern for using cork/uncork?</summary>
 
 Always defer `uncork()` with `process.nextTick()` — never call it synchronously at the end of a write loop.
 
@@ -1657,7 +1640,7 @@ The `nextTick` deferral is what makes cork actually work — without it you're j
 </details><br>
 
 <details>
-<summary>67. When should you use `'readable'` over `'data'` event, and what is the core difference?</summary>
+<summary>66. When should you use `'readable'` over `'data'` event, and what is the core difference?</summary>
 
 The fundamental difference is **who controls the reading pace**.
 
@@ -1701,7 +1684,7 @@ stream.on("readable", () => {
 </details><br>
 
 <details>
-<summary>68. How do you distinguish the flow state of a readable stream?</summary>
+<summary>67. How do you distinguish the flow state of a readable stream?</summary>
 
 Check `stream.readableFlowing`:
 
@@ -1712,7 +1695,7 @@ Check `stream.readableFlowing`:
 </details><br>
 
 <details>
-<summary>69. How do you keep a Writable open after a Readable finishes?</summary>
+<summary>68. How do you keep a Writable open after a Readable finishes?</summary>
 
 By default, `pipe()` calls `writer.end()` automatically when the readable emits `'end'`. Pass `{ end: false }
 
@@ -1742,7 +1725,7 @@ audioStream.on("end", () => {
 </details><br>
 
 <details>
-<summary>70. Can `readable.read()` return `null` before the stream is finished?</summary>
+<summary>69. Can `readable.read()` return `null` before the stream is finished?</summary>
 
 Yes — `null` means "buffer empty right now", not necessarily end of stream. With a large file or slow source, the buffer can be temporarily exhausted while more data is still incoming.
 
@@ -1769,7 +1752,7 @@ readable.on("end", () => {
 </details><br>
 
 <details>
-<summary>71. What is `stream.compose` and how does it differ from `stream.pipeline`?</summary>
+<summary>70. What is `stream.compose` and how does it differ from `stream.pipeline`?</summary>
 
 `pipeline` is **terminal** — runs immediately, forms a closed circuit, first stream must be readable, last must be writable:
 
@@ -1813,7 +1796,7 @@ Error behavior mirrors `pipeline` — any stream errors and the entire composed 
 </details><br>
 
 <details>
-<summary>72. What is `stream.duplexPair()` and when do you use it?</summary>
+<summary>71. What is `stream.duplexPair()` and when do you use it?</summary>
 
 `duplexPair()` returns two connected Duplex streams — whatever is written into one comes out the other:
 
@@ -1842,7 +1825,7 @@ myClient.connect(clientSide);
 <br>
 
 <details>
-<summary>73. What are dangling event listeners in `stream.pipeline` and how to avoid them?</summary>
+<summary>72. What are dangling event listeners in `stream.pipeline` and how to avoid them?</summary>
 
 On success, `pipeline` cleans up all its internal listeners. On error, it destroys the underlying resources but **leaves its listeners attached** to the stream JS objects.
 
@@ -1866,7 +1849,7 @@ pipeline(r2, createTransform(), w2, onDone);
 <br>
 
 <details>
-<summary>74. How do you convert between Node.js streams and Web Streams API?</summary>
+<summary>73. How do you convert between Node.js streams and Web Streams API?</summary>
 
 Node.js streams and Web Streams (`ReadableStream`, `WritableStream`) are two separate APIs. Bridge methods convert between them:
 
@@ -1895,7 +1878,7 @@ stream.Readable.fromWeb(body)
 <br>
 
 <details>
-<summary>75. What is `stream.Readable.isDisturbed()` and why use it?</summary>
+<summary>74. What is `stream.Readable.isDisturbed()` and why use it?</summary>
 
 Returns `true` if a stream has already been consumed (read, piped, resumed) or cancelled — `false` if completely untouched.
 
@@ -1911,7 +1894,7 @@ if (stream.Readable.isDisturbed(req)) {
 <br>
 
 <details>
-<summary>76. What is `writable._writev()` and when does it matter?</summary>
+<summary>75. What is `writable._writev()` and when does it matter?</summary>
 
 When extending `Writable`, you implement `_write` to handle one chunk at a time — it is required:
 
@@ -1948,7 +1931,7 @@ cork() + no _writev  → chunks still one by one      ❌
 <br>
 
 <details>
-<summary>77. What happens to a `Readable` stream when the `Writable` it is piped into emits an error?</summary>
+<summary>76. What happens to a `Readable` stream when the `Writable` it is piped into emits an error?</summary>
 
 The `Readable` is automatically unpiped from the `Writable` — but **not destroyed**. The `Readable` stops sending data to that destination but remains open and can be piped elsewhere.
 
@@ -1977,7 +1960,7 @@ Use `stream.pipeline` instead of manual `pipe` if you want automatic cleanup of 
 <br>
 
 <details>
-<summary>78. Why does `Buffer.toString()` break with multi-byte characters and how does `StringDecoder` fix it?</summary>
+<summary>77. Why does `Buffer.toString()` break with multi-byte characters and how does `StringDecoder` fix it?</summary>
 
 `Buffer.toString()` is stateless — decodes each buffer in isolation with no memory of previous chunks. Multi-byte characters like `€` (3 bytes: `0xE2 0x82 0xAC`) can arrive split across chunks:
 
@@ -2010,7 +1993,7 @@ Not stream-specific — useful anywhere you assemble a string from buffers chunk
 <br>
 
 <details>
-<summary>79. What happens if you push a zero-length buffer or empty string in `_read()` when extending `Readable`?</summary>
+<summary>78. What happens if you push a zero-length buffer or empty string in `_read()` when extending `Readable`?</summary>
 
 When extending `Readable`, never push zero-length values in `_read()` — `_read()` won't be called again and the stream silently stalls. Not ended, not progressing, no error thrown:
 
@@ -2030,7 +2013,7 @@ class MyReadable extends Readable {
 <br>
 
 <details>
-<summary>80. What is net.Socket in Node.js, what stream type does it extend, and how is it normally obtained?</summary>
+<summary>79. What is net.Socket in Node.js, what stream type does it extend, and how is it normally obtained?</summary>
 
 net.Socket is Node's abstraction over a single connected endpoint: either a TCP connection or a streaming IPC endpoint (named pipes on Windows, Unix domain sockets elsewhere). It extends stream.Duplex, so it is readable and writable at the same time, supports pipe()/backpressure, and inherits the EventEmitter API ('data', 'end', 'error', 'close', ...).
 
@@ -2057,7 +2040,7 @@ Gotcha: socket.connect() exists but is rarely needed directly; it is intended fo
 </details><br>
 
 <details>
-<summary>81. How can a connected TCP socket be handed to another thread in Node.js, and what happens to the original socket?</summary>
+<summary>80. How can a connected TCP socket be handed to another thread in Node.js, and what happens to the original socket?</summary>
 
 A connected TCP net.Socket can be listed in the transferList of a worker_threads postMessage() call. The underlying OS handle moves to the receiving thread: the source socket is destroyed on the sending thread (any further use rejects with ERR_STREAM_DESTROYED rather than silently discarding data), and the socket continues to work normally on the receiving thread. This lets one thread accept connections and distribute them across a worker pool, i.e. a node:cluster-like model built on worker threads instead of processes.
 
@@ -2080,7 +2063,7 @@ Gotcha: this is a recent addition to net (Node.js 24 line); on older runtimes th
 </details><br>
 
 <details>
-<summary>82. How does TCP keep-alive differ from HTTP keep-alive, and why does confusing them cause bugs?</summary>
+<summary>81. How does TCP keep-alive differ from HTTP keep-alive, and why does confusing them cause bugs?</summary>
 
 In one line: TCP keep-alive asks "is this wire still connected?", HTTP keep-alive says "let's reuse this wire for several requests". They share a name and nothing else - enabling one does not enable the other.
 
@@ -2109,7 +2092,7 @@ The fix is to make sure you close idle connections before the middlebox does: se
 </details><br>
 
 <details>
-<summary>83. What exactly does socket.setTimeout() do in Node.js, and does it close the connection?</summary>
+<summary>82. What exactly does socket.setTimeout() do in Node.js, and does it close the connection?</summary>
 
 It arms an idle-inactivity timer: if no activity occurs on the socket for the given number of milliseconds, the socket emits a 'timeout' event. By default net.Socket has no timeout. Crucially, the connection is not severed - Node only notifies you. The socket remains open and usable until you explicitly call socket.end() for a graceful half-close or socket.destroy() to tear it down. Passing 0 disables an existing idle timeout. The optional callback argument is registered as a one-time 'timeout' listener. The method returns the socket.
 
@@ -2129,7 +2112,7 @@ Gotcha: it is an inactivity timer, not a total-duration or deadline timer. The c
 </details><br>
 
 <details>
-<summary>84. Is socket.setTimeout() sufficient protection against slow-request (Slowloris-style) attacks on an HTTP server?</summary>
+<summary>83. Is socket.setTimeout() sufficient protection against slow-request (Slowloris-style) attacks on an HTTP server?</summary>
 
 No, and treating it as sufficient is an outdated framing. Because setTimeout() measures inactivity and resets on every byte, an attacker who sends a single header byte just under the timeout interval keeps hundreds of connections alive indefinitely and exhausts the server's connection capacity.
 s
@@ -2149,7 +2132,7 @@ Gotcha: these are deadlines, not inactivity timers, which is exactly why they de
 </details><br>
 
 <details>
-<summary>85. What is the difference between String.prototype.length and Buffer.byteLength(string, encoding), and when does it matter?</summary>
+<summary>84. What is the difference between String.prototype.length and Buffer.byteLength(string, encoding), and when does it matter?</summary>
 
 String.prototype.length counts UTF-16 code units in the JavaScript string. Buffer.byteLength(string, encoding) counts how many bytes that string occupies once serialized with the given encoding (default 'utf8'). They only agree for pure ASCII text in a single-byte-per-char encoding.
 
@@ -2179,7 +2162,7 @@ Gotcha: Buffer.byteLength also accepts a Buffer, TypedArray, DataView or ArrayBu
 </details><br>
 
 <details>
-<summary>86. In the Node.js http module, how do response.setHeader() and response.writeHead() interact, and what is the required call order?</summary>
+<summary>85. In the Node.js http module, how do response.setHeader() and response.writeHead() interact, and what is the required call order?</summary>
 
 setHeader(name, value) stores a header in an internal, mutable map; it can be called repeatedly and read back with getHeader()/getHeaders() and removed with removeHeader(). writeHead(statusCode[, statusMessage][, headers]) finalizes the status line plus headers and marks them as sent. Therefore every setHeader() call must happen before writeHead() (and before the first write()/end(), which trigger implicit headers).
 
@@ -2201,7 +2184,7 @@ Since Node.js 11.10.0 writeHead() returns the response object, so chaining works
 </details><br>
 
 <details>
-<summary>87. When you call readable.pipe(writable), what happens to the writable stream once the source ends?</summary>
+<summary>86. When you call readable.pipe(writable), what happens to the writable stream once the source ends?</summary>
 
 By default pipe() calls writable.end() automatically when the readable emits 'end'. That is why streaming a file to an HTTP response needs no explicit close: the response is ended for you when the file is fully read.
 
@@ -2221,7 +2204,7 @@ Gotchas: process.stdout and process.stderr are never ended by pipe(), regardless
 </details><br>
 
 <details>
-<summary>88. Why is readable.pipe() discouraged for production code, and what should be used instead?</summary>
+<summary>87. Why is readable.pipe() discouraged for production code, and what should be used instead?</summary>
 
 pipe() is not removed or formally deprecated, but Node.js documentation has recommended stream.pipeline() over it since Node 10 (2018), and the promise form since Node 15 (2020). pipe() has two concrete defects: it does not forward errors, and it does not destroy the other streams on failure.
 
@@ -2247,7 +2230,7 @@ Gotcha: pipeline() returning successfully means the data reached the destination
 </details><br>
 
 <details>
-<summary>89. What is the simplest built-in way to consume an entire readable stream into a Buffer in modern Node.js?</summary>
+<summary>88. What is the simplest built-in way to consume an entire readable stream into a Buffer in modern Node.js?</summary>
 
 The node:stream/consumers module, added in Node.js 16.7.0, provides helpers that consume a whole stream and resolve to a single value: buffer(), arrayBuffer(), blob(), text() and json().
 
@@ -2266,7 +2249,7 @@ Gotchas: they buffer the entire stream in memory, so never apply them to untrust
 </details><br>
 
 <details>
-<summary>90. How do you collect a readable stream into a Buffer without any helper module?</summary>
+<summary>89. How do you collect a readable stream into a Buffer without any helper module?</summary>
 
 A Node readable stream is an async iterable, so iterate it, push each chunk into an array, and concatenate once at the end. This works on every Node version that supports for await and has no dependencies.
 
@@ -2291,7 +2274,7 @@ Gotcha: Buffer.concat requires every element to be a Buffer or Uint8Array. If st
 </details><br>
 
 <details>
-<summary>91. What is the security risk of buffering a whole request stream into memory, and how is it mitigated?</summary>
+<summary>90. What is the security risk of buffering a whole request stream into memory, and how is it mitigated?</summary>
 
 Reading an incoming stream to completion allocates memory proportional to what the sender chooses to send. For any network-facing stream this is an unbounded allocation controlled by an attacker, and a handful of slow, very large uploads exhausts the heap and takes the process down. This is a denial-of-service class issue, not a theoretical one, and it applies equally to a manual chunk loop, stream/consumers, and any body parser.
 
@@ -2320,7 +2303,7 @@ Gotcha: the cap must also cover the decompressed size if you inflate a gzip body
 </details><br>
 
 <details>
-<summary>92. How do you get a Buffer from a fetch() response body, and how do web streams relate to Node streams?</summary>
+<summary>91. How do you get a Buffer from a fetch() response body, and how do web streams relate to Node streams?</summary>
 
 fetch() is WHATWG-standard, so response.body is a web ReadableStream, not a Node stream.Readable. It has no 'data' events and no pipe() method. The Response object exposes its own consumption helpers, which is the direct route to bytes:
 
@@ -2343,7 +2326,7 @@ Gotchas: Buffer.from(arrayBuffer) creates a view that shares memory with the Arr
 </details><br>
 
 <details>
-<summary>93. Why does a server send multiple Set-Cookie headers while a client sends only one Cookie header?</summary>
+<summary>92. Why does a server send multiple Set-Cookie headers while a client sends only one Cookie header?</summary>
 
 The two directions of cookie transport use deliberately different shapes, defined in RFC 6265.
 
@@ -2365,7 +2348,7 @@ Gotcha: because attributes are not sent back, a server cannot tell from the Cook
 </details><br>
 
 <details>
-<summary>94. How do you read headers that appear multiple times in an incoming HTTP message?</summary>
+<summary>93. How do you read headers that appear multiple times in an incoming HTTP message?</summary>
 
 In the Node http module, request.headers and response.headers are lowercased objects where duplicates have already been collapsed, and the collapsing rule depends on the header:
 
@@ -2384,7 +2367,7 @@ Gotcha: never split a set-cookie string on commas yourself. Expires dates contai
 </details><br>
 
 <details>
-<summary>95. What does the Vary response header do in HTTP caching?</summary>
+<summary>94. What does the Vary response header do in HTTP caching?</summary>
 
 A cache keys a stored response by request method and URL. Vary extends that key: it lists the request headers whose values must also match before a stored response may be reused. It exists because content negotiation lets one URL return different bytes depending on what the client asked for, and without Vary the cache would hand the wrong variant to the next client.
 
@@ -2409,7 +2392,7 @@ Performance gotchas: Vary: \* means the response is never reusable from cache. V
 </details><br>
 
 <details>
-<summary>96. How do ETag and If-None-Match revalidate a stale cached response?</summary>
+<summary>95. How do ETag and If-None-Match revalidate a stale cached response?</summary>
 
 ETag is an opaque version identifier the server attaches to a response. Its content is entirely up to the server, commonly a hash of the body or a revision number. The client stores it with the cached copy and, once that copy goes stale, sends it back in If-None-Match instead of re-downloading blindly.
 
@@ -2432,7 +2415,7 @@ Gotchas: the value must be sent in double quotes, and a leading W/ marks a weak 
 </details><br>
 
 <details>
-<summary>97. What makes a cookie a session cookie, and how long does it actually live?</summary>
+<summary>96. What makes a cookie a session cookie, and how long does it actually live?</summary>
 
 A cookie set with neither Max-Age nor Expires is a session cookie. It is deleted when the current session ends. Any cookie that does carry one of those attributes is a permanent cookie instead.
 
@@ -2446,7 +2429,7 @@ Gotcha: what counts as the end of the "current session" is defined by the browse
 </details><br>
 
 <details>
-<summary>98. What does the If-Range request header do, and why is it needed to resume an interrupted download?</summary>
+<summary>97. What does the If-Range request header do, and why is it needed to resume an interrupted download?</summary>
 
 If-Range makes a Range request conditional on the resource not having changed. The client sends the validator it received with the bytes it already holds. If the validator still matches, the server honours the Range and answers 206 Partial Content with just the requested bytes. If it no longer matches, the server ignores the Range and answers 200 OK with the entire resource, so the client throws away its partial data and restarts from scratch.
 
@@ -2469,7 +2452,7 @@ Gotchas: the validator must be a strong one. A weak ETag (W/"...") is compared w
 </details><br>
 
 <details>
-<summary>99. How do HTTP range requests and chunked Transfer-Encoding differ, and can they be used together?</summary>
+<summary>98. How do HTTP range requests and chunked Transfer-Encoding differ, and can they be used together?</summary>
 
 They solve opposite problems and are orthogonal. A range request is client driven: the resource has a known total size and the client asks for a subset of it, which is what makes seeking in a video, resuming a download, and reading a slice of a large file possible. Chunked transfer encoding is server driven framing: the body is sent as a sequence of length-prefixed chunks terminated by a zero-length chunk, so the server can start writing before it knows the total length, without buffering the whole response to compute Content-Length. Chunked improves time to first byte; Range reduces how much is transferred.
 
@@ -2496,7 +2479,7 @@ Other gotchas: chunked is applied by Node automatically when you write a respons
 </details><br>
 
 <details>
-<summary>100. How do you implement Range support for a file in a raw Node.js http handler?</summary>
+<summary>99. How do you implement Range support for a file in a raw Node.js http handler?</summary>
 
 Node's http module does nothing with the Range header; you have to advertise support, parse the header, and build the 206 yourself. The pieces are Accept-Ranges: bytes on the normal response, a parsed start and end, Content-Range plus a Content-Length covering only the slice, and fs.createReadStream with start and end options.
 
@@ -2555,7 +2538,7 @@ Gotchas: Accept-Ranges must be on the plain 200 response too, otherwise clients 
 </details><br>
 
 <details>
-<summary>101. What is http.Agent responsible for, and what decides whether a socket is pooled or destroyed after a response completes?</summary>
+<summary>100. What is http.Agent responsible for, and what decides whether a socket is pooled or destroyed after a response completes?</summary>
 
 An Agent manages connection persistence and reuse for HTTP client requests. Per host and port it keeps a queue of pending requests and serves them over a single socket until the queue is empty. What happens to the socket then depends on the keepAlive option: with keepAlive it goes into a pool of free sockets and waits to be reused by a later request to the same host and port, without it the socket is destroyed and the next request opens a new connection.
 
@@ -2583,7 +2566,7 @@ Other gotcha: TCP Keep-Alive, which pooled sockets enable, is unrelated to HTTP 
 </details><br>
 
 <details>
-<summary>102. How do you keep one long-lived HTTP request from occupying a slot in the agent's connection pool, and why should an unused Agent be destroyed?</summary>
+<summary>101. How do you keep one long-lived HTTP request from occupying a slot in the agent's connection pool, and why should an unused Agent be destroyed?</summary>
 
 An Agent does bookkeeping on every socket it hands out. A socket serving a request is tracked in agent.sockets, and a socket counts against maxSockets for as long as it is tracked there; when the response finishes it moves to agent.freeSockets for reuse, or is destroyed. A socket leaves this bookkeeping entirely when it emits either 'close' (its normal end of life) or 'agentRemove'.
 
@@ -2608,14 +2591,14 @@ Gotchas: this makes the connection single use, so do not reach for 'agentRemove'
 </details><br>
 
 <details>
-<summary>103. Does fetch() in Node.js use http.Agent, and how is its connection pooling configured?</summary>
+<summary>102. Does fetch() in Node.js use http.Agent, and how is its connection pooling configured?</summary>
 
 No. Node's global fetch is implemented by undici, which has its own connection management built on a Dispatcher, with Agent and Pool implementations of that interface. It never consults node:http, so http.globalAgent, a custom Agent, maxSockets, keepAlive and the agent request option have no effect whatsoever on a fetch() call.
 
 </details><br>
 
 <details>
-<summary>104. Why do requests over a keep-alive connection pool intermittently fail with ECONNRESET, and how is that handled?</summary>
+<summary>103. Why do requests over a keep-alive connection pool intermittently fail with ECONNRESET, and how is that handled?</summary>
 
 It is an unavoidable race in connection reuse. The server closes an idle pooled connection when its own idle timeout expires and sends a FIN; the client, which cannot know this yet, picks that socket out of the pool and writes a request onto it. The server has already torn the connection down, so it answers with a RST, and the client surfaces ECONNRESET for a request the server application never saw. Nothing was processed, and the error says nothing about the request itself.
 
@@ -2638,7 +2621,7 @@ Currency gotcha: this failure class became far more common in code that never as
 </details><br>
 
 <details>
-<summary>105. What is an HTTP trailer section, and what problem does it solve that ordinary headers cannot?</summary>
+<summary>104. What is an HTTP trailer section, and what problem does it solve that ordinary headers cannot?</summary>
 
 A trailer section is a block of header-like fields sent after the message body instead of before it. Ordinary headers must be fully written before the first byte of the body, so they can only carry values that are known up front. A trailer carries metadata that can only be computed once the body has finished streaming.
 
@@ -2663,7 +2646,7 @@ Gotcha: trailers are advisory metadata, not a place to put anything the receiver
 </details><br>
 
 <details>
-<summary>106. How do trailers work in HTTP/2 and HTTP/3, where there is no chunked transfer encoding?</summary>
+<summary>105. How do trailers work in HTTP/2 and HTTP/3, where there is no chunked transfer encoding?</summary>
 
 Chunked transfer encoding does not exist in HTTP/2 or HTTP/3; framing is handled by the protocol itself. Trailers are instead a second HEADERS frame sent after the DATA frames, carrying the END_STREAM flag. There is no Content-Length restriction and no announcement requirement, so trailers are structurally cheaper and more reliable than in HTTP/1.1.
 
@@ -2684,7 +2667,7 @@ Gotcha: HTTP/2 requires lowercase field names, and a proxy translating HTTP/2 to
 </details><br>
 
 <details>
-<summary>107. How does a server cancel in-flight work when the client disconnects mid-request?</summary>
+<summary>106. How does a server cancel in-flight work when the client disconnects mid-request?</summary>
 
 By propagating an AbortSignal tied to the request's lifetime into every downstream call. When the client goes away, the request is destroyed before completion, the signal aborts, and the database query or outbound HTTP call that is still running is torn down instead of finishing into a socket nobody is reading.
 
@@ -2726,7 +2709,7 @@ Gotcha: the signal is created lazily on first property access, so no AbortContro
 </details><br>
 
 <details>
-<summary>108. What does the bash builtin disown do, and what problem does it solve?</summary>
+<summary>107. What does the bash builtin disown do, and what problem does it solve?</summary>
 
 When a terminal closes, the shell receives `SIGHUP` (the "hangup" signal), and an interactive bash resends `SIGHUP` to every job in its job table before exiting, which kills background jobs you started with `&`. `disown` removes a job from the shell's job table, so the shell no longer tracks it and will not forward the hangup signal. The process keeps running after you close the terminal or log out.
 
@@ -2748,7 +2731,7 @@ Gotcha: `disown` does not redirect output. If the job writes to the terminal and
 </details><br>
 
 <details>
-<summary>109. How does nohup differ from disown for keeping a process alive after the terminal closes?</summary>
+<summary>108. How does nohup differ from disown for keeping a process alive after the terminal closes?</summary>
 
 Both protect a process from the hangup signal but at different moments. `nohup` is a command you put in front of another command before starting it: it launches the process with `SIGHUP` set to ignored and, if `stdout` is a terminal, redirects output to `nohup.out`. `disown` is a shell builtin applied after the job is already running in the background: it removes the job from the shell's job table so the shell never sends it `SIGHUP`.
 
@@ -2762,7 +2745,7 @@ disown
 </details><br>
 
 <details>
-<summary>110. What are the sections of the Unix man pages, and how do you open a specific one?</summary>
+<summary>109. What are the sections of the Unix man pages, and how do you open a specific one?</summary>
 
 `man` groups documentation into numbered sections because the same name can exist in several: `open` is both a shell command and a C system call. Standard Linux sections are:
 
@@ -2790,7 +2773,7 @@ man man           # how man itself works, including the section list
 </details><br>
 
 <details>
-<summary>111. How do you do arithmetic in bash, and what does $(( )) mean?</summary>
+<summary>110. How do you do arithmetic in bash, and what does $(( )) mean?</summary>
 
 Bash treats everything as strings by default: `x=1+2` stores the literal text `1+2`. `$(( expression ))` is arithmetic expansion: the shell evaluates the contents as an integer expression and substitutes the result. Inside it, variable names do not need the `$` prefix. The related `(( expression ))` without the leading `$` evaluates the expression for its side effects or truth value and returns an exit status (0 if the result is non-zero), which makes it the natural form for conditions and assignments.
 
@@ -2811,7 +2794,7 @@ Gotcha: bash arithmetic is 64-bit integer only. `$((1 / 3))` is `0` and `$((1.5 
 </details><br>
 
 <details>
-<summary>112. In what order does bash resolve a command name you type?</summary>
+<summary>111. In what order does bash resolve a command name you type?</summary>
 
 When bash reads a command word it searches in a fixed order and runs the first match:
 
@@ -2825,7 +2808,7 @@ Gotcha: because functions win over `PATH` executables, a function named `node` s
 </details><br>
 
 <details>
-<summary>113. How do bash aliases work, and how do you make one permanent?</summary>
+<summary>112. How do bash aliases work, and how do you make one permanent?</summary>
 
 An alias is a text substitution applied to the first word of a command before anything else is resolved. The related commands are:
 
@@ -2849,7 +2832,7 @@ source ~/.bashrc             # reload without restarting the terminal
 </details><br>
 
 <details>
-<summary>114. How do you define, call, and remove a shell function in bash?</summary>
+<summary>113. How do you define, call, and remove a shell function in bash?</summary>
 
 A shell function is a named block of commands that runs in the current shell. Arguments are available as positional parameters:
 
@@ -2876,7 +2859,7 @@ Gotcha: functions run in the caller's shell, so without `local` every assignment
 </details><br>
 
 <details>
-<summary>115. What is the PATH variable, how do you inspect and extend it, and why do child processes see it?</summary>
+<summary>114. What is the PATH variable, how do you inspect and extend it, and why do child processes see it?</summary>
 
 `PATH` is an environment variable holding a colon-separated list of directories. When you type a command that is not an alias, function, or builtin, the shell searches those directories left to right for an executable file with that name, so `ls` runs as `/bin/ls` or `/usr/bin/ls` because those directories are in `PATH`. The name `bin` stands for binaries. Since `PATH` is exported, every child process inherits it, which is why `process.env.PATH` in a Node program shows the same value as `$PATH` in the shell that launched it.
 
@@ -2896,7 +2879,7 @@ Gotcha: order matters, because the first match wins. Version managers such as `n
 </details><br>
 
 <details>
-<summary>116. What is the difference between a shell variable and an environment variable, and how are they passed to child processes?</summary>
+<summary>115. What is the difference between a shell variable and an environment variable, and how are they passed to child processes?</summary>
 
 A plain assignment `foo=123` creates a shell variable that exists only inside the current shell process. `export foo=123` marks it as an environment variable, which means it is copied into the environment of every child process the shell starts from then on. Prefixing a single command with an assignment, `foo=123 node index.js`, exports the variable for that one command only. The related commands are:
 
@@ -2927,7 +2910,7 @@ Gotcha: the `env` option replaces the whole environment instead of merging, so `
 </details><br>
 
 <details>
-<summary>117. How does process.env behave in Node.js on Windows and inside worker threads, and what happens when you assign to it?</summary>
+<summary>116. How does process.env behave in Node.js on Windows and inside worker threads, and what happens when you assign to it?</summary>
 
 `process.env` is a live view of the process environment, but it has platform and threading quirks. On Windows environment variable names are case-insensitive, so `process.env.path`, `process.env.Path`, and `process.env.PATH` all read the same value; on Unix they are three different variables. Assigning any value converts it to a string, so `process.env.PORT = 3000` stores `"3000"` and `process.env.DEBUG = undefined` stores the string `"undefined"`; use `delete process.env.DEBUG` to remove a variable. Each worker thread gets its own copy of `process.env`, taken from the parent thread at creation or from the `env` option of the `Worker` constructor; changes made in one thread are invisible to the others, and only changes made in the main thread reach the operating system or native addons. On Windows the worker's copy is case-sensitive, unlike the main thread's.
 
@@ -2947,7 +2930,7 @@ Gotcha: because workers copy the environment at start, calling `process.loadEnvF
 </details><br>
 
 <details>
-<summary>118. How are Unix file permissions displayed by ls -l, and how do you change them with chmod?</summary>
+<summary>117. How are Unix file permissions displayed by ls -l, and how do you change them with chmod?</summary>
 
 Every file has three permission sets, each with read (`r`), write (`w`), and execute (`x`) bits: one for the owning user, one for the owning group, and one for everyone else. `ls -l` prints them as a 10-character string. The first character is the file type:
 
@@ -2978,7 +2961,7 @@ Gotcha: the symbolic form takes one operator per clause, so `chmod u-r-w` is a s
 </details><br>
 
 <details>
-<summary>119. Does a shell script need the .sh extension, and what is required to run one directly as ./script.sh?</summary>
+<summary>118. Does a shell script need the .sh extension, and what is required to run one directly as ./script.sh?</summary>
 
 The `.sh` extension is only a convention for humans and editors; the kernel and the shell ignore it. A script is a text file, not a compiled executable, so something must interpret it. There are two ways to run it. Passing it to an interpreter explicitly, `bash script.sh`, works with any name and needs only read permission. Running it directly as `./script.sh` requires the execute bit (`chmod +x`) and a shebang line, `#!` followed by the interpreter path as the first line, which tells the kernel what program to launch to read the file.
 
@@ -2999,7 +2982,7 @@ Gotcha: without a shebang the kernel refuses with `ENOEXEC`; an interactive bash
 </details><br>
 
 <details>
-<summary>120. What is a shebang line, how does the kernel use it, and why is #!/usr/bin/env preferred over a fixed interpreter path?</summary>
+<summary>119. What is a shebang line, how does the kernel use it, and why is #!/usr/bin/env preferred over a fixed interpreter path?</summary>
 
 A shebang (also called hashbang) is the first line of a script, starting with the two characters `#!` followed by the path of an interpreter. When you execute a file directly (`./script.js`), the kernel reads its first bytes; if they are `#!`, it treats the rest of the line as the interpreter command and runs it with the script path appended: `<interpreter> [one optional argument] <path-to-script>`. So `./hello.js` becomes `/usr/bin/env node ./hello.js`. The `#` makes the line a comment for the interpreter itself, so it is ignored once the program starts. Using `/usr/bin/env node` instead of a hard-coded path such as `/usr/local/bin/node` makes `env` look the interpreter up in `PATH`, so the script works wherever Node is installed (including version managers such as `nvm`).
 
@@ -3029,7 +3012,7 @@ Gotcha: the shebang must be the very first bytes of the file, so a UTF-8 byte or
 </details><br>
 
 <details>
-<summary>121. What does the source command (or .) do, and how is it different from running a script normally?</summary>
+<summary>120. What does the source command (or .) do, and how is it different from running a script normally?</summary>
 
 Running `bash file.sh` or `./file.sh` starts a new shell process that executes the file and exits; any variables, functions, aliases, or directory changes it makes disappear with that process. `source file.sh`, or its POSIX spelling `. file.sh`, reads the file and executes every line inside the current shell, as if you had typed them at the prompt. Everything the file defines therefore stays available afterward. This is how `~/.bashrc` is loaded, and why reloading it after an edit is done with `source ~/.bashrc`.
 
@@ -3051,7 +3034,7 @@ Gotcha: because the file runs in your shell, an `exit` statement inside it close
 </details><br>
 
 <details>
-<summary>122. What are login, non-login, interactive, and non-interactive shells, and which startup files does each read?</summary>
+<summary>121. What are login, non-login, interactive, and non-interactive shells, and which startup files does each read?</summary>
 
 A shell is a login shell when it is the first process of a session, for example an `ssh` session, a console login, the shell a WSL terminal opens, or `bash -l`. A login bash reads `/etc/profile` and then the first existing of `~/.bash_profile`, `~/.bash_login`, `~/.profile`. A shell is interactive when it is attached to a terminal and shows a prompt; an interactive non-login bash (a new tab in a terminal emulator) reads `~/.bashrc`. A non-interactive shell runs a script or a single `-c` command without a prompt and reads none of those files, only the file named in `$BASH_ENV` if set.
 
@@ -3062,7 +3045,7 @@ Gotcha: `exec("source ~/.bashrc && ll")` is a fragile fix. Many `~/.bashrc` file
 </details><br>
 
 <details>
-<summary>123. How does child_process.exec differ from child_process.spawn in Node.js, and which shell does exec use?</summary>
+<summary>122. How does child_process.exec differ from child_process.spawn in Node.js, and which shell does exec use?</summary>
 
 `exec(command, options, callback)` passes the whole command string to a shell, `/bin/sh -c command` on Unix and the program named by `process.env.ComSpec` (normally `cmd.exe`) on Windows, and buffers all output until the process exits, then calls the callback with `stdout` and `stderr` strings. Because a shell is involved, pipes, redirections, globs, and environment expansion work, but arguments must be quoted carefully. `spawn(file, args, options)` executes the file directly: Node looks the name up in `PATH`, passes `args` as an array with no quoting or interpretation, uses no shell unless `shell: true`, and returns a `ChildProcess` whose `stdout` and `stderr` are streams.
 
@@ -3084,7 +3067,7 @@ Gotcha: `exec` has a `maxBuffer` limit (1 MiB by default) and kills the child wi
 </details><br>
 
 <details>
-<summary>124. When should you use execFile instead of exec in Node.js, and how does execFile compare to spawn?</summary>
+<summary>123. When should you use execFile instead of exec in Node.js, and how does execFile compare to spawn?</summary>
 
 `exec` and `execFile` both buffer the whole output and hand it to a callback, so they feel alike, but `exec` starts a shell and `execFile` does not. The shell is what interprets pipes, globs, `&&`, and variable expansion, and it is also what turns untrusted input into a command injection: `exec("convert " + userFile)` runs anything a user hides in the file name. `execFile("convert", [userFile])` passes the name as one literal argument, so no shell feature can fire. It is also slightly faster because no `sh` process is started. Make `execFile` the default for running a known program with arguments, and fall back to `exec` only when you truly need shell syntax.
 
@@ -3135,7 +3118,7 @@ Gotcha: on Windows, `.bat` and `.cmd` files are not executables and cannot be st
 </details><br>
 
 <details>
-<summary>125. What are PID and PPID, and how does an operating system start a new process?</summary>
+<summary>124. What are PID and PPID, and how does an operating system start a new process?</summary>
 
 Every process has a unique process ID (`PID`) and records the ID of the process that created it (`PPID`). A new process is created in two steps on Unix: the parent calls `fork()`, which makes a copy of itself, and the copy calls `execve(path, argv, envp)`, which asks the kernel to load the executable file from storage into memory and start it with the given arguments. The child inherits the parent's environment variables, open file descriptors including `stdin`, `stdout`, and `stderr`, the current working directory, user and group IDs, and the nice value. This forms a tree: on Linux `PID 1` is `init` or `systemd`, the ancestor of all user processes; `PID 0` is the kernel's idle task, which has no parent and appears as the parent of `PID 1`.
 
@@ -3155,7 +3138,7 @@ Gotcha: when a parent dies first, its children are not killed; they are orphaned
 </details><br>
 
 <details>
-<summary>126. What is the difference between a process's virtual size and its resident set size on Unix, and which one does a memory limit care about?</summary>
+<summary>125. What is the difference between a process's virtual size and its resident set size on Unix, and which one does a memory limit care about?</summary>
 
 Every process gets its own virtual address space, divided into pages (usually 4 KB). Reserving address space costs nothing; the operating system only backs a page with physical RAM the first time the process touches it. That gives two different sizes. The virtual size (VSZ) is everything the process has reserved: heap arenas, memory-mapped files, thread stacks, shared libraries. It can be gigabytes and says little about real usage. The resident set size (RSS) is the set of pages currently sitting in physical RAM. RSS excludes pages that were reserved but never touched and pages that were swapped out, and it includes shared pages such as the executable and `libc`, counted in full for every process that maps them.
 
@@ -3174,7 +3157,7 @@ Gotcha: container and cgroup memory limits, and therefore the Linux OOM killer, 
 </details><br>
 
 <details>
-<summary>127. When should you use path.win32 or path.posix instead of the default path module in Node.js?</summary>
+<summary>126. When should you use path.win32 or path.posix instead of the default path module in Node.js?</summary>
 
 The `path` module adapts to the operating system Node is running on: on Windows it uses `\` as separator and understands drive letters, on Unix it uses `/`. When you need to manipulate paths for a different system than the one you run on, or need identical results everywhere, use the explicit flavors. `path.win32` always applies Windows rules and `path.posix` always applies POSIX rules, regardless of the host OS. Typical cases are building paths for a remote machine, generating URLs or archive entries (always `/`), or writing tests that must pass on both platforms.
 
@@ -3194,7 +3177,7 @@ Gotcha: `path.win32` accepts both `\` and `/` as separators, but `path.posix` tr
 </details><br>
 
 <details>
-<summary>128. What is the difference between path.join() and path.resolve() in Node.js, and when does each one touch the current working directory?</summary>
+<summary>127. What is the difference between path.join() and path.resolve() in Node.js, and when does each one touch the current working directory?</summary>
 
 Both build a path from segments and normalize the result (collapsing `..`, `.`, and repeated separators), but they answer different questions. `path.join(...segments)` simply concatenates the segments with the platform separator and normalizes; the result is relative if the first segment is relative and it never consults the current working directory.
 `path.resolve(...segments)` produces an absolute path. It processes the segments from right to left, prepending each one until an absolute path has been formed, and if none of the segments is absolute it finally prepends `process.cwd()`.
@@ -3219,7 +3202,7 @@ Gotcha: because `resolve` depends on `process.cwd()` whenever no segment is abso
 </details><br>
 
 <details>
-<summary>129. What does path.parse() do in Node.js, and what does it return?</summary>
+<summary>128. What does path.parse() do in Node.js, and what does it return?</summary>
 
 `path.parse(pathString)` splits a path string into its parts and returns an object with five string properties:
 
@@ -3243,7 +3226,7 @@ Gotcha: `ext` is taken from the last dot only, so `archive.tar.gz` gives `".gz"`
 </details><br>
 
 <details>
-<summary>130. What is the current working directory, and how do you read, change, and pass it to a child process in Node.js?</summary>
+<summary>129. What is the current working directory, and how do you read, change, and pass it to a child process in Node.js?</summary>
 
 Every process has a current working directory (CWD): the directory against which relative paths are resolved. The shell shows it with `pwd` and changes it with `cd`. A child process inherits the CWD of its parent at start. In Node, `process.cwd()` returns it and `process.chdir(dir)` changes it for the running process. The `cwd` option of `spawn`, `exec`, `execFile`, and `fork` sets the directory the child starts in; it defaults to `process.cwd()`.
 
@@ -3267,7 +3250,7 @@ Gotcha: a child cannot change its parent's directory, which is why `cd` must be 
 </details><br>
 
 <details>
-<summary>131. Why does require or import find a relative file but fs does not, and how do you fix it in Node.js?</summary>
+<summary>130. Why does require or import find a relative file but fs does not, and how do you fix it in Node.js?</summary>
 
 Module loading and the file system resolve relative paths against different bases. `require("./data.json")` and `import "./data.json"` resolve relative to the directory of the file that contains the statement. `fs.readFile("./data.json")` and every other `fs` call resolve relative to the process's current working directory, which is wherever the user ran `node` from. If you start the program from another directory the module is still found but the `fs` call fails with `ENOENT`. The fix is to build an absolute path from the current file's directory: `__dirname` in CommonJS, or `import.meta.dirname` in ES modules (added in Node 20.11 and 21.2, early 2024).
 
@@ -3296,7 +3279,7 @@ Gotcha: `path.resolve` with a relative first argument still uses the CWD, so alw
 </details><br>
 
 <details>
-<summary>132. How can you make a Node.js console write to files instead of the terminal?</summary>
+<summary>131. How can you make a Node.js console write to files instead of the terminal?</summary>
 
 The global `console` is an instance of the `Console` class created with `process.stdout` and `process.stderr` as its two output streams. You can construct your own `Console` with any writable streams, for example file streams from `fs.createWriteStream`. Methods such as `log` and `info` write to the first stream, while `error` and `warn` write to the second, so you get the same API and formatting as the normal console but with a different destination. `stderr` is optional: if you pass only `stdout`, warnings and errors go to that same stream, which is handy for a single combined log file. The constructor also accepts the streams positionally as `new Console(stdout, stderr)`.
 
@@ -3317,7 +3300,7 @@ Gotcha: file streams are asynchronous, so calling `process.exit()` right after l
 </details><br>
 
 <details>
-<summary>133. What does console.trace() do in Node.js, and when is it worth using in a production application?</summary>
+<summary>132. What does console.trace() do in Node.js, and when is it worth using in a production application?</summary>
 
 `console.trace(message, ...args)` prints the message prefixed with `Trace:` followed by the current call stack to `stderr`, without throwing or stopping anything. It answers "who called this?" at a point where you cannot attach a debugger. Its legitimate production uses are:
 
@@ -3341,7 +3324,7 @@ Gotcha: capturing a stack is slow, so never call it unguarded on a hot path. It 
 </details><br>
 
 <details>
-<summary>134. What are the standard file descriptors 0, 1, and 2, and how do shell redirection operators use them?</summary>
+<summary>133. What are the standard file descriptors 0, 1, and 2, and how do shell redirection operators use them?</summary>
 
 Every process starts with three open file descriptors:
 
@@ -3375,7 +3358,7 @@ Gotcha: redirections are applied left to right, so `node app.js 2>&1 > out.txt` 
 </details><br>
 
 <details>
-<summary>135. What does the pipe operator | do in bash, and what happens to stderr and exit status in a pipeline?</summary>
+<summary>134. What does the pipe operator | do in bash, and what happens to stderr and exit status in a pipeline?</summary>
 
 `command1 | command2` connects the `stdout` (descriptor 1) of the first process to the `stdin` (descriptor 0) of the second. Both processes start at the same time and data flows through a kernel buffer as it is produced; when the writer exits, the reader sees end of file. Pipes can be chained, and any program that reads `stdin` and writes `stdout` can take part, which is how small Unix tools compose.
 
@@ -3398,7 +3381,7 @@ Gotcha: only `stdout` goes through the pipe; `stderr` still reaches the terminal
 </details><br>
 
 <details>
-<summary>136. How do &&, ||, and ; chain commands in bash, and what decides whether the next command runs?</summary>
+<summary>135. How do &&, ||, and ; chain commands in bash, and what decides whether the next command runs?</summary>
 
 Every command ends with an exit status: `0` means success, anything else means failure, and the shell stores the last one in `$?`. The chaining operators look at that status:
 
@@ -3421,7 +3404,7 @@ Gotcha: `a && b || c` is not a true if/else: `c` also runs when `a` succeeds but
 </details><br>
 
 <details>
-<summary>137. How do head and tail select part of a file or stream, and how do you skip lines from the start or end?</summary>
+<summary>136. How do head and tail select part of a file or stream, and how do you skip lines from the start or end?</summary>
 
 `head` prints the beginning of its input and `tail` the end, 10 lines each by default. `-n N` sets the line count (the shorthand `-N` also works) and `-c N` counts bytes instead of lines. Both read from files or from `stdin`, so they fit in pipelines. A plus sign changes the meaning of the count: `tail -n +K` means "output from line K to the end", with line K included. Because output starts at line K, exactly K minus 1 lines are skipped, so `tail -n +3` prints line 3 onward and drops lines 1 and 2; to skip 3 lines you write `tail -n +4`. A minus sign on `head` is the mirror image: GNU `head -n -K` means "everything except the last K lines". `cat` alone cannot skip lines; combine it with these or use `sed`.
 
@@ -3448,7 +3431,7 @@ Gotcha: `head -n -K` (negative count) is a GNU coreutils extension; on macOS and
 </details><br>
 
 <details>
-<summary>138. What is a Unix domain socket, how does it appear in the file system, and how do you use one from Node.js?</summary>
+<summary>137. What is a Unix domain socket, how does it appear in the file system, and how do you use one from Node.js?</summary>
 
 A Unix domain socket (also called an IPC socket, address family `AF_UNIX`) is a two-way communication channel between processes on the same machine. Instead of an IP address and port it is identified by a path in the file system. The path is a rendezvous point, not a data file: `ls -l` shows type `s` and size `0`, and nothing is ever written to disk, following the Unix idea that everything is addressed like a file. Data moves through kernel memory without the TCP/IP stack, so it is faster than loopback TCP, and access is controlled with ordinary file permissions. In Node the `net` module uses the same `Socket` API as TCP; only the address changes.
 
@@ -3482,7 +3465,7 @@ Gotcha: the socket file is not removed when the server crashes, and `listen` on 
 </details><br>
 
 <details>
-<summary>139. What does Windows use instead of Unix domain sockets, and how does Node.js map the same net API onto it?</summary>
+<summary>138. What does Windows use instead of Unix domain sockets, and how does Node.js map the same net API onto it?</summary>
 
 The Windows equivalent of a Unix domain socket is the named pipe. Named pipes live in a separate kernel namespace managed by the Named Pipe File System and are addressed as `\\.\pipe\<name>`; nothing is created on disk, so there is no socket file to delete and no stale-path problem after a crash. A named pipe is bidirectional, works in byte or message mode, is protected by a Windows security descriptor (ACL), and, unlike a Unix socket, can be opened from another machine over SMB as `\\server\pipe\<name>`. Node's `net` module is built on libuv, which implements its pipe handle with Unix domain sockets on Unix and with named pipes on Windows, so the same JavaScript works on both platforms and only the address changes. Node requires the `\\?\pipe\` or `\\.\pipe\` prefix, and in a JavaScript string every backslash must be doubled. The IPC channel that `child_process.fork` opens between parent and child is also a named pipe on Windows.
 
@@ -3507,7 +3490,7 @@ Get-ChildItem \\.\pipe\          # list the live named pipes
 </details><br>
 
 <details>
-<summary>140. What is inter-process communication, and how does it differ from networking?</summary>
+<summary>139. What is inter-process communication, and how does it differ from networking?</summary>
 
 Inter-process communication (IPC) is the set of mechanisms an operating system offers for processes on the same machine to exchange data, all mediated by the kernel using the machine's RAM. Networking moves data between different machines through protocols such as TCP and UDP, with serialization, checksums, and routing at every hop. Because IPC never leaves memory, it has far lower latency and higher throughput. Common IPC mechanisms are:
 
@@ -3535,7 +3518,7 @@ Gotcha: TCP to `127.0.0.1` is still networking as far as the kernel is concerned
 </details><br>
 
 <details>
-<summary>141. How does the Node.js cluster module work, and how are incoming connections shared between workers?</summary>
+<summary>140. How does the Node.js cluster module work, and how are incoming connections shared between workers?</summary>
 
 The `cluster` module runs several copies of the same Node program as separate OS processes so a server can use more than one CPU core. The first process is the primary; `cluster.fork()` starts a worker, which is a child process (built on `child_process.fork`) running the same script with `cluster.isWorker` true. The operating system decides which core each process runs on. When a worker calls `server.listen(port)`, it does not bind the port itself: the primary binds it, accepts connections, and hands them to workers round-robin (the default on every platform except Windows, controlled by `cluster.schedulingPolicy`). Because `cluster.fork()` is only allowed in the primary, every cluster script branches on `cluster.isPrimary`.
 
@@ -3564,7 +3547,7 @@ Gotcha: workers share nothing in memory, so sessions or caches held in a worker 
 </details><br>
 
 <details>
-<summary>142. What does cluster.schedulingPolicy control in Node.js, what are its two values, and why is round-robin the default?</summary>
+<summary>141. What does cluster.schedulingPolicy control in Node.js, what are its two values, and why is round-robin the default?</summary>
 
 `cluster.schedulingPolicy` decides which process accepts incoming connections when several workers share one port. It is a two-way switch, not a pluggable load balancer. With `cluster.SCHED_RR` (round-robin) the primary owns the listening socket and is the only process that calls `accept()`; each accepted connection is passed to the next worker in turn over the IPC channel using handle passing. With `cluster.SCHED_NONE` the primary instead sends the listening handle itself to every worker, all workers wait in `accept()` on the same socket, and the kernel decides who gets each connection.
 
@@ -3584,7 +3567,7 @@ NODE_CLUSTER_SCHED_POLICY=none node server.js    # same switch without changing 
 </details><br>
 
 <details>
-<summary>143. What does cluster.setupPrimary() change in Node.js, and which worker setting can it not control?</summary>
+<summary>142. What does cluster.setupPrimary() change in Node.js, and which worker setting can it not control?</summary>
 
 By default `cluster.fork()` starts a worker running the same script as the primary (`process.argv[1]`) with the same arguments and with `stdio` inherited from the primary. `cluster.setupPrimary(settings)` changes those defaults for every later `fork()` call. The useful settings are:
 
@@ -3618,7 +3601,7 @@ Gotcha: it can only be called in the primary, and calling it also freezes `clust
 </details><br>
 
 <details>
-<summary>144. What does the silent option of cluster.setupPrimary() change about worker output, and why must the primary then read the worker's streams?</summary>
+<summary>143. What does the silent option of cluster.setupPrimary() change about worker output, and why must the primary then read the worker's streams?</summary>
 
 With the default `silent: false`, workers inherit the primary's standard streams: a worker's `console.log` goes straight to the same terminal or `stdout` as the primary, because both processes write to the same underlying file descriptors. With `silent: true`, the worker's `stdout` and `stderr` are instead connected to the primary through pipes. Their output arrives in the primary as readable streams, `worker.process.stdout` and `worker.process.stderr`, and nothing reaches the terminal unless the primary forwards it. Reasons to do this are:
 
@@ -3646,7 +3629,7 @@ Gotcha: if the primary attaches no listener, the output is simply lost, and if n
 </details><br>
 
 <details>
-<summary>145. How do you implement sticky sessions in Node.js so the same client always reaches the same worker, and why does the worker's HTTP server never call listen()?</summary>
+<summary>144. How do you implement sticky sessions in Node.js so the same client always reaches the same worker, and why does the worker's HTTP server never call listen()?</summary>
 
 Sticky sessions mean every connection from one client is handled by the same worker, which matters when a worker keeps per-client state in memory, for example WebSocket connections or an in-process session store. The cluster module's own balancing cannot do this, so you bypass it: the primary is the only process that listens, it chooses a worker from a hash of the client IP, and it hands the raw accepted socket to that worker with `worker.send(message, socket)`. The worker runs an ordinary `http.Server` that never calls `listen()`; instead it injects each received socket with `server.emit("connection", socket)`, which is how any `net.Server` or `http.Server` can serve a connection it did not accept itself. Because the workers never listen on the port, cluster's round-robin never activates and your hash is the only balancing in play.
 
@@ -3692,7 +3675,7 @@ Gotcha: all clients behind one NAT or corporate proxy share an IP and land on on
 </details><br>
 
 <details>
-<summary>146. How do child_process, cluster, and worker_threads compare in Node.js, and how does each communicate?</summary>
+<summary>145. How do child_process, cluster, and worker_threads compare in Node.js, and how does each communicate?</summary>
 
 All three let a Node program use more than one CPU, but at different isolation levels:
 
@@ -3730,43 +3713,7 @@ Gotcha: use `worker_threads` for CPU-heavy JavaScript (parsing, hashing, image m
 </details><br>
 
 <details>
-<summary>147. What is the JavaScript Atomics object, what problem does it solve for worker_threads, and when should production code use it?</summary>
-
-`Atomics` is a built-in object with static methods that read and write memory in a `SharedArrayBuffer` as single indivisible operations. It exists because a `SharedArrayBuffer` is the one kind of memory several threads can see at once, and ordinary JavaScript has no way to make concurrent access safe: `counter[0]++` is really read, add, write, and two threads interleaving those steps lose an update. `Atomics.add`, `Atomics.load`, `Atomics.store`, and `Atomics.compareExchange` perform each step atomically, so no thread can slip in between. `Atomics.wait(array, index, expected, timeout)` puts a thread to sleep while a slot still holds `expected`, and `Atomics.notify(array, index, count)` wakes waiters, so a thread can wait for new data without spinning in a loop. This is the same idea as a futex on Linux or a condition variable in other languages. The methods only work on integer typed arrays such as `Int32Array` or `BigInt64Array` over a `SharedArrayBuffer`.
-
-```js
-// main.js
-import { Worker } from "node:worker_threads";
-const sab = new SharedArrayBuffer(8);
-const shared = new Int32Array(sab); // shared[0] = flag, shared[1] = payload
-new Worker("./worker.js", { workerData: sab });
-
-Atomics.store(shared, 1, 42); // publish the payload
-Atomics.store(shared, 0, 1); // set the flag
-Atomics.notify(shared, 0, 1); // wake one waiter
-
-// worker.js
-import { workerData } from "node:worker_threads";
-const shared = new Int32Array(workerData);
-Atomics.wait(shared, 0, 0); // sleep while flag is still 0
-console.log(Atomics.load(shared, 1)); // 42, no copy, no serialization
-```
-
-In everyday production code you rarely call `Atomics` yourself. Workers normally talk with `postMessage`, `workerData`, or a pool library such as `piscina`, and large buffers are moved with `postMessage(buffer, [buffer])`, which transfers ownership without copying. `Atomics` is reserved for cases where message passing itself is the bottleneck:
-
-- high-frequency job queues or ring buffers between threads;
-- shared counters and flags read by many workers;
-- a worker that must block synchronously until the main thread answers (the trick behind `synckit`);
-- WebAssembly threads, whose mutexes are implemented with `Atomics.wait` and `Atomics.notify`.
-
-Libraries such as `piscina`, `synckit`, Emscripten, and `comlink` hide it internally.
-
-Gotcha: `Atomics.wait` blocks the whole thread, so browsers forbid it on the main thread; use `Atomics.waitAsync`, which returns a promise, when blocking is unacceptable. `cluster` and `child_process` cannot use it at all, because separate processes do not share a `SharedArrayBuffer`. Treat shared-memory code like writing a lock in C: keep it inside a small, well-tested helper rather than scattered through business logic.
-
-</details><br>
-
-<details>
-<summary>148. What does child_process.fork() do in Node.js, and how do parent and child exchange messages?</summary>
+<summary>146. What does child_process.fork() do in Node.js, and how do parent and child exchange messages?</summary>
 
 `fork(modulePath, args, options)` is a special case of `spawn` that always starts a new Node.js process (using `process.execPath`) running the given module, and opens an extra IPC channel alongside `stdin`, `stdout`, and `stderr`. It returns a `ChildProcess` like `spawn`, with two additions: `child.send(message)` and the `message` event. Inside the child, `process.send(message)` and `process.on("message")` are the other end of the channel. Messages are serialized (JSON by default), so functions and class instances do not survive the trip. The channel is bidirectional.
 
@@ -3791,7 +3738,7 @@ Gotcha: `process.send` is `undefined` when the process was not started with an I
 </details><br>
 
 <details>
-<summary>149. How can a Node.js parent pass a TCP server or socket to a child process with send(), and where is this used in production?</summary>
+<summary>147. How can a Node.js parent pass a TCP server or socket to a child process with send(), and where is this used in production?</summary>
 
 `subprocess.send(message, sendHandle)` accepts a second argument that is a live network handle: a `net.Server` (including `http.Server`, which extends it), a `net.Socket`, or a `dgram.Socket`. Node does not serialize the object; it duplicates the underlying operating system file descriptor and sends it over the IPC channel, so the child ends up with a working server or socket bound to the same port or connection. The child receives it as the second argument of its `message` listener. This is how one process can bind a port and let other processes serve it, which is otherwise impossible because two processes cannot normally listen on the same port.
 
@@ -3825,7 +3772,7 @@ Gotcha: once a server handle is sent, the parent still owns its copy and still a
 </details><br>
 
 <details>
-<summary>150. Why does an open IPC channel keep a Node.js parent and child from exiting, and how do you let them finish?</summary>
+<summary>148. Why does an open IPC channel keep a Node.js parent and child from exiting, and how do you let them finish?</summary>
 
 Node exits a process when its event loop has no referenced handles left: no timers, no pending I/O, no open server. The IPC channel created by `fork()` is an open handle in both the parent and the child, and it stays open until one side closes it. So after the child has sent its result, both event loops still wait for a possible next message and neither process exits; the script prints its answer and hangs. There are three fixes. `child.disconnect()` in the parent, or `process.disconnect()` in the child, closes the channel, both sides get a `disconnect` event, and each process exits once its own work is done. Alternatively keep the channel open but stop counting it: `child.unref()` only unrefs the process handle, so the channel also needs `child.channel.unref()` (mirror in the child: `process.channel.unref()`, with `ref()` to start waiting again).
 
@@ -3853,7 +3800,7 @@ Gotcha: `fork` is just `spawn(process.execPath, [module, ...args], { stdio: ["pi
 </details><br>
 
 <details>
-<summary>151. How do you start a child process from Node.js that keeps running after the parent exits, and what do detached, unref, and stdio do in that setup?</summary>
+<summary>149. How do you start a child process from Node.js that keeps running after the parent exits, and what do detached, unref, and stdio do in that setup?</summary>
 
 Three separate things tie a child to its parent, and each needs its own option:
 
@@ -3881,7 +3828,7 @@ Gotcha: a child can outlive its parent even without `detached`, since Unix never
 </details><br>
 
 <details>
-<summary>152. How do you make sure a child process started in Node.js is always stopped when the code that owns it finishes, and what is the modern way to express that?</summary>
+<summary>150. How do you make sure a child process started in Node.js is always stopped when the code that owns it finishes, and what is the modern way to express that?</summary>
 
 The modern way is explicit resource management: the `using` declaration, supported natively since Node 24 (2025). A variable declared with `using` is tied to the block it lives in; when the block ends for any reason, a normal return, a thrown error, or an early `break`, JavaScript automatically calls the value's `[Symbol.dispose]()` method. `ChildProcess` implements that method by killing the process, so a child declared with `using` can never be left running by accident. The ownership is visible in the code: the child lives exactly as long as the scope that created it.
 
@@ -3906,7 +3853,7 @@ Gotcha: `using` only works on objects that have a dispose method; add `[Symbol.d
 </details><br>
 
 <details>
-<summary>153. How do you run a command in the background in bash, and how do you find and stop it later?</summary>
+<summary>151. How do you run a command in the background in bash, and how do you find and stop it later?</summary>
 
 Appending `&` to a command starts it as a background job: the shell prints the job number and PID, for example `[1] 12345`, and returns to the prompt immediately while the process keeps running. The job-control commands are:
 
@@ -3935,7 +3882,7 @@ Gotcha: background jobs are still children of the shell and receive `SIGHUP` whe
 </details><br>
 
 <details>
-<summary>154. What is the difference between the exit and close events of a Node.js ChildProcess, and what do their arguments mean?</summary>
+<summary>152. What is the difference between the exit and close events of a Node.js ChildProcess, and what do their arguments mean?</summary>
 
 `exit` fires when the process itself has finished running.
 
@@ -3944,7 +3891,7 @@ Gotcha: background jobs are still children of the shell and receive `SIGHUP` whe
 </details><br>
 
 <details>
-<summary>155. What is the Unix niceness value, how does it affect CPU scheduling, and how do you start a process with a given niceness?</summary>
+<summary>153. What is the Unix niceness value, how does it affect CPU scheduling, and how do you start a process with a given niceness?</summary>
 
 Every process has a nice value that tells the scheduler how willing it is to yield CPU time to others. On Linux the range is `-20` to `19` (BSD and macOS use `-20` to `20`). The default is `0`. A higher number is "nicer", which means lower priority; `19` yields to everything, `-20` gets the largest share. `nice -n adjustment command` starts a command with its niceness changed by the given amount relative to the current value. Children inherit the parent's niceness, so applying `nice` to a script covers everything it spawns.
 
@@ -3962,7 +3909,7 @@ Gotcha: niceness is relative and only matters when CPUs are contended. On an idl
 </details><br>
 
 <details>
-<summary>156. How do you change the niceness of a process that is already running, and how do you inspect it?</summary>
+<summary>154. How do you change the niceness of a process that is already running, and how do you inspect it?</summary>
 
 `nice` only sets the niceness at launch. `renice` changes it afterward for an existing process by PID, for all processes of a user, or for a process group. The modern syntax on Linux and macOS is `renice -n value -p PID`; the older form `renice value PID` is still widely used and accepted. To see the current value, use the `NI` column in `ps -l`, `ps -o ni`, `top`, or `htop`.
 
@@ -3980,7 +3927,7 @@ Gotcha: the same permission rules apply as for `nice`: an unprivileged user can 
 </details><br>
 
 <details>
-<summary>157. How can a Node.js program set the scheduling priority of itself or another process?</summary>
+<summary>155. How can a Node.js program set the scheduling priority of itself or another process?</summary>
 
 The `os` module exposes the niceness mechanism portably. `os.setPriority(pid, priority)` sets the priority of the given process, and `os.setPriority(priority)` applies it to the current process; `os.getPriority(pid)` reads it. Values range from `-20` (highest priority) to `19` (lowest), matching Unix niceness, and `os.constants.priority` provides named levels:
 
@@ -4017,7 +3964,7 @@ Gotcha: the operating system's permission rules still apply, so lowering the val
 </details><br>
 
 <details>
-<summary>158. What does the spawn event of a Node.js ChildProcess tell you, how does it relate to the error event, and why can it fire even when the command fails?</summary>
+<summary>156. What does the spawn event of a Node.js ChildProcess tell you, how does it relate to the error event, and why can it fire even when the command fails?</summary>
 
 `spawn` is emitted once the operating system has successfully started the child process. It comes before every other event and before any `stdout` or `stderr` data, so it is the first moment the `pid` is known to be valid and the point at which setup that depends on a running process can begin, for example writing a pid file or starting a watchdog timer. If the process cannot be started at all, `spawn` is never emitted and `error` is emitted instead, typically with `ENOENT` when the executable is not in `PATH` or `EACCES` when it is not executable. `error` also fires when a `kill()` fails or an IPC message cannot be delivered. In the start-up failure case `exit` may never follow, so a child without an `error` handler crashes the parent with an unhandled error.
 
@@ -4040,7 +3987,7 @@ Gotcha: `spawn` only confirms that the first program started. `spawn("bash", ["-
 </details><br>
 
 <details>
-<summary>159. What do process exit codes mean, and why does a process killed by a signal report a code above 128?</summary>
+<summary>157. What do process exit codes mean, and why does a process killed by a signal report a code above 128?</summary>
 
 When a process ends it hands an exit code, an integer from 0 to 255, back to whoever launched it: a shell, a CI runner, Docker, or a Node parent. `0` means success. Small non-zero values are chosen by the program itself to describe failures; Node's own codes include:
 
@@ -4069,7 +4016,7 @@ Gotcha: `137` in a Docker or Kubernetes log means `SIGKILL`, almost always the O
 </details><br>
 
 <details>
-<summary>160. Why is calling process.exit() usually a mistake in Node.js, and what should you do instead to set the exit code?</summary>
+<summary>158. Why is calling process.exit() usually a mistake in Node.js, and what should you do instead to set the exit code?</summary>
 
 A Node process exits by itself as soon as the event loop has no more work: no timers, no open sockets or servers, no pending I/O. `process.exit(code)` is a hard stop that ends the process immediately, abandoning everything still queued, including writes to `stdout` that may be asynchronous when `stdout` is a pipe or, on Windows, a terminal. A usage message printed just before `process.exit(1)` can therefore come out truncated or not at all. The recommended pattern is to set `process.exitCode` and let the process end naturally; the property becomes the exit status when the process exits on its own or when `process.exit()` is later called without an argument. When the program must stop because of an error, throwing an uncaught error is safer than `process.exit()`, because Node flushes synchronous output and runs the normal shutdown path with code `1`.
 
@@ -4092,7 +4039,7 @@ Gotcha: `process.exit()` is still right when something keeps the loop alive on p
 </details><br>
 
 <details>
-<summary>161. What can a listener for the Node.js process exit event do, and why does asynchronous work scheduled inside it never run?</summary>
+<summary>159. What can a listener for the Node.js process exit event do, and why does asynchronous work scheduled inside it never run?</summary>
 
 The `exit` event is emitted on `process` when the process is about to end, either because the event loop ran dry or because `process.exit()` was called, and the listener receives the exit code. After all `exit` listeners have returned, the process terminates immediately; the event loop never turns again. Anything the listener schedules asynchronously, a timer, a promise continuation, an `fs` callback, a `write` to a pipe, is silently abandoned. Listeners must therefore perform only synchronous operations: writing a final log line with `fs.writeSync`, deleting a pid file with `fs.unlinkSync`, or flushing an in-memory buffer synchronously.
 
@@ -4109,7 +4056,7 @@ Gotcha: `exit` is not emitted when the process is killed by a signal it does not
 </details><br>
 
 <details>
-<summary>162. How should the uncaughtException event be used in Node.js, and why is resuming normal operation after it unsafe?</summary>
+<summary>160. How should the uncaughtException event be used in Node.js, and why is resuming normal operation after it unsafe?</summary>
 
 `uncaughtException` fires on `process` when an error propagates all the way up without being caught, for example a throw inside a callback or an `EventEmitter` `error` event with no listener. Without a listener Node prints the stack trace and exits with code `1`. Adding a listener replaces that default, so the process keeps running, and that is the trap. The exception interrupted some operation half way: a database transaction may be open, a lock held, a response half written, in-memory state partially updated. The Node documentation compares resuming to pulling the power cord during an upgrade: nine times out of ten nothing happens, the tenth time the system is corrupted. The correct use is to perform synchronous cleanup of resources such as file descriptors and handles, log the error, and then shut down, letting a supervisor (systemd, pm2, Kubernetes) start a fresh process.
 
@@ -4126,7 +4073,7 @@ Gotcha: `process.setUncaughtExceptionCaptureCallback(fn)` installs a single capt
 </details><br>
 
 <details>
-<summary>163. How does a Node.js process receive operating system signals, which ones cannot be handled, and how does Windows differ?</summary>
+<summary>161. How does a Node.js process receive operating system signals, which ones cannot be handled, and how does Windows differ?</summary>
 
 The `process` object emits an event named after each signal in upper case, such as `SIGINT` or `SIGTERM`, when the operating system delivers it. Installing a listener replaces the default action, which for both of those is to terminate, so a process with a `SIGINT` listener no longer dies on Ctrl+C and must exit itself. This is the hook for graceful shutdown: stop accepting connections, finish in-flight requests, close database pools, then exit. `SIGKILL` and `SIGSTOP` cannot be listened for; the kernel enforces them without consulting the process. Signal events are only available on the main thread, not inside worker threads.
 
@@ -4149,7 +4096,7 @@ Gotcha: Windows has no POSIX signals. Node emulates a few: Ctrl+C in a console s
 </details><br>
 
 <details>
-<summary>164. What kind of streams are process.stdin, process.stdout, and process.stderr in Node.js, when are writes to them synchronous, and how do you detect a terminal?</summary>
+<summary>162. What kind of streams are process.stdin, process.stdout, and process.stderr in Node.js, when are writes to them synchronous, and how do you detect a terminal?</summary>
 
 The three standard streams are created lazily, and their class depends on what file descriptors 0, 1, and 2 are connected to when the process starts. There are three cases:
 
@@ -4197,7 +4144,7 @@ Gotcha: when it is a socket, `process.stdout` is `Duplex` by inheritance, but it
 </details><br>
 
 <details>
-<summary>165. What does process.loadEnvFile() do in Node.js, and how does it compare to the --env-file flag and the dotenv package?</summary>
+<summary>163. What does process.loadEnvFile() do in Node.js, and how does it compare to the --env-file flag and the dotenv package?</summary>
 
 `process.loadEnvFile(path)` reads a `.env` file (default `./.env`) and copies its `KEY=value` lines into `process.env`, giving Node a built-in replacement for the `dotenv` package. Variables that already exist in the environment are not overwritten, so real deployment settings win over the file. The same parser is available as `util.parseEnv(text)`, which returns an object without touching `process.env`, and the `--env-file=path` command-line flag loads the file before any code runs. `--env-file-if-exists` (Node 22.9) does the same without failing when the file is missing.
 
@@ -4220,7 +4167,7 @@ node --env-file=.env server.js
 </details><br>
 
 <details>
-<summary>166. What is process.dlopen() in Node.js, when would you call it instead of require(), and why must you pass a module object?</summary>
+<summary>164. What is process.dlopen() in Node.js, when would you call it instead of require(), and why must you pass a module object?</summary>
 
 `process.dlopen(module, filename, flags)` is the low-level function that loads a compiled native addon, a shared library with the `.node` extension written in C or C++ against Node-API. `require()` calls it internally whenever the resolved file ends in `.node`, so application code almost never uses it directly. The `module` argument must be an object shaped like `{ exports: {} }`, because the addon's initialization code attaches its exported functions to `module.exports`; nothing is returned. The optional `flags` come from `os.constants.dlopen`: the default `RTLD_LAZY` resolves symbols when first used, `RTLD_NOW` resolves all of them before the call returns so a missing symbol fails immediately.
 
@@ -4246,7 +4193,7 @@ const addon = require("./local.node");
 </details><br>
 
 <details>
-<summary>167. What is the Node.js permission model, and what does process.permission.has() check?</summary>
+<summary>165. What is the Node.js permission model, and what does process.permission.has() check?</summary>
 
 The permission model is an opt-in sandbox for the current process. Starting Node with `--permission` denies file system access, child process spawning, worker threads, native addons, and WASI by default, and you grant each capability back with flags such as `--allow-fs-read=/app/*`, `--allow-fs-write=/tmp/*`, `--allow-child-process`, `--allow-worker`, and `--allow-addons`. `process.permission.has(scope, reference)` lets code check at runtime whether an operation would be allowed, so it can degrade gracefully. Scopes include `fs`, `fs.read`, `fs.write`, `child`, `worker`, and in newer releases `openssl.store` and `ffi`; the optional reference narrows the check to a specific path for file system scopes.
 
@@ -4266,7 +4213,7 @@ Gotcha: `process.permission` is only defined when the process runs with `--permi
 </details><br>
 
 <details>
-<summary>168. What do the fields returned by process.memoryUsage() mean, and which one should you watch for a given kind of problem?</summary>
+<summary>166. What do the fields returned by process.memoryUsage() mean, and which one should you watch for a given kind of problem?</summary>
 
 `process.memoryUsage()` returns five byte counts:
 
@@ -4301,7 +4248,7 @@ Gotcha: `rss` does not shrink promptly after garbage collection because V8 and t
 </details><br>
 
 <details>
-<summary>169. How does process.memoryUsage() behave with worker threads and with cluster workers, and why does summing rss across them overcount?</summary>
+<summary>167. How does process.memoryUsage() behave with worker threads and with cluster workers, and why does summing rss across them overcount?</summary>
 
 Worker threads live in the same operating system process but each has its own V8 isolate and heap. So when a worker calls `process.memoryUsage()`, `rss` is process-wide and identical to the main thread's value, while `heapTotal`, `heapUsed`, `external`, and `arrayBuffers` describe only the calling thread. The main thread's heap numbers do not include any worker's heap. To see worker memory, measure inside each worker and report it with `postMessage`, or use `worker.getHeapStatistics()` on recent Node versions, and cap a worker's heap with the `resourceLimits` option such as `maxOldGenerationSizeMb`. Cluster workers are separate processes, each with its own heap and its own `memoryUsage()`; the primary learns nothing about them unless each worker sends its numbers over IPC.
 
@@ -4322,7 +4269,7 @@ Gotcha: adding `rss` across threads double counts because it is one number for t
 </details><br>
 
 <details>
-<summary>170. How do queueMicrotask() and process.nextTick() differ in Node.js, why does their order change between CommonJS and ES modules, and which should new code use?</summary>
+<summary>168. How do queueMicrotask() and process.nextTick() differ in Node.js, why does their order change between CommonJS and ES modules, and which should new code use?</summary>
 
 Both defer a function until the current synchronous code finishes, before the event loop moves on to timers or I/O, but they use different queues. `queueMicrotask()` adds to the microtask queue managed by V8, the same queue used for promise `then`, `catch`, and `finally` handlers. `process.nextTick()` adds to a separate queue managed by Node. Whenever Node drains the next-tick queue, it drains the microtask queue immediately afterwards. In a CommonJS module the top-level code runs outside both queues, so after it finishes Node drains next-tick callbacks first and then microtasks. An ES module is itself evaluated as part of the microtask queue, so Node is already draining microtasks when the module body runs: new microtasks run as part of that drain, and the next-tick queue is only processed afterwards. The same three lines therefore print in opposite orders.
 
@@ -4341,7 +4288,7 @@ Gotcha: both queues are drained to exhaustion before the loop continues, so a ca
 </details><br>
 
 <details>
-<summary>171. What does "releasing Zalgo" mean in asynchronous JavaScript, and how does queueMicrotask() keep an API consistently asynchronous?</summary>
+<summary>169. What does "releasing Zalgo" mean in asynchronous JavaScript, and how does queueMicrotask() keep an API consistently asynchronous?</summary>
 
 An API releases Zalgo when it is sometimes synchronous and sometimes asynchronous depending on internal state. The classic case is a cache: on a miss the result arrives after an `await`, so the event or callback fires later; on a hit the data is available immediately, and if the code emits right away the event fires during the call itself, before the caller has had a chance to attach a listener. The same caller code then works on a miss and silently breaks on a hit, which depends on timing and is hard to reproduce. The fix is to defer the synchronous path so it behaves like the asynchronous one. `queueMicrotask()` is the right tool: the callback runs as soon as the current call stack unwinds, which is early enough to feel immediate but late enough that the caller's next statements, including `on("load", ...)`, have executed.
 
@@ -4369,7 +4316,7 @@ Gotcha: `process.nextTick()` would also work here but runs before any promise ha
 </details><br>
 
 <details>
-<summary>172. What is the BREACH attack, and why does HTTP response compression over HTTPS make it possible?</summary>
+<summary>170. What is the BREACH attack, and why does HTTP response compression over HTTPS make it possible?</summary>
 
 BREACH (Browser Reconnaissance and Exfiltration via Adaptive Compression of Hypertext), presented at Black Hat USA in August 2013, is a side-channel attack that recovers secrets such as CSRF tokens or session identifiers from HTTPS responses. TLS encrypts the body but does not hide its length. When the server compresses the body with gzip, deflate or brotli and that body contains both a secret and something the attacker controls (for example a reflected query parameter), the attacker guesses the secret one character at a time: a guess that matches a prefix of the secret gives the LZ77 stage a longer repeat, the compressed body shrinks by a byte or so, and the attacker reads that size difference off the encrypted traffic. A few thousand requests are enough to recover a token. The attack needs three conditions at once:
 
@@ -4397,7 +4344,7 @@ Gotcha: HTTPS by itself is not a mitigation, because TLS 1.2 and TLS 1.3 both ex
 </details><br>
 
 <details>
-<summary>173. How do you decompress truncated or incomplete data with Node.js zlib without getting an error?</summary>
+<summary>171. How do you decompress truncated or incomplete data with Node.js zlib without getting an error?</summary>
 
 By default a zlib decompressor finishes with `Z_FINISH`, which requires the full stream including its end marker and trailer; truncated input fails with `Z_BUF_ERROR` ("unexpected end of file"). When the data is known to be incomplete, or you only want to inspect the beginning of a large compressed file, change the flush mode used on the last chunk with the `finishFlush` option so the decompressor returns whatever it has decoded so far. The equivalents per format are:
 
@@ -4430,7 +4377,7 @@ Gotcha: because the end of the stream is never reached, the trailing checksum (A
 </details><br>
 
 <details>
-<summary>174. Which zlib options control compression speed and per-stream memory in Node.js, and when should you tune them?</summary>
+<summary>172. Which zlib options control compression speed and per-stream memory in Node.js, and when should you tune them?</summary>
 
 The `level` option (0 to 9, or `-1` for `Z_DEFAULT_COMPRESSION`, which is level 6) has by far the biggest effect on speed. Higher levels search harder for repeats and produce smaller output but take longer; lower levels produce bigger output much faster. Level 0 stores the data without compressing, level 1 is the fastest real compression and level 9 the slowest. Memory settings are a secondary speed factor: with more memory zlib processes more data per write call, so Node.js makes fewer calls into zlib and runs a little faster. The per-stream memory options are:
 
@@ -4455,7 +4402,7 @@ Gotcha: a decompressor's window must be at least as large as the one the compres
 </details><br>
 
 <details>
-<summary>175. What does zlib.crc32() in Node.js compute, how are checksums chained, and when must it not be used?</summary>
+<summary>173. What does zlib.crc32() in Node.js compute, how are checksums chained, and when must it not be used?</summary>
 
 `zlib.crc32(data, value)` computes a 32-bit Cyclic Redundancy Check of `data` and returns it as an unsigned 32-bit integer. It was added in Node.js 22.2 and 20.15 (2024). Its parameters are:
 
@@ -4475,5 +4422,1979 @@ zlib.crc32("helloworld"); // 4192936109, same as the chained result
 CRC-32 is designed to detect accidental corruption in transmission and storage (it is the checksum used in gzip trailers, ZIP entries and PNG chunks). It is not suitable for cryptographic authentication: it is linear, so an attacker can modify data and fix up the checksum trivially. For integrity against an adversary use `crypto.createHash('sha256')` or an HMAC.
 
 Gotcha: the return value is unsigned, so compare it with other unsigned results; a library that returns a signed 32-bit integer for the same data gives a negative number that must be converted with `>>> 0` before comparison.
+
+</details><br>
+
+<details>
+<summary>174. What is a thread, which states can it be in, and what does it own versus share with the other threads of its process?</summary>
+
+A thread is the unit of execution that the scheduler actually runs. Every process has at least one thread (the main thread), and a process with several threads has several independent instruction streams inside one address space. Each thread owns what it needs to run independently:
+
+- `program counter` (where it currently executes);
+- `registers` (its CPU state, saved and restored on every context switch);
+- `stack` (local variables and call frames, so recursion in one thread does not touch another);
+- `thread ID` (`gettid()` on Linux, `pthread_self()` in POSIX);
+- `signal mask` and `errno` (per thread, even though they look process-wide).
+
+Everything else is shared with the sibling threads: the heap and global variables, the program code, open file descriptors, the current working directory, the user and group ids, the signal handlers, and the PID. A thread is at any moment in one of a few scheduler states: ready (runnable, waiting for a core), running (on a core right now), or blocked (waiting for I/O, a lock, a timer, or a wake-up and consuming no CPU), plus the transient new and terminated states. A second thread is created with a system call (`clone()` on Linux, wrapped by `pthread_create()`), which is far cheaper than creating a process because no new address space or descriptor table is built.
+
+```c
+#include <pthread.h>
+int shared = 0;                       /* visible to every thread */
+void *run(void *arg) { shared++; return NULL; }   /* own stack, shared heap and globals */
+int main(void) {
+  pthread_t t;
+  pthread_create(&t, NULL, run, NULL);
+  pthread_join(t, NULL);
+}
+```
+
+Gotcha: "running or sleeping" is too coarse. A blocked thread in a system call costs nothing, but a thread that spins in a loop waiting for a flag is in the running state and burns a whole core, which is why real locks put waiters to sleep.
+
+</details><br>
+
+<details>
+<summary>175. How do a process and a thread differ in Unix in memory, file descriptors, creation, cost, communication, and crash impact?</summary>
+
+A process is a running program with its own isolated resources: a private virtual address space, its own file descriptor table, PID, environment, and signal dispositions. One process cannot read or corrupt another's memory unless both explicitly map shared memory. A thread lives inside a process and shares its memory, descriptors, and working directory with its siblings, owning only a stack, registers, program counter, and thread ID. Processes talk through IPC (pipes, sockets, signals, shared memory segments); threads talk by reading and writing the same memory, which is fast but needs mutexes or atomics to avoid races.
+
+```
+                   Process                          Thread
+Memory             own address space                shared with the process
+File descriptors   own table (copied on fork)       shared
+Creation cost      heavier (new address space)      lighter
+Context switch     more expensive (TLB, page table) cheaper
+Communication      IPC: pipes, sockets, signals     shared memory + locks
+Crash impact       only that process dies           SIGSEGV in any thread kills the whole process
+Isolation          strong (security boundary)       none between threads
+```
+
+Gotcha: in Node.js terms, `child_process` and `cluster` create processes (isolated, survive each other's crashes, communicate by serialized messages), while `worker_threads` creates threads (one process, a native crash in any worker takes down everything, but a `SharedArrayBuffer` can be shared without copying).
+
+</details><br>
+
+<details>
+<summary>176. How many threads does a Node.js process have at startup, and what are they used for?</summary>
+
+A Node.js process is multithreaded even before you create a single `Worker`, but only one thread runs your JavaScript. The threads are:
+
+- `main thread` (runs your JavaScript and the libuv event loop);
+- `libuv threadpool` (`4` threads by default, created lazily the first time a pool-backed API such as `fs`, `dns.lookup()`, async `crypto`, or async `zlib` is used);
+- `V8 platform threads` (background garbage collection and compilation, `4` by default, changed with `--v8-pool-size`);
+- `helper threads` (the inspector thread, and a signal and watchdog thread).
+
+So a trivial script shows roughly seven threads at start and about eleven once the threadpool has been created. Only the main thread runs JavaScript; all the others run C++ (garbage collection, JIT compilation, blocking syscalls on behalf of the pool-backed APIs). A CPU-bound loop therefore blocks only the main thread, not the process: the pool threads keep finishing their `fs` reads and DNS lookups, and V8 keeps collecting garbage in the background. But every callback, timer, promise continuation, and incoming connection must be handled by the event loop, which lives on that same main thread, so none of that completed work can be delivered until the loop gets control back. The results just pile up in libuv's completion queue. From the outside the process looks frozen even though most of its threads are not stuck at all; what is blocked is everything you can observe from JavaScript.
+
+```sh
+node -e "setTimeout(() => {}, 60000)" &
+ls /proc/$!/task | wc -l          # count the threads of that process
+```
+
+Gotcha: each `new Worker()` adds one more event-loop thread with its own V8 isolate, but all workers share the single libuv threadpool of the process, so a pool of workers hammering `fs` still competes for the same four threads unless `UV_THREADPOOL_SIZE` is raised.
+
+</details><br>
+
+<details>
+<summary>177. Which Node.js APIs run on the libuv threadpool, and how do you change its size with UV_THREADPOOL_SIZE?</summary>
+
+Node uses asynchronous system APIs wherever the OS provides them (network sockets, timers, signals) and falls back to a fixed pool of libuv threads to make blocking system calls look asynchronous. The APIs that run on the pool are:
+
+- `fs` (every asynchronous call, except the watchers and the `*Sync` variants);
+- `crypto` (the asynchronous forms of `pbkdf2()`, `scrypt()`, `randomBytes()`, `randomFill()`, `generateKeyPair()`);
+- `dns.lookup()` (which wraps the blocking `getaddrinfo()` and is also what `net.connect()` and `fetch()` use for hostnames);
+- `zlib` (every asynchronous call).
+
+The pool has `4` threads by default and at most `1024`, and there is exactly one pool per process, shared by the main thread and all worker threads. Because the size is fixed, four slow calls \ stall every other pool user, including unrelated file reads. Set the size through the environment before Node starts:
+
+```sh
+UV_THREADPOOL_SIZE=16 node app.js
+```
+
+Gotcha: the Node docs say that assigning `process.env.UV_THREADPOOL_SIZE` from inside the script is not guaranteed to work, because the pool may already have been created during runtime initialisation. In practice it only has a chance if it is the very first statement, before any `fs`, `dns`, `crypto`, or `zlib` call, including those made by imported modules. Treat it as deployment configuration, not application code. More threads help only when the work is blocking I/O; for CPU-bound hashing, threads beyond the core count just compete with each other.
+
+</details><br>
+
+<details>
+<summary>178. How does console.log from a Node.js worker thread reach the terminal, and why can a busy main thread hide worker output?</summary>
+
+Inside a worker, `process.stdout` and `process.stderr` are not the real file descriptors. They are streams whose chunks are sent through a `MessagePort` to the parent thread, which writes them to its own `process.stdout`. All threads therefore end up on the same terminal stream, but every worker line must first be processed by the parent's event loop. If the parent is stuck in synchronous code, worker output stays queued and appears only when the parent becomes idle again, and ordering between threads is not guaranteed. Passing `stdout: true` or `stderr: true` to the `Worker` constructor stops the automatic piping and exposes the worker's output as readable streams `worker.stdout` and `worker.stderr`, which the parent must then consume itself; `stdin: true` gives a writable `worker.stdin`.
+
+```js
+import { Worker, isMainThread } from "node:worker_threads";
+
+if (isMainThread) {
+  new Worker(new URL(import.meta.url));
+  for (let n = 0; n < 1e10; n++) {} // blocks the parent's event loop
+} else {
+  console.log("foo"); // shows up only after the loop above finishes
+}
+```
+
+Gotcha: this also means worker logs can be lost when the main thread crashes or calls `process.exit()` before draining them. Writes that bypass the port, such as `fs.writeSync(1, "...")` or a file transport in a logging library, go straight to the descriptor from the worker thread and are not delayed by the parent.
+
+</details><br>
+
+<details>
+<summary>179. When does a Node.js worker thread exit on its own, what does process.exit() do inside it, and how does the parent observe the exit?</summary>
+
+A worker has its own event loop and follows the same rule as a normal Node program: it exits as soon as nothing keeps the loop alive, so a worker script with no timers, no pending I/O, and no active handles finishes immediately after its top-level code. A `message` listener on `parentPort` counts as an active handle (the port is automatically `ref()`ed when a listener is attached and `unref()`ed when the last one is removed), which is what keeps a typical long-lived worker running. Calling `process.exit(code)` inside a worker stops only that thread, not the whole program; `process.abort()` is not available there. The parent observes the end through events on the `Worker` object: `exit` with the exit code, `error` if the worker threw an uncaught exception (followed by `exit` with code `1`), and `worker.terminate()` returns a promise that resolves with the exit code after forcing it to stop.
+
+```js
+import { Worker } from "node:worker_threads";
+
+const w = new Worker("./task.js");
+w.on("error", (err) => console.error("worker failed:", err));
+w.on("exit", (code) => console.log("worker exited with", code));
+// inside task.js: process.exit(3) ends only the worker; the parent logs 3
+```
+
+Gotcha: an uncaught exception in a worker becomes an `error` event on the `Worker` object, and an `error` event with no listener throws in the parent, so a worker crash takes the main thread down unless you attach a handler. The `Worker` object also keeps the parent alive until the worker exits; call `worker.unref()` if the parent should be allowed to exit first.
+
+</details><br>
+
+<details>
+<summary>180. Which process-level features behave differently or are unavailable inside a Node.js worker thread?</summary>
+
+A worker runs in the same OS process but in its own V8 isolate and event loop, so the `process` object it sees is partly a per-thread facade. The documented differences inside a worker are:
+
+- `process.stdin`, `process.stdout`, `process.stderr` (may be redirected by the parent thread, and are piped through it);
+- `isMainThread` (is `false`, and `parentPort` is available);
+- `process.exit()` (stops only the thread, and `process.abort()` is unavailable);
+- `process.chdir()` and the setuid or setgid family (unavailable, because the working directory and ids are process-wide);
+- `process.env` (a copy taken at creation, invisible to other threads and to native add-ons unless `SHARE_ENV` is used; case-sensitive on Windows unlike the main thread);
+- `process.title` (cannot be modified);
+- `process.on("SIGTERM")` and other signals (never delivered to a worker);
+- `worker.terminate()` (execution may stop at any point when the parent calls it);
+- IPC channels of a parent process (not accessible, so `process.send()` does not exist in a worker of a `cluster` or `fork()` child);
+- `trace_events` (not supported);
+- native add-ons (can be loaded from several threads only if they are built to be context-aware).
+
+```js
+import { isMainThread, parentPort } from "node:worker_threads";
+
+if (isMainThread) {
+  process.on("SIGTERM", () => worker.postMessage({ type: "shutdown" })); // forward signals yourself
+} else {
+  parentPort.on("message", (m) => m.type === "shutdown" && process.exit(0));
+}
+```
+
+Gotcha: `process.pid` is the same in every thread, so logs from a worker look like they come from the main process; add `threadId` to distinguish them.
+
+</details><br>
+
+<details>
+<summary>181. Can a Node.js worker thread create further workers, what is the classic recursion bug, and why should workers be pooled rather than created per task?</summary>
+
+Yes, a `Worker` may be created from inside another worker, which differs from `cluster.fork()`, available only in the primary process. The recursion bug is a worker file that calls `new Worker(__filename)` unconditionally: the child runs the same file, creates another child, and so on until the machine runs out of memory. Always guard creation with `isMainThread` or with an explicit depth passed in `workerData`. Starting a worker is much faster than spawning a process, but it is not free: each one boots a fresh V8 isolate and Node environment, which costs tens of milliseconds and several megabytes, and the thread is not ready synchronously after the constructor returns (listen for the `online` event). For that reason production code keeps a fixed pool sized around `os.availableParallelism()` and reuses the workers, or uses a pool library such as `piscina`.
+
+```js
+import { Worker, isMainThread, workerData } from "node:worker_threads";
+
+const depth = workerData?.depth ?? 0;
+if (isMainThread || depth < 2) {
+  const w = new Worker(new URL(import.meta.url), {
+    workerData: { depth: depth + 1 },
+  });
+  w.once("online", () =>
+    console.log("worker at depth", depth + 1, "is running"),
+  );
+}
+```
+
+Gotcha: a nested worker's `console.log` travels through its parent worker's port and then through the main thread, so a blocked thread anywhere up the chain delays its output. Nested workers also still share the single libuv threadpool and the process limits of the whole program.
+
+</details><br>
+
+<details>
+<summary>182. How is workerData delivered to a Node.js worker, which values survive the trip, and which do not?</summary>
+
+`workerData` is an arbitrary value given to the `Worker` constructor and read inside the thread from `require("node:worker_threads").workerData`. It is not shared: the value is cloned with the HTML structured clone algorithm, which Node implements with `v8.serialize()` and `v8.deserialize()`, the same mechanism `postMessage()` uses. Structured clone is richer than JSON: it keeps circular references, `Map`, `Set`, `Date`, `RegExp`, `BigInt`, `Error` objects, typed arrays, `ArrayBuffer` (copied) and `SharedArrayBuffer` (shared, not copied). It cannot carry functions, class prototypes (instances arrive as plain objects with only their own data properties), getters (evaluated once and copied as values), symbol keys, `WeakMap`, or `Proxy`; such values throw a `DataCloneError` or lose their type. Node additionally allows a few native objects such as `MessagePort`, `FileHandle`, `KeyObject`, `CryptoKey`, `X509Certificate`, `net.BlockList`, `net.SocketAddress`, and `Histogram`.
+
+```js
+// main.js
+import { Worker } from "node:worker_threads";
+const buf = new ArrayBuffer(1024);
+new Worker("./worker.js", {
+  workerData: { id: 7, tags: new Set(["a"]), buf },
+  transferList: [buf], // move instead of copy; buf.byteLength is now 0 here
+});
+
+// worker.js
+import { workerData } from "node:worker_threads";
+console.log(workerData.id, workerData.tags.has("a"), workerData.buf.byteLength); // 7 true 1024
+```
+
+Gotcha: the clone is a snapshot taken when the worker is created, so later changes in the parent are invisible, and serialization time grows with the size of the value. Large binary payloads should be transferred (listed in `transferList`) or placed in a `SharedArrayBuffer` rather than cloned.
+
+</details><br>
+
+<details>
+<summary>183. How do the main thread and a Node.js worker exchange messages through parentPort and worker.postMessage()?</summary>
+
+Every worker gets one built-in `MessagePort` pair. The parent's end is the `Worker` object itself: `worker.postMessage(value)` sends to the thread and `worker.on("message", fn)` receives from it. The worker's end is `parentPort` (a `MessagePort`, `null` in the main thread): `parentPort.postMessage(value)` sends to the parent and `parentPort.on("message", fn)` receives. Messages are structured-cloned, and an optional second argument lists objects to transfer instead of copy. If a message cannot be deserialized on the receiving side a `messageerror` event fires instead of `message`. Messages that arrive before a listener is attached are queued, not lost, because the port starts delivering only when a `message` listener exists.
+
+```js
+// main.js
+import { Worker } from "node:worker_threads";
+const worker = new Worker("./worker.js");
+worker.on("message", (msg) => console.log("main got:", msg));
+worker.postMessage({ name: "Joe" });
+
+// worker.js
+import { parentPort } from "node:worker_threads";
+parentPort.on("message", (msg) => {
+  parentPort.postMessage(`hello ${msg.name}`);
+});
+```
+
+Gotcha: attaching the `message` listener on `parentPort` keeps the worker alive forever; call `parentPort.close()`, remove the listener, or `process.exit()` when the worker is done. For a synchronous receive, `receiveMessageOnPort(port)` returns the next queued message without waiting, which is useful together with `Atomics.wait`.
+
+</details><br>
+
+<details>
+<summary>184. How can two Node.js worker threads talk to each other directly with MessageChannel, and what happens to a MessagePort after it is transferred?</summary>
+
+By default every worker talks only to its parent. To connect two workers (or to give a worker a second, dedicated channel), create a `MessageChannel`, which yields two linked ports `port1` and `port2`, and hand each port to a different thread. A `MessagePort` cannot be cloned, so it must be listed in `transferList` (of the `Worker` constructor or of `postMessage()`), which moves ownership: after the transfer the port object in the sending thread is closed and unusable, it can neither post messages nor receive them, and only the receiving thread owns that end. Whatever is written to `port1` arrives on `port2` and vice versa, so the two workers now communicate without the main thread relaying.
+
+```js
+// main.js
+import { Worker, MessageChannel } from "node:worker_threads";
+const { port1, port2 } = new MessageChannel();
+new Worker("./calc.js", { workerData: { port: port1 }, transferList: [port1] });
+new Worker("./calc.js", { workerData: { port: port2 }, transferList: [port2] });
+// port1 and port2 are now unusable here
+
+// calc.js
+import { workerData, threadId } from "node:worker_threads";
+const { port } = workerData;
+port.on("message", (msg) => console.log(`worker ${threadId} received`, msg));
+port.postMessage(`hi from ${threadId}`);
+```
+
+Ports can also be sent later through an existing channel, for example `worker.postMessage({ port: p }, [p])`, so a coordinator can wire up new connections at runtime.
+
+Gotcha: a port with a `message` listener keeps its thread alive, so call `port.close()` when finished; closing one end emits `close` on the other. Forgetting to list the port in the transfer list throws a `DataCloneError`.
+
+</details><br>
+
+<details>
+<summary>185. Which objects can be placed in a worker_threads transferList, and what does transferring mean compared with cloning?</summary>
+
+Cloning copies a value; transferring moves it, so no bytes are copied and afterwards only the receiving thread can use it. The current Node docs allow these object types in a `transferList`:
+
+- `ArrayBuffer` (the memory block moves, and the sender's buffer becomes detached with `byteLength` `0`);
+- `MessagePort` (the sender's end is closed; the receiver owns the channel end);
+- `FileHandle` (from `fs/promises`, the open descriptor moves to the other thread);
+- `net.Server` (a listening TCP server moves with its pending accept queue, so another thread continues accepting);
+- `net.Socket` (a freshly accepted or connected TCP socket moves; the source socket is destroyed and further use fails with `ERR_STREAM_DESTROYED`);
+- `net.BoundSocket` (a pre-bound, not yet listening or connected TCP socket, so a port can be reserved on one thread and adopted on another).
+
+Server and socket transfer work only for TCP: a socket that has already started reading or has buffered data is rejected with `ERR_WORKER_HANDLE_NOT_TRANSFERABLE`. Listing an object that cannot be transferred throws instead of silently copying.
+
+```js
+const data = new Uint8Array(1 << 20);
+worker.postMessage(data, [data.buffer]); // zero copy; note: the buffer, not the view
+console.log(data.byteLength); // 0, the view is now over a detached buffer
+```
+
+Gotcha: a `SharedArrayBuffer` is never transferable; it is shared by cloning the handle. A typed array or `Buffer` cannot be listed directly, you must list its `.buffer`, and doing so detaches every other view that shares that buffer, which is dangerous for `Buffer` objects carved from Node's internal pool.
+
+</details><br>
+
+<details>
+<summary>186. Why can posting or transferring a Node.js Buffer move far more memory than the Buffer itself, and how do you create Buffers that are safe to transfer?</summary>
+
+Small `Buffer` objects created with `Buffer.from()`, `Buffer.allocUnsafe()`, or `Buffer.concat()` (below `Buffer.poolSize >>> 1`, 4 KiB by default) do not own their memory: they are views into a shared 8 KiB pool `ArrayBuffer`, at some `byteOffset`, alongside unrelated buffers. Node marks that pool as untransferable with `markAsUntransferable()`. Putting such a `Buffer` into a message therefore clones the entire pool, not just the slice you meant, which costs memory and leaks whatever bytes the neighbouring buffers held (passwords, keys) to the other thread; listing its `.buffer` in `transferList` throws. A `Buffer` is safe to transfer only when it owns its whole `ArrayBuffer`, which is true for `Buffer.alloc()`, `Buffer.allocUnsafeSlow()`, large allocations, and `Buffer.from(arrayBuffer)`.
+
+```js
+import { Buffer } from "node:buffer";
+import { isMarkedAsUntransferable } from "node:worker_threads";
+
+const pooled = Buffer.from("secret");
+console.log(pooled.buffer.byteLength, isMarkedAsUntransferable(pooled.buffer)); // 8192 true
+
+// option 1: allocate an owned buffer from the start
+const owned = Buffer.alloc(6);
+
+// option 2: copy exactly the bytes you need into a fresh ArrayBuffer
+const exact = pooled.buffer.slice(
+  pooled.byteOffset,
+  pooled.byteOffset + pooled.byteLength,
+);
+worker.postMessage(exact, [exact]);
+```
+
+Gotcha: check ownership with `buf.byteOffset === 0 && buf.byteLength === buf.buffer.byteLength` before transferring, and remember that `Buffer.from(string)` and `Buffer.from(array)` always go through the pool when small. `isMarkedAsUntransferable()` tells you whether a buffer carries that mark.
+
+</details><br>
+
+<details>
+<summary>187. How do you give a Node.js worker thread a time limit, and what does worker.terminate() guarantee?</summary>
+
+A worker does not stop on its own if the task hangs or loops forever, so the usual pattern is a timer in the parent that calls `worker.terminate()`, which stops JavaScript execution in that thread as soon as possible and returns a promise resolving with the exit code. Because the `Worker` object represents one thread with its own state, a terminated worker cannot be reused; the parent must create a new one, which pool libraries do automatically. The timer must be cleared when the worker answers in time, and a flag or a single settled promise must prevent answering the request twice.
+
+```js
+import { Worker } from "node:worker_threads";
+
+function runWithTimeout(file, data, ms) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(file, { workerData: data });
+    const timer = setTimeout(() => {
+      worker.terminate().then(() => reject(new Error("worker timed out")));
+    }, ms);
+    worker.once("message", (result) => {
+      clearTimeout(timer);
+      resolve(result);
+    });
+    worker.once("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    worker.once("exit", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) reject(new Error(`exit ${code}`));
+    });
+  });
+}
+
+// in an HTTP handler
+try {
+  res.json(await runWithTimeout("./calc.js", input, 5000));
+} catch {
+  res.status(408).json({ message: "Request time out." });
+}
+```
+
+Gotcha: `terminate()` interrupts JavaScript, including tight loops, but it cannot interrupt a native call that is already running inside the worker (for example a long synchronous call into a C++ addon); the thread ends only when that call returns. Terminating also discards any messages the worker had not yet flushed.
+
+</details><br>
+
+<details>
+<summary>188. Are modules, global variables, and singletons shared between the main thread and a worker thread in Node.js, and how do you tell which thread code is running in?</summary>
+
+No JavaScript object is shared. Each worker has its own V8 isolate with its own global object, its own module cache, and its own copies of every variable, so every module the worker imports is executed again from scratch in that thread. A "singleton" exported from a module therefore exists once per thread, and a value assigned in the main thread is never seen by a worker that imports the same file; the only memory that two threads can see at once is a `SharedArrayBuffer`. To find out where code runs, `isMainThread` is `true` only in the main thread, and `threadId` is an integer that is `0` in the main thread and unique for every `Worker` created in the process; the parent sees the same number as `worker.threadId`.
+
+```js
+import { Worker, isMainThread, threadId } from "node:worker_threads";
+
+let a = 200;
+if (isMainThread) {
+  a = 500;
+  const worker = new Worker(new URL(import.meta.url));
+  console.log("main", threadId, a, worker.threadId); // main 0 500 1
+} else {
+  console.log("worker", threadId, a); // worker 1 200, the module ran again
+}
+```
+
+Gotcha: module-level side effects run once per thread too, so a database pool, a timer, or an HTTP server created at the top level of a shared module is duplicated in every worker. Put such setup behind an `isMainThread` check or in a file only the main thread imports.
+
+</details><br>
+
+<details>
+<summary>189. What is the difference between passing an ArrayBuffer and a SharedArrayBuffer to a Node.js worker, and how can either be made growable?</summary>
+
+An `ArrayBuffer` is private memory: when it is posted (in `workerData` or `postMessage`) the structured clone algorithm copies its bytes, and if it is listed in the `transferList` the block is moved and the sender's object becomes detached. A `SharedArrayBuffer` cannot be transferred at all; cloning it creates a new `SharedArrayBuffer` object in the receiving thread that refers to the same underlying data block, so a write in one thread becomes visible in the other without any copying. Typed arrays and Node `Buffer` objects that view a `SharedArrayBuffer` can be posted too and arrive as views over the shared block. Both kinds can be created growable by passing `maxByteLength` to the constructor: a `SharedArrayBuffer` has `grow(newLength)` and can only grow, while an `ArrayBuffer` has `resize(newLength)` in both directions.
+
+```js
+import { Worker } from "node:worker_threads";
+
+const shared = Buffer.from(new SharedArrayBuffer(8)); // view over shared memory
+const copied = Buffer.from(new ArrayBuffer(8)); // view over private memory
+for (let i = 0; i < 4; i++) {
+  new Worker("./calc.js", {
+    workerData: { shared: shared.buffer, copied: copied.buffer },
+  });
+}
+// each worker writes into the same 8 bytes behind `shared` but into its own copy of `copied`
+
+const sab = new SharedArrayBuffer(8, { maxByteLength: 1024 });
+sab.grow(16);
+console.log(sab.growable, sab.byteLength); // true 16
+```
+
+Gotcha: shared memory is visible but not synchronized. Plain writes such as `view[0]++` from several threads race, and ordering guarantees across threads come only from `Atomics`. The block is freed when every thread has dropped its reference.
+
+</details><br>
+
+<details>
+<summary>190. Why can't you read or write an ArrayBuffer or SharedArrayBuffer directly in JavaScript, and which views can you use?</summary>
+
+An `ArrayBuffer` or `SharedArrayBuffer` is only a raw block of bytes with a `byteLength`; it has no indexing and no notion of what the bytes mean. To interpret them you create a view over the buffer, and all views over the same buffer see each other's writes immediately. The available views are:
+
+- `TypedArray` classes (`Uint8Array`, `Int32Array`, `Float64Array`, and so on, each reading the bytes as elements of one fixed type in platform byte order);
+- `DataView` (explicit per-call type and endianness, for mixed binary layouts such as file headers);
+- `Buffer` (Node only, a `Uint8Array` subclass with extra helpers, exposing the underlying buffer as `buf.buffer` with `buf.byteOffset` and `buf.byteLength`).
+
+In browsers only typed arrays and `DataView` exist, so code that must run in both environments uses typed arrays over a `SharedArrayBuffer` instead of `Buffer`.
+
+```js
+const raw = new ArrayBuffer(20);
+const bytes = new Uint8Array(raw);
+bytes[1] = 22; // raw now holds 00 16 00 ...
+const words = new Int32Array(raw, 0, 2);
+console.log(words[0]); // 5632 on little-endian hardware: bytes 00 16 00 00
+console.log(Array.from(bytes.subarray(0, 4))); // [0, 22, 0, 0] as a plain array
+```
+
+Gotcha: a multi-byte view must start at an offset that is a multiple of its element size (`new Int32Array(raw, 2)` throws a `RangeError`), and `Buffer.from(arrayBuffer)` shares the memory while `Buffer.from(typedArray)` copies it. `Array.from(view)` or spreading converts a view into an ordinary array, which copies the values.
+
+</details><br>
+
+<details>
+<summary>191. What is the JavaScript Atomics object, what problem does it solve for worker_threads, and when should production code use it?</summary>
+
+`Atomics` is a built-in object with static methods that read and write memory in a `SharedArrayBuffer` as single indivisible operations. It exists because a `SharedArrayBuffer` is the one kind of memory several threads can see at once, and ordinary JavaScript has no way to make concurrent access safe: `counter[0]++` is really read, add, write, and two threads interleaving those steps lose an update. `Atomics.add`, `Atomics.load`, `Atomics.store`, and `Atomics.compareExchange` perform each step atomically, so no thread can slip in between. `Atomics.wait(array, index, expected, timeout)` puts a thread to sleep while a slot still holds `expected`, and `Atomics.notify(array, index, count)` wakes waiters, so a thread can wait for new data without spinning in a loop. This is the same idea as a futex on Linux or a condition variable in other languages. The methods only work on integer typed arrays such as `Int32Array` or `BigInt64Array`, and the waiting methods only when the array views a `SharedArrayBuffer`.
+
+```js
+// main.js
+import { Worker } from "node:worker_threads";
+const sab = new SharedArrayBuffer(8);
+const shared = new Int32Array(sab); // shared[0] = flag, shared[1] = payload
+new Worker("./worker.js", { workerData: sab });
+
+Atomics.store(shared, 1, 42); // publish the payload
+Atomics.store(shared, 0, 1); // set the flag
+Atomics.notify(shared, 0, 1); // wake one waiter
+
+// worker.js
+import { workerData } from "node:worker_threads";
+const shared = new Int32Array(workerData);
+Atomics.wait(shared, 0, 0); // sleep while flag is still 0
+console.log(Atomics.load(shared, 1)); // 42, no copy, no serialization
+```
+
+In everyday production code you rarely call `Atomics` yourself. Workers normally talk with `postMessage`, `workerData`, or a pool library such as `piscina`, and large buffers are moved with `postMessage(buffer, [buffer])`, which transfers ownership without copying. `Atomics` is reserved for cases where message passing itself is the bottleneck: high-frequency job queues or ring buffers between threads, shared counters and flags read by many workers, a worker that must block synchronously until the main thread answers (the trick behind `synckit`), and WebAssembly threads, whose mutexes are implemented with `Atomics.wait` and `Atomics.notify`. Libraries such as `piscina`, `synckit`, Emscripten, and `comlink` hide it internally.
+
+Gotcha: `Atomics.wait` blocks the whole thread. Browsers throw if it is called on the main thread; Node allows it there, but it freezes the event loop for the duration, so use it in workers and reach for `Atomics.waitAsync`, which returns a promise, when blocking is unacceptable. `cluster` and `child_process` cannot use it at all, because separate processes do not share a `SharedArrayBuffer`. Treat shared-memory code like writing a lock in C: keep it inside a small, well-tested helper rather than scattered through business logic.
+
+</details><br>
+
+<details>
+<summary>192. Which basic Atomics read and write operations exist, what do they return, and on which typed arrays do they work?</summary>
+
+All `Atomics` methods take a typed array, an element index, and for writes a value, and each call is one indivisible operation on that element. The basic operations are:
+
+- `Atomics.load(ta, i)` (reads the element);
+- `Atomics.store(ta, i, v)` (writes and returns the stored value);
+- `Atomics.add(ta, i, v)` and `Atomics.sub(ta, i, v)` (add or subtract, returning the old value);
+- `Atomics.and(ta, i, v)`, `Atomics.or(ta, i, v)`, `Atomics.xor(ta, i, v)` (bitwise update, returning the old value);
+- `Atomics.exchange(ta, i, v)` (replaces unconditionally, returning the old value);
+- `Atomics.compareExchange(ta, i, expected, replacement)` (replaces only if the current value equals `expected`, returning the old value);
+- `Atomics.isLockFree(bytes)` (tells whether operations on elements of that size avoid an internal lock).
+
+They work on the integer typed arrays `Int8Array`, `Uint8Array`, `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`, and `BigUint64Array`, never on `Uint8ClampedArray` or float arrays. The array may view a plain `ArrayBuffer` as well as a `SharedArrayBuffer`; on private memory the call is just an ordinary access, which lets one helper work in both cases.
+
+```js
+const counters = new Uint32Array(new SharedArrayBuffer(16));
+Atomics.add(counters, 0, 1); // counters[0] += 1 atomically, returns previous value
+const bytes = new Uint8Array(new SharedArrayBuffer(16));
+Atomics.store(bytes, 1, 200); // 200
+Atomics.load(bytes, 1); // 200
+const big = new BigInt64Array(new SharedArrayBuffer(8));
+Atomics.add(big, 0, 5n); // BigInt arrays need BigInt operands
+```
+
+Gotcha: values wrap according to the element type, so `Atomics.add` on a `Uint8Array` holding `255` produces `0`. Mixing plain `ta[i]++` with `Atomics` calls on the same element throws away the guarantee, since the plain write is not atomic.
+
+</details><br>
+
+<details>
+<summary>193. How does Atomics.compareExchange() work, and how do you write a correct compare-and-swap retry loop?</summary>
+
+`Atomics.compareExchange(ta, index, expected, replacement)` atomically compares the element at `index` with `expected` and, only if they are equal, writes `replacement`. It always returns the value that was in the slot before the call, whether or not the write happened, so success is detected by checking that the returned value equals `expected`. This is the compare-and-swap (CAS) primitive on which locks, semaphores, and lock-free structures are built: it guarantees that a new value is computed from up-to-date data, because if another thread changed the slot between your read and your write the swap fails and you must retry with the fresh value.
+
+```js
+// atomic add built from CAS (same effect as Atomics.add)
+function add(mem, index, delta) {
+  let value;
+  do {
+    value = Atomics.load(mem, index);
+  } while (Atomics.compareExchange(mem, index, value, value + delta) !== value);
+  return value + delta;
+}
+
+// take a lock: switch 0 -> 1 only if it is currently 0
+const got = Atomics.compareExchange(state, 0, 0, 1) === 0;
+```
+
+Gotcha: the comparison is against the value as stored in the array's element type, so on a `Uint8Array` an `expected` of `256` is coerced to `0` first. CAS loops guarantee progress for the system but not fairness: under heavy contention one thread can lose the race repeatedly, which is why real locks combine CAS with `Atomics.wait` instead of spinning forever.
+
+</details><br>
+
+<details>
+<summary>194. What do Atomics.wait() and Atomics.notify() do, what do they return, and why does wait() take an expected value?</summary>
+
+`Atomics.wait(ta, index, expected, timeout)` checks that the element at `index` still equals `expected` and, if so, puts the calling thread to sleep until another thread calls `Atomics.notify` on the same element or until `timeout` milliseconds pass (default infinite). It returns one of three strings:
+
+- `"not-equal"` (the element already differed from `expected`, so the thread never slept);
+- `"ok"` (woken by `Atomics.notify`);
+- `"timed-out"` (the timeout expired first).
+
+`Atomics.notify(ta, index, count)` wakes up to `count` sleeping threads on that element (default `Infinity`) and returns how many it woke. Both work only with an `Int32Array` or `BigInt64Array` that views a `SharedArrayBuffer`; `wait` on a non-shared array throws a `TypeError`. The expected value is what makes this race-free: the check and the sleep happen atomically, so a notifier that changes the value and calls `notify` just before the waiter arrives cannot cause a lost wake-up, since the waiter will see the changed value and return `"not-equal"` immediately. This is the same contract as a Linux futex.
+
+```js
+const int32 = new Int32Array(new SharedArrayBuffer(1024));
+
+// reading thread: sleeps as long as slot 0 is still 0
+Atomics.wait(int32, 0, 0);
+console.log(int32[0]); // 123
+
+// writing thread: publish, then wake one waiter
+Atomics.store(int32, 0, 123);
+Atomics.notify(int32, 0, 1);
+```
+
+Gotcha: a notification is not remembered, so `notify` before `wait` does nothing, and being woken does not prove the value changed, which is why real code wraps `wait` in a loop that re-checks the state. Browsers throw when `wait` is called on the main thread; Node permits it but it blocks the event loop, so use it inside workers. `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)` on a private array doubles as a synchronous sleep.
+
+</details><br>
+
+<details>
+<summary>195. How do you implement a mutex across Node.js worker threads with Atomics, and which rules must callers follow?</summary>
+
+A mutex (mutual exclusion) lets exactly one thread into a critical section at a time, and the thread that locked it is the one that must unlock it. The state is one `Int32` in shared memory, `0` for unlocked and `1` for locked. `lock()` tries to switch `0` to `1` with `Atomics.compareExchange`; if the old value was `1` someone else holds it, so the thread sleeps with `Atomics.wait` while the value is still `1`, and retries after waking. `unlock()` stores `0` and calls `Atomics.notify` to wake one waiter. The loop around the CAS is essential: being woken only means "try again", because a third thread may have grabbed the lock first.
+
+```js
+const UNLOCKED = 0,
+  LOCKED = 1;
+
+class Mutex {
+  constructor(sab, byteOffset = 0) {
+    this.state = new Int32Array(sab, byteOffset, 1);
+  }
+  lock() {
+    while (
+      Atomics.compareExchange(this.state, 0, UNLOCKED, LOCKED) !== UNLOCKED
+    ) {
+      Atomics.wait(this.state, 0, LOCKED); // sleep while still locked
+    }
+  }
+  unlock() {
+    Atomics.store(this.state, 0, UNLOCKED);
+    Atomics.notify(this.state, 0, 1);
+  }
+}
+
+// worker: [0..3] = mutex, [4..7] = shared counter
+const mutex = new Mutex(sab, 0);
+const counter = new Int32Array(sab, 4, 1);
+for (let i = 0; i < 100_000; i++) {
+  mutex.lock();
+  try {
+    counter[0]++;
+  } finally {
+    // not atomic by itself; the mutex makes it safe
+    mutex.unlock();
+  }
+}
+```
+
+With four workers and no lock the final count is some random number below `400000` because increments are lost; with the lock it is exactly `400000`. The rules: always unlock in `finally`, otherwise an exception leaves every other thread asleep forever; the lock is not reentrant, so a thread that calls `lock()` twice deadlocks itself; keep the critical section short because everyone else is sleeping; and do not block the main thread with it.
+
+Gotcha: this version calls `notify` on every unlock even when nobody waits. Production mutexes use a third state (`2` for locked with waiters) to skip that call on the uncontended path, the design from Ulrich Drepper's paper "Futexes Are Tricky". If you only need to serialize async functions within one thread, no atomics are needed, a promise chain or the `locks` API is enough.
+
+</details><br>
+
+<details>
+<summary>196. How do you implement a counting semaphore across Node.js worker threads with Atomics, and how does it differ from a mutex?</summary>
+
+A semaphore is a counter of permits that limits how many threads may use a resource at once. `acquire()` waits until the counter is above zero and decrements it; `release()` increments it and wakes a waiter. A semaphore initialised with `1` behaves like a mutex, with one important difference: a semaphore has no owner, any thread may call `release()`, whereas a mutex must be unlocked by the thread that locked it. The state is one shared `Int32`. `acquire` loads the counter, and if it is positive tries to decrement it with `Atomics.compareExchange`, retrying if another thread changed it first; if it is zero the thread sleeps with `Atomics.wait` while the value stays `0`.
+
+```js
+class Semaphore {
+  constructor(sab) {
+    this.state = new Int32Array(sab);
+  }
+  static createBuffer(permits) {
+    const sab = new SharedArrayBuffer(4);
+    new Int32Array(sab)[0] = permits;
+    return sab;
+  }
+  acquire() {
+    for (;;) {
+      const current = Atomics.load(this.state, 0);
+      if (current > 0) {
+        if (
+          Atomics.compareExchange(this.state, 0, current, current - 1) ===
+          current
+        )
+          return;
+      } else {
+        Atomics.wait(this.state, 0, 0); // sleep while no permits
+      }
+    }
+  }
+  release() {
+    Atomics.add(this.state, 0, 1);
+    Atomics.notify(this.state, 0, 1);
+  }
+}
+
+// main: const sab = Semaphore.createBuffer(2); spawn 5 workers with workerData: sab
+// worker: sem.acquire(); doWork(); sem.release();   -> at most 2 workers inside at once
+```
+
+```
+                 Mutex                      Semaphore
+Counter          0 or 1                     0..N
+Threads inside   exactly 1                  up to N
+Owner            the thread that locked     none, anyone can release
+Typical use      protect shared data        limit access to a pool or resource
+```
+
+Gotcha: because there is no ownership, a bug that calls `release()` twice silently raises the limit instead of failing, so pair every `acquire()` with exactly one `release()` in a `finally`. A semaphore protects capacity, not data; code that mutates shared state inside the permitted section still needs a mutex or atomics for that state.
+
+</details><br>
+
+<details>
+<summary>197. How does Atomics.waitAsync() differ from Atomics.wait(), what does it return, and why does it exist?</summary>
+
+`Atomics.wait()` blocks the calling thread until notified, so browsers forbid it on the main thread and in Node it would freeze the event loop. `Atomics.waitAsync()` performs the same comparison against the expected value synchronously but never blocks: instead of sleeping it returns an object `{ async, value }`. If the element already differs, or the timeout is `0`, the result is decided immediately and `async` is `false` with `value` being the string `"not-equal"` or `"timed-out"`. Otherwise `async` is `true` and `value` is a promise that resolves to `"ok"` when a thread calls `Atomics.notify()` on that element, or to `"timed-out"`. The same `notify` call wakes both blocking and async waiters, and the same `Int32Array` or `BigInt64Array` over a `SharedArrayBuffer` restriction applies.
+
+```
+                                 Atomics.wait()                     Atomics.waitAsync()
+Blocks the thread                yes                                no
+Returns                          "ok" | "not-equal" | "timed-out"   { async, value }
+Allowed on browser main thread   no (throws)                        yes
+Usable in workers                yes                                yes
+Woken by Atomics.notify()        yes                                yes
+```
+
+```js
+// main thread: wait on shared memory without blocking the event loop
+const r = Atomics.waitAsync(i32, STATUS, 0, 5000);
+if (r.async) {
+  const result = await r.value; // "ok" or "timed-out"
+  console.log(result, Atomics.load(i32, STATUS));
+} else {
+  console.log("decided immediately:", r.value); // "not-equal" or "timed-out"
+}
+
+// worker
+Atomics.store(i32, STATUS, 1);
+Atomics.notify(i32, STATUS);
+```
+
+Before `waitAsync` the main thread could only poll the shared memory or ask workers to `postMessage` it; now it can await a shared flag directly. Gotcha: always check `async` before awaiting, because `value` is a plain string in the synchronous case, and after the promise resolves re-check the state in a loop, exactly as with the blocking form, since a wake-up does not prove the value you care about is in place.
+
+</details><br>
+
+<details>
+<summary>198. When does the Node.js event loop actually start, and how does performance.eventLoopUtilization() reflect that?</summary>
+
+Node first runs the main module to completion, then drains the `process.nextTick` queue and the microtask queue, and only then enters the libuv event loop (timers, I/O, `setImmediate`). `performance.eventLoopUtilization()` returns an object with cumulative milliseconds since the loop started:
+
+- `idle` (time the loop spent blocked in the kernel waiting for events);
+- `active` (time spent running callbacks or otherwise not waiting);
+- `utilization` (`active / (active + idle)`, between `0` and `1`).
+
+Because the counters only exist once the loop runs, a synchronous block in the main module or inside a `process.nextTick` callback reports all zeros and `utilization` `0`, even though the thread is completely busy. The same block inside a `setImmediate` or timer callback reports `utilization` close to `1`, because the loop has begun and has accumulated almost no idle time.
+
+```js
+import { performance } from "node:perf_hooks";
+
+function spin() {
+  const end = Date.now() + 2000;
+  while (Date.now() < end) {}
+}
+
+spin();
+console.log(performance.eventLoopUtilization().utilization); // 0, loop not started
+process.nextTick(() => {
+  spin();
+  console.log(performance.eventLoopUtilization().utilization);
+}); // 0
+setImmediate(() => {
+  spin();
+  console.log(performance.eventLoopUtilization().utilization);
+}); // ~1
+
+// delta between two samples, the useful form for monitoring
+const before = performance.eventLoopUtilization();
+setInterval(() => {
+  const now = performance.eventLoopUtilization();
+  console.log(performance.eventLoopUtilization(now, before).utilization);
+}, 1000);
+```
+
+Gotcha: the plain call is cumulative since start, so it flattens out and hides recent spikes; always compute a delta by passing previous samples. A parent can read a worker's loop usage with `worker.performance.eventLoopUtilization()`, which is how pools such as `piscina` decide whether to add workers.
+
+</details><br>
+
+<details>
+<summary>199. What does it mean for an ArrayBuffer to be detached after a transfer, and how can you detect or trigger detachment yourself?</summary>
+
+When an `ArrayBuffer` is transferred to another thread with `postMessage(value, [buffer])`, the underlying memory block moves and the original object is detached: it keeps existing but its `byteLength` becomes `0`, every typed array or `Buffer` that viewed it now has length `0`, and creating a new view over it throws a `TypeError`. At any moment exactly one `ArrayBuffer` object in the whole process has access to that memory, which is what makes zero-copy transfer safe. This is observable and usable from plain JavaScript: `buffer.detached` reports the state, `buffer.transfer(newLength)` detaches the original and returns a new buffer with the same bytes (resizable if the original was), and `buffer.transferToFixedLength()` returns a fixed-length one.
+
+```js
+const buf = new ArrayBuffer(16);
+const view = new Uint8Array(buf);
+view[0] = 7;
+
+const moved = buf.transfer(); // same bytes, new owner
+console.log(buf.detached, buf.byteLength, view.length); // true 0 0
+console.log(new Uint8Array(moved)[0]); // 7
+new Uint8Array(buf); // TypeError: Cannot perform Construct on a detached ArrayBuffer
+
+worker.postMessage(moved, [moved]); // now moved is detached here as well
+```
+
+Gotcha: reads from a view over a detached buffer return `undefined` and writes are silently ignored, there is no exception, so a stale reference after a transfer produces wrong data rather than a crash. Transferring a buffer that several views share (for example multiple `Buffer.subarray()` slices) detaches all of them at once.
+
+</details><br>
+
+<details>
+<summary>200. What does the SHARE_ENV option of the Node.js Worker constructor do, and when is it useful or risky?</summary>
+
+By default a worker gets `process.env` as a snapshot copy of the parent's environment made at construction time, and writes in either thread are invisible to the other. Passing an object as the `env` option replaces the environment entirely with just those keys. Passing the symbol `SHARE_ENV` (exported by `node:worker_threads`) instead makes the worker and the parent share one live set of environment variables with read and write access in both directions, which also means changes made by the worker reach native add-ons and child processes spawned by the main thread.
+
+```js
+import process from "node:process";
+import { Worker, SHARE_ENV } from "node:worker_threads";
+
+new Worker('process.env.SET_IN_WORKER = "foo"', {
+  eval: true,
+  env: SHARE_ENV,
+}).once("exit", () => console.log(process.env.SET_IN_WORKER)); // foo
+
+new Worker("./w.js", { env: { MODE: "test" } }); // sees only MODE, nothing from the parent
+```
+
+Gotcha: a shared environment is shared mutable state across threads with no synchronization, so concurrent writes race and a worker can change configuration under the feet of the main thread. Use it for the narrow case where a worker must configure the process, for example before loading a native add-on, and prefer passing values through `workerData` otherwise.
+
+</details><br>
+
+<details>
+<summary>201. What is the locks API in node:worker_threads, how does locks.request() grant and release a lock, and how does it compare with an Atomics mutex?</summary>
+
+`locks` (marked experimental) is a `LockManager` that mirrors the browser Web Locks API. It coordinates asynchronous code across the main thread and all worker threads of one process by name, without shared memory or blocking: `locks.request(name, options, callback)` queues a request, invokes `callback(lock)` once the named lock is granted, releases it automatically when the callback returns or, if it returns a promise, when that promise settles, and the promise returned by `request()` resolves once the lock has been released. The options are:
+
+- `mode` (`'exclusive'` for one holder at a time, `'shared'` to let any number of shared holders coexist, like a read-write lock, default `'exclusive'`);
+- `ifAvailable` (`true` grants immediately or calls back with `null` instead of waiting, default `false`);
+- `steal` (`true` releases any existing holders and jumps the queue, default `false`);
+- `signal` (an `AbortSignal` that cancels a request that is still pending).
+
+`locks.query()` resolves with a snapshot containing `held` and `pending` arrays whose entries have `name` and `mode`, for debugging.
+
+```js
+import { locks } from "node:worker_threads";
+
+// any thread of the process: only one writer of this file at a time
+await locks.request("settings.json", async () => {
+  const data = await readFile("settings.json", "utf8");
+  await writeFile("settings.json", update(data));
+});
+// released here
+
+await locks.request("cache", { mode: "shared" }, async () => readCache()); // many readers at once
+```
+
+Compared with a mutex built from `Atomics`, the lock is cooperative and asynchronous: it protects a section that spans `await`s, never blocks a thread, needs no `SharedArrayBuffer`, and cannot be forgotten open because release is tied to the callback. The `Atomics` mutex is for synchronous, nanosecond-scale sections over shared memory.
+
+Gotcha: the scope is one process, so unlike the browser API it does not coordinate separate processes such as `cluster` workers; use file locks or a database for that. Locks are not reentrant: awaiting `locks.request()` for the same exclusive name inside its own callback deadlocks, unless `ifAvailable` or `steal` is used.
+
+</details><br>
+
+<details>
+<summary>202. What is BroadcastChannel in Node.js, how does it differ from MessageChannel, and what keeps it from letting the process exit?</summary>
+
+`BroadcastChannel` (a global, also exported by `node:worker_threads`) provides asynchronous one-to-many messaging: every `BroadcastChannel` instance created with the same name, in the main thread or in any worker thread of the same process, receives each message posted to any other instance of that name. The sender does not receive its own message. Messages are structured-cloned, there is no transfer list, and they are delivered as `MessageEvent` objects whose payload is `event.data`, handled through `onmessage` or `addEventListener("message")`. `MessageChannel`, by contrast, is a point-to-point pair of ports that must be transferred explicitly, while a broadcast channel needs only an agreed name, which makes it convenient for fan-out notifications such as "config reloaded" or "shut down".
+
+```js
+import { isMainThread, BroadcastChannel, Worker } from "node:worker_threads";
+
+const bc = new BroadcastChannel("hello");
+
+if (isMainThread) {
+  let count = 0;
+  bc.onmessage = (event) => {
+    console.log(event.data);
+    if (++count === 10) bc.close(); // let the process exit
+  };
+  for (let n = 0; n < 10; n++) new Worker(new URL(import.meta.url));
+} else {
+  bc.postMessage("hello from every worker");
+  bc.close();
+}
+```
+
+Gotcha: an open `BroadcastChannel` keeps its thread's event loop alive, so call `close()` when done or `unref()` if it should not count. Delivery is not buffered: a message posted before a receiver has created its channel is lost, so start listeners before signalling. The channel does not cross process boundaries; `cluster` or `child_process` workers need IPC or an external broker instead.
+
+</details><br>
+
+<details>
+<summary>203. What problem does AsyncLocalStorage solve in Node.js, and why can't a module-level variable hold per-request data?</summary>
+
+Node.js handles many requests concurrently on a single thread. Data that belongs to one request (request id, current user, trace id) is often needed deep in the call chain, by loggers, data access code or permission checks. Passing it as a parameter through every function is noisy and fragile, and a module-level variable is unsafe: while request A is suspended at an `await`, request B runs and overwrites the variable, so A resumes and reads B's data. Async context tracking (the `AsyncLocalStorage` and `AsyncResource` classes from `node:async_hooks`) attaches state to a logical chain of callbacks and promise continuations. It is the Node.js counterpart of thread-local storage in other languages, but because there is only one thread, the value follows the async call chain instead of the thread.
+
+```js
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const als = new AsyncLocalStorage();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const log = (msg) => console.log(`[${als.getStore() ?? "-"}] ${msg}`);
+
+function handle(id, delay) {
+  return als.run(id, async () => {
+    log("start");
+    await sleep(delay);
+    log("done"); // still sees its own id after the await
+  });
+}
+
+handle("A", 200);
+handle("B", 50);
+// [A] start
+// [B] start
+// [B] done
+// [A] done
+```
+
+Gotcha: with a plain `let currentId` variable instead of `als`, both `done` lines would print `B`, because B started last and overwrote the shared value while A was waiting.
+
+</details><br>
+
+<details>
+<summary>204. What does an AsyncLocalStorage instance represent, what can a store be, and do multiple instances interfere with each other?</summary>
+
+An `AsyncLocalStorage` instance holds no data by itself. It works like a key: the current async context keeps one value per instance, called the store, and `getStore()` looks up the value for that instance. A store exists only inside a `run()` callback or after `enterWith()`; creating the instance sets nothing. The store can be any value: a number, a string, an object or a `Map`. Objects and `Map`s are the most practical because fields can be added later. Instances are fully independent, so several libraries can each use their own instance without seeing or overwriting each other's data. The docs recommend `AsyncLocalStorage` over a hand-written implementation on top of `node:async_hooks` because it is performant and memory safe. The usual pattern is one instance per kind of context, created once in a module and exported.
+
+```js
+// request-context.js
+import { AsyncLocalStorage } from "node:async_hooks";
+export const requestContext = new AsyncLocalStorage();
+
+// elsewhere
+const tenantContext = new AsyncLocalStorage();
+
+requestContext.run(new Map([["requestId", "r1"]]), () => {
+  tenantContext.run("acme", () => {
+    requestContext.getStore().get("requestId"); // 'r1'
+    tenantContext.getStore(); // 'acme'
+  });
+  tenantContext.getStore(); // undefined
+});
+```
+
+Gotcha: code can only read a store through the same instance object that set it. Creating a new `AsyncLocalStorage` inside each function or request defeats the purpose; the instance must be shared, typically as a module singleton.
+
+</details><br>
+
+<details>
+<summary>205. Which options does the AsyncLocalStorage constructor accept, and what does the name property return?</summary>
+
+Since v24.0.0, `new AsyncLocalStorage([options])` accepts two options. `defaultValue` is the value `getStore()` returns when no store has been entered for this instance, instead of `undefined`. `name` is a label for the instance (converted to a string), exposed through the read-only `als.name` property and useful for debugging. When no name was given, `als.name` returns an empty string.
+
+```js
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const als = new AsyncLocalStorage({
+  name: "request-context",
+  defaultValue: { requestId: "none" },
+});
+
+als.name; // 'request-context'
+als.getStore(); // { requestId: 'none' } (no run() active)
+als.run({ requestId: "r1" }, () => als.getStore()); // { requestId: 'r1' }
+
+new AsyncLocalStorage().name; // ''
+```
+
+Gotcha: `defaultValue` is used only when the instance has no entry in the current context at all. Inside `als.exit()` (implemented as running with the store `undefined`) or `als.run(undefined, fn)`, `getStore()` returns `undefined`, not the default. The default is also one shared value: if it is an object and some code mutates it, every flow without its own store sees the change.
+
+</details><br>
+
+<details>
+<summary>206. How does AsyncLocalStorage run(store, callback, ...args) work, and where is the store visible?</summary>
+
+`als.run(store, callback, ...args)` calls `callback(...args)` synchronously, with `store` as the current store. The store is visible inside the callback and in every async operation created from it, such as timers, I/O callbacks and promise continuations, but not outside `run()`. When the callback returns, the previous context is restored. `run()` returns whatever the callback returns. For an async callback that is a promise, so `await als.run(...)` works.
+
+```js
+import http from "node:http";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const als = new AsyncLocalStorage();
+
+function logWithId(msg) {
+  const id = als.getStore();
+  console.log(`${id !== undefined ? id : "-"}:`, msg);
+}
+
+let idSeq = 0;
+http
+  .createServer((req, res) => {
+    als.run(idSeq++, () => {
+      logWithId("start");
+      setImmediate(() => {
+        logWithId("finish"); // async work keeps the store
+        res.end();
+      });
+    });
+  })
+  .listen(8080);
+// two requests print: 0: start, 0: finish, 1: start, 1: finish
+
+const result = als.run(
+  "alice",
+  (greeting) => `${greeting} ${als.getStore()}`,
+  "hi",
+);
+result; // 'hi alice'
+als.getStore(); // undefined (outside run)
+```
+
+Gotcha: `run()` does not wait for the async work it starts. It returns as soon as the callback returns, which for an async callback is at its first `await`. The pending work still runs in the captured context later, because the context is attached when that work is scheduled, not when it executes.
+
+</details><br>
+
+<details>
+<summary>207. What happens to the AsyncLocalStorage context when the callback passed to run() throws?</summary>
+
+If the callback throws synchronously, `run()` rethrows the same error with its stack trace untouched, and the context is exited before the error leaves `run()`. A surrounding `catch` block therefore sees the previous store, which is `undefined` at the top level. Async work that the callback scheduled before throwing still keeps the store.
+
+```js
+const store = { id: 2 };
+try {
+  als.run(store, () => {
+    als.getStore(); // { id: 2 }
+    setTimeout(() => {
+      als.getStore(); // { id: 2 } (already scheduled work keeps the store)
+    }, 200);
+    throw new Error();
+  });
+} catch (e) {
+  als.getStore(); // undefined (context exited)
+  // the error is caught here
+}
+```
+
+Gotcha: for an async callback, a failure does not throw from `run()`. `run()` returns a rejected promise that must be awaited or handled with `.catch()`. The context restore has already happened synchronously, at the moment the callback returned its promise, not when the promise settles.
+
+</details><br>
+
+<details>
+<summary>208. What does AsyncLocalStorage getStore() return in different situations, and how should library code read it?</summary>
+
+`als.getStore()` returns the store of this instance in the current async context. It returns `undefined` outside any `run()` or `enterWith()` (for example at startup, in background jobs, in tests, or after context loss), unless the instance was created with `defaultValue`. It also returns `undefined` inside `als.exit()`. The returned store is the same object reference everyone in the flow shares, not a copy. Library code should treat a missing store as a normal situation and use optional chaining with a fallback.
+
+```js
+const requestContext = new AsyncLocalStorage();
+
+export function getRequestId() {
+  return requestContext.getStore()?.requestId ?? "no-request";
+}
+
+getRequestId(); // 'no-request' (startup)
+requestContext.run({ requestId: "r1" }, getRequestId); // 'r1'
+```
+
+Gotcha: `undefined` can mean "not inside a context" or "the context was lost somewhere in the async chain". If it shows up unexpectedly inside request-handling code, suspect context loss caused by a callback queue, pool or event emitter rather than a missing `run()`.
+
+</details><br>
+
+<details>
+<summary>209. How do nested AsyncLocalStorage run() calls behave, and how do you extend the current store instead of replacing it?</summary>
+
+An inner `run()` shadows the outer store only for the inner callback and the async work started from it. When the inner callback returns, the outer store is current again. Nested calls never merge stores automatically. To add a field while keeping the existing ones, build a new store from the current one, for example with object spread, and run with that.
+
+```js
+als.run("outer", () => {
+  als.run("inner", () => als.getStore()); // 'inner'
+  als.getStore(); // 'outer' (restored)
+});
+
+als.run({ user: "alice" }, () => {
+  als.run({ ...als.getStore(), step: "payment" }, () => {
+    als.getStore(); // { user: 'alice', step: 'payment' }
+  });
+  als.getStore(); // { user: 'alice' }
+});
+```
+
+Gotcha: spread is a shallow copy. Nested objects inside the store are still shared between the outer and inner stores, so mutating them in the inner scope changes the outer scope too.
+
+</details><br>
+
+<details>
+<summary>210. What is the difference between mutating the current AsyncLocalStorage store and calling run() with a new store?</summary>
+
+The store is passed by reference. Mutating an object store is visible everywhere that object is shared in the flow, including the caller and sibling async operations, so changes travel "upward". A nested `run()` with a new store is visible only "downward", inside its own callback. A common pattern is to create a fresh mutable store (an object or `Map`) at the entry point of a request and fill it in later, for example when authentication resolves the user.
+
+```js
+als.run({ requestId: "r1" }, async () => {
+  await authenticate();
+  als.getStore().user; // 'alice' (the mutation is visible to the caller)
+
+  als.run({ ...als.getStore(), step: "pay" }, () => {});
+  als.getStore().step; // undefined (a nested run() is visible only downward)
+});
+
+async function authenticate() {
+  als.getStore().user = "alice";
+}
+```
+
+Gotcha: always create a new store object for each `run()`. Reusing one object across requests, as in `const shared = {}; server.on('request', () => als.run(shared, handle))`, makes every request read and overwrite the same data, which is exactly the global-variable bug this API is meant to prevent.
+
+</details><br>
+
+<details>
+<summary>211. How do you limit an AsyncLocalStorage context to a single awaited call inside an async function?</summary>
+
+Wrap only that call in `run()` and return its promise from the callback: `await als.run(store, () => foo())`. Because `run()` returns the callback's return value, the outer `await` waits for `foo()`. The store is visible inside the callback and in everything `foo()` calls and awaits, but not in the rest of the enclosing function.
+
+```js
+async function handler() {
+  await als.run(new Map(), () => {
+    als.getStore().set("key", "value");
+    return foo(); // foo and everything it awaits see the Map
+  });
+  als.getStore(); // undefined (assuming there is no outer context)
+}
+```
+
+Gotcha: forgetting the `return` breaks this pattern. The callback then returns `undefined`, the `await` finishes immediately, `foo()` keeps running unobserved, and any error it throws becomes an unhandled rejection instead of propagating to `handler()`.
+
+</details><br>
+
+<details>
+<summary>212. Which methods control the current AsyncLocalStorage context, and which one should be the default choice?</summary>
+
+`AsyncLocalStorage` has four ways to enter or leave a context:
+
+- `run(store, fn)` (runs `fn` with the store, restores the previous context automatically; stable);
+- `enterWith(store)` (no callback, applies to the rest of the current synchronous execution and its async children, never restores; experimental);
+- `withScope(store)` (returns a disposable `RunScope` for `using` blocks, restores when disposed; experimental, added in v25.9.0);
+- `exit(fn)` (runs `fn` outside this instance's context, restores afterwards; experimental).
+
+The docs recommend `run()` unless there is a strong reason to use something else. It is the only stable option, and its callback boundary makes it impossible to leak the store to the caller.
+
+```js
+als.run(1, () => als.getStore()); // 1, then restored
+
+{
+  using _ = als.withScope(2);
+  als.getStore(); // 2, restored at the end of the block
+}
+
+als.run(1, () => als.exit(() => als.getStore())); // undefined inside exit()
+
+als.enterWith(3);
+als.getStore(); // 3, and it stays 3 for the rest of this execution
+```
+
+Gotcha: `enterWith()` and a `withScope()` that is never disposed have the same failure mode. The store stays active for the rest of the current execution and leaks into code that should not see it.
+
+</details><br>
+
+<details>
+<summary>213. What does AsyncLocalStorage enterWith(store) do, and when is it reasonable to use it?</summary>
+
+`als.enterWith(store)` is experimental. It makes `store` current for the remainder of the current synchronous execution, and the store then persists through any async operations started afterwards. There is no callback and no automatic restore, so even the code that called the function containing `enterWith()` sees the store afterwards. It exists for APIs that hand you control in a hook where you cannot wrap "the rest of the work" in a callback. It is reasonably safe only when the current synchronous execution belongs to exactly one logical flow, such as the very start of a callback Node invoked for a single request.
+
+```js
+const als = new AsyncLocalStorage();
+
+function setContext() {
+  als.enterWith({ id: 42 });
+}
+
+setContext();
+als.getStore(); // { id: 42 } (still set in the caller)
+setTimeout(() => als.getStore(), 10); // { id: 42 } (propagates to async work)
+
+// typical legitimate use: a framework hook that cannot wrap the rest in a callback
+app.addHook("onRequest", (req, reply, done) => {
+  als.enterWith({ requestId: req.id });
+  done();
+});
+```
+
+Gotcha: the docs state that `run()` should be preferred over `enterWith()` unless there are strong reasons. Inside an async function, `enterWith()` called before the first `await` also leaks into the caller, because the function returns to the caller at that `await` while the store is still active.
+
+</details><br>
+
+<details>
+<summary>214. How can AsyncLocalStorage enterWith() leak a store into other event listeners and into code after emit()?</summary>
+
+`emit()` calls all listeners synchronously, one after another, within the same synchronous execution as the code that called `emit()`. Because `enterWith()` changes the context for the entire rest of that synchronous execution, calling it in one listener also affects the listeners registered after it and the code that runs after `emit()` returns. Using `run()` inside the listener confines the store to that listener and the async work it starts.
+
+```js
+const store = { id: 1 };
+
+emitter.on("my-event", () => {
+  als.enterWith(store);
+});
+emitter.on("my-event", () => {
+  als.getStore(); // { id: 1 } (leaked from the first listener)
+});
+
+als.getStore(); // undefined
+emitter.emit("my-event");
+als.getStore(); // { id: 1 } (leaked past emit())
+
+// fix: confine the store to the listener
+emitter.on("my-event", () => {
+  als.run(store, () => {
+    // store visible here and in async work started here only
+  });
+});
+```
+
+Gotcha: the same leak happens in any synchronous dispatch loop, such as a `forEach` over handlers or a middleware array that runs steps synchronously. The problem is not specific to `EventEmitter`; it comes from sharing one synchronous execution.
+
+</details><br>
+
+<details>
+<summary>215. What does AsyncLocalStorage withScope(store) do, and how does it work with the using declaration?</summary>
+
+`als.withScope(store)` is experimental and was added in v25.9.0. It enters `store` and returns a disposable `RunScope` object that restores the previous store when it is disposed. It is designed for the `using` declaration from the TC39 Explicit Resource Management proposal: the enclosing block plays the role of the `run()` callback, so you can scope a store to several statements without nesting them in a function. The previous value is restored when the block exits, whether it completes normally or throws.
+
+```js
+const als = new AsyncLocalStorage();
+
+{
+  using _ = als.withScope("my-store");
+  als.getStore(); // 'my-store'
+}
+als.getStore(); // undefined
+
+try {
+  using _ = als.withScope("my-store");
+  throw new Error("boom");
+} catch {
+  als.getStore(); // undefined (restored before the catch block runs)
+}
+```
+
+Gotcha: `withScope()` is meant for synchronous blocks. In an async function it must not be used before the first `await`, because the function returns to its caller there while the block is still open and the caller then runs with that store. Use `run()` for async work.
+
+</details><br>
+
+<details>
+<summary>216. What is a RunScope, what does scope.dispose() guarantee, and what happens if you use withScope() without using?</summary>
+
+`RunScope` is the disposable object returned by `als.withScope(store)`; you never construct it yourself. When created, it remembers the store that was current and enters the new one. `scope.dispose()` ends the scope by restoring that remembered store. `dispose()` is idempotent: after the first call, further calls do nothing. `scope[Symbol.dispose]()` simply calls `dispose()`, and that is the method a `using` declaration invokes at the end of the block. Without `using`, you must call `dispose()` yourself, otherwise the store stays active for the rest of the current execution context, exactly like `enterWith()`. A `try`/`finally` makes manual disposal safe.
+
+```js
+const scope = als.withScope("my-store");
+als.getStore(); // 'my-store'
+scope.dispose(); // restore the previous value
+als.getStore(); // undefined
+scope.dispose(); // no-op, dispose() is idempotent
+
+const s = als.withScope(store);
+try {
+  doWork();
+} finally {
+  s.dispose();
+}
+```
+
+Gotcha: `dispose()` restores the value that was current when that particular scope was created; it does not pop a stack. Disposing nested scopes out of order leaves the wrong store active. `using` always disposes in reverse order, so this only happens with manual `dispose()` calls.
+
+```js
+const a = als.withScope("a");
+const b = als.withScope("b");
+a.dispose(); // back to undefined
+b.dispose(); // restores 'a', the value b remembered
+als.getStore(); // 'a' (leaked)
+```
+
+</details><br>
+
+<details>
+<summary>217. Why is AsyncLocalStorage withScope() unsafe before the first await in an async function?</summary>
+
+An async function runs synchronously until its first `await`, then returns a pending promise to its caller. If `using _ = als.withScope(store)` ran before that `await`, the block has not ended yet, so the scope is still active when control returns to the caller. The caller's following synchronous code then runs with that store. The docs mark this result "unexpected!". The scope is disposed only later, when the function resumes and leaves the block. `run()` does not have this problem: it restores the previous context as soon as the callback returns its promise, while the async continuations inside keep their own captured context.
+
+```js
+async function example() {
+  using _ = als.withScope("my-store");
+  await doWork(); // returns to the caller here, the scope is still open
+}
+
+example(); // not awaited
+als.getStore(); // 'my-store' (unexpected!)
+
+// correct for async work
+function example2() {
+  return als.run("my-store", async () => {
+    await doWork(); // the store is visible here, and only here
+  });
+}
+```
+
+Gotcha: `enterWith()` called before the first `await` of an async function leaks into the caller in the same way. The rule is to use `run()` whenever the scoped code contains an `await`.
+
+</details><br>
+
+<details>
+<summary>218. What does AsyncLocalStorage exit(callback, ...args) do, and when is it useful?</summary>
+
+`als.exit(callback, ...args)` is experimental and is the opposite of `run()`. It calls the callback synchronously outside the context of this instance and returns the callback's value. `getStore()` returns `undefined` inside the callback and in any async operation created from it. When the callback returns or throws (the error propagates), the previous context is entered again. Only this instance is affected; stores of other `AsyncLocalStorage` instances remain visible. The typical use is starting long-lived background work from inside a request (an interval, a cache refresher, a shared connection) so that it neither sees nor keeps alive the request's data.
+
+```js
+als.run({ requestId: "r1" }, () => {
+  als.exit(() => {
+    als.getStore(); // undefined
+    setInterval(refreshCache, 60_000); // the timer does not capture the request store
+  });
+  als.getStore(); // { requestId: 'r1' } (re-entered)
+});
+```
+
+Gotcha: inside `exit()`, `getStore()` returns `undefined` even if the instance has a `defaultValue`, because `exit()` is implemented as running with the store set to `undefined`, not as removing the instance from the context.
+
+</details><br>
+
+<details>
+<summary>219. What does AsyncLocalStorage disable() do, and when do you need it?</summary>
+
+`als.disable()` is experimental. It exits all contexts of this instance, after which `getStore()` returns `undefined` until `run()` or `enterWith()` is called again. According to the docs, it must be called before the instance itself can be garbage collected. That requirement covers the instance only: stores are collected together with the async resources that reference them, without `disable()`. Use it when an instance is no longer needed anywhere in the process, for example when a library tears down, in test cleanup, or when reloading modules.
+
+```js
+const als = new AsyncLocalStorage();
+
+als.enterWith({ id: 1 });
+als.getStore(); // { id: 1 }
+als.disable();
+als.getStore(); // undefined
+als.run({ id: 2 }, () => als.getStore()); // { id: 2 } (usable again)
+```
+
+Gotcha: `disable()` is not a per-request cleanup tool. Leaving a request's context is what `run()` already does automatically, and an application-level instance that lives as long as the process normally never needs `disable()`.
+
+</details><br>
+
+<details>
+<summary>220. What is context loss in AsyncLocalStorage, and what kind of code causes it?</summary>
+
+Context loss is the rare situation where `getStore()` returns `undefined`, or another flow's store, inside a callback that logically belongs to the original flow. It happens when code collects callbacks and later invokes them from a different async context, so automatic propagation records the wrong origin. Typical sources are callback-based modules with their own internal queues, custom thenables, connection or worker pools, and event emitters, whose listeners run in the context of whoever calls `emit()`. Code that uses native promises and `await` end to end generally keeps the context.
+
+```js
+const queue = [];
+
+als.run({ id: 1 }, () => {
+  queue.push(() => console.log(als.getStore())); // plain callback, context not captured
+});
+
+als.run({ id: 2 }, () => {
+  queue.shift()(); // { id: 2 } (runs in the caller's context, not the registrar's)
+});
+```
+
+Gotcha: context loss does not always show up as `undefined`. Seeing another request's store is more dangerous, because logs, permissions or tenant filters then silently use the wrong user's data.
+
+</details><br>
+
+<details>
+<summary>221. How do you troubleshoot and fix AsyncLocalStorage context loss?</summary>
+
+The docs suggest three steps. First, if the code is callback-based, promisify it with `util.promisify()` so it runs on native promises; the `await` continuation then restores the context captured at the `await`, regardless of how the library calls its callback internally. Second, if you must use a callback API or custom thenable you cannot change, bind the callback to the correct context with `AsyncResource` (or `AsyncLocalStorage.bind()`). Third, if you cannot find the culprit, log `getStore()` after each suspicious call. The last callback before the value turns `undefined` is most likely responsible.
+
+```js
+import { promisify } from "node:util";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+// 1. callback API -> promise, so await restores the context
+const query = promisify(legacyDb.query.bind(legacyDb));
+const rows = await query("SELECT 1");
+
+// 2. callback API you cannot change -> bind the callback to the current context
+legacyQueue.push(AsyncLocalStorage.bind(onDone));
+
+// 3. bisect
+console.log("before A", als.getStore());
+await stepA();
+console.log("before B", als.getStore());
+await stepB(); // first undefined -> stepA lost it
+```
+
+Gotcha: binding must happen when the callback is registered on behalf of a specific flow, not when it is invoked. Binding at invocation time just captures the already wrong context.
+
+</details><br>
+
+<details>
+<summary>222. What does the static AsyncLocalStorage.bind(fn) method do?</summary>
+
+`AsyncLocalStorage.bind(fn)` returns a new function that always runs `fn` in the execution context that was current when `bind()` was called, regardless of the context the wrapper is later called from. It is static and captures the context of all `AsyncLocalStorage` instances at once, not only one. It was added in v19.8.0 and v18.16.0 and has been stable since v23.11.0 and v22.15.0. In the current implementation it delegates to `AsyncResource.bind(fn)`, so the two are interchangeable for context purposes.
+
+```js
+const queue = [];
+
+als.run({ id: 1 }, () => {
+  queue.push(AsyncLocalStorage.bind(() => als.getStore()));
+});
+
+als.run({ id: 2 }, () => {
+  queue.shift()(); // { id: 1 } (runs in the context captured by bind)
+});
+```
+
+Gotcha: a bound function ignores its caller's context completely. Binding a shared utility pins it to one request forever, and the wrapper keeps the captured stores alive for as long as the function itself is referenced.
+
+</details><br>
+
+<details>
+<summary>223. What does AsyncLocalStorage.snapshot() return, and how does it differ from AsyncLocalStorage.bind()?</summary>
+
+`AsyncLocalStorage.snapshot()` captures the current execution context and returns a runner function with the signature `(fn, ...args) => result`. The runner calls any `fn` inside the captured context. `bind(fn)` wraps one specific function, while `snapshot()` captures the context once and can later run many different functions in it. Internally it is `bind()` applied to a generic runner. The docs note it can replace `AsyncResource` for simple context tracking, for example as a private class field captured when an object is constructed.
+
+```js
+const als = new AsyncLocalStorage();
+const runInAsyncScope = als.run(123, () => AsyncLocalStorage.snapshot());
+const result = als.run(321, () => runInAsyncScope(() => als.getStore()));
+console.log(result); // 123
+
+class Foo {
+  #runInAsyncScope = AsyncLocalStorage.snapshot(); // captured at construction
+
+  get() {
+    return this.#runInAsyncScope(() => als.getStore());
+  }
+}
+
+const foo = als.run(123, () => new Foo());
+console.log(als.run(321, () => foo.get())); // 123
+```
+
+Gotcha: `snapshot()` only gives you context restoration. If diagnostic tools need a meaningful resource type, resource ids or explicit `destroy` events, subclass `AsyncResource` instead; `snapshot()` and `bind()` create an anonymous resource behind the scenes.
+
+</details><br>
+
+<details>
+<summary>224. What is AsyncResource, and why would a library author extend it?</summary>
+
+`AsyncResource` is the low-level class from `node:async_hooks` that embedders, meaning library and framework authors, extend to represent their own async resources. Node tracks its built-in async operations automatically, but when a library has its own scheduling mechanism (a pool, a queue, a native addon, a batching layer), Node cannot know that a callback invoked later belongs to the caller that submitted the work. An `AsyncResource` captures the current execution context, including all `AsyncLocalStorage` stores, in its constructor. `runInAsyncScope()` later re-enters that context, and the resource also emits the `async_hooks` lifecycle events, so tracing tools can see the causal link. It has been stable since v16.4.0.
+
+The script below shows the restoration in action. A tiny "library" queue collects callbacks from two requests and later processes them in one batch, from its own timer that was scheduled at startup, outside any request. A callback is just a function, so it runs in the context of whoever calls it, which here is the timer's context with no store. The plain callbacks therefore lose their request. The callbacks wrapped in a `Job` (an `AsyncResource` subclass) get their request back: each `Job` saved its creator's context in the constructor, and `runInAsyncScope()` swaps that saved context in just for the duration of the callback.
+
+```js
+// job-queue.mjs - run with: node job-queue.mjs
+import { AsyncLocalStorage, AsyncResource } from "node:async_hooks";
+
+const requestContext = new AsyncLocalStorage();
+const log = (msg) =>
+  console.log(
+    `[${requestContext.getStore()?.requestId ?? "no-request"}] ${msg}`,
+  );
+
+class Job extends AsyncResource {
+  constructor(callback) {
+    super("Job"); // saves the context of the code creating the job
+    this.callback = callback;
+  }
+
+  finish(result) {
+    this.runInAsyncScope(this.callback, null, result); // swaps the saved context back in
+  }
+}
+
+// a tiny "library": collects work now, processes it in one batch later
+class BatchQueue {
+  plain = [];
+  tracked = [];
+
+  submitPlain(callback) {
+    this.plain.push(callback); // stores just the function, no context
+  }
+
+  submitTracked(callback) {
+    this.tracked.push(new Job(callback)); // stores the function plus the caller's context
+  }
+
+  flush() {
+    // runs inside the queue's own timer, outside any request
+    for (const callback of this.plain.splice(0)) callback("ok");
+    for (const job of this.tracked.splice(0)) job.finish("ok");
+  }
+}
+
+const queue = new BatchQueue();
+setTimeout(() => queue.flush(), 50); // scheduled at startup, so flush() has no store
+
+for (const requestId of ["req-1", "req-2"]) {
+  requestContext.run({ requestId }, () => {
+    log("submitting");
+    queue.submitPlain((result) => log(`plain callback got ${result}`));
+    queue.submitTracked((result) =>
+      log(`AsyncResource callback got ${result}`),
+    );
+  });
+}
+```
+
+```text
+[req-1] submitting
+[req-2] submitting
+[no-request] plain callback got ok
+[no-request] plain callback got ok
+[req-1] AsyncResource callback got ok
+[req-2] AsyncResource callback got ok
+```
+
+Both kinds of callback are called from the same place, `flush()`, at the same time. The only difference is that each `Job` carries the context it saved when the request created it, and `runInAsyncScope()` puts that context in place while the callback runs and restores the timer's context right after.
+
+Gotcha: the context is captured in the constructor, so the resource must be created at the moment the caller submits work, not later when a worker or connection picks the work up. Creating the `Job` inside `flush()` would save the timer's context, and the callbacks would print `no-request` just like the plain ones.
+
+</details><br>
+
+<details>
+<summary>225. Which arguments does the AsyncResource constructor accept, and when should requireManualDestroy be true?</summary>
+
+`new AsyncResource(type[, options])` takes a type and an options object:
+
+- `type` (required string naming the kind of resource, for example `'DBQuery'`, reported to `init` hooks);
+- `options.triggerAsyncId` (id of the execution context that created the resource, defaults to `executionAsyncId()`);
+- `options.requireManualDestroy` (default `false`; when `true`, disables the automatic `emitDestroy` on garbage collection).
+
+`requireManualDestroy` is rarely needed, even if you call `emitDestroy()` yourself. The docs reserve it for the case where the resource's `asyncId` is retrieved and the sensitive API's `emitDestroy` is called with that id. With the default `false`, the automatic destroy on garbage collection only happens if at least one `destroy` hook is active.
+
+```js
+import { AsyncResource, executionAsyncId } from "node:async_hooks";
+
+const resource = new AsyncResource("DBQuery", {
+  triggerAsyncId: executionAsyncId(),
+  requireManualDestroy: false,
+});
+```
+
+Gotcha: an empty `type` string throws `ERR_ASYNC_TYPE` only when an `init` hook is active, so the bug can stay hidden until an APM agent is installed in production. An invalid `triggerAsyncId` (not a safe integer, or below `-1`) always throws `ERR_INVALID_ASYNC_ID`.
+
+</details><br>
+
+<details>
+<summary>226. What does AsyncResource runInAsyncScope(fn, thisArg, ...args) do, step by step?</summary>
+
+`resource.runInAsyncScope(fn, thisArg, ...args)` calls a function inside the resource's execution context, the one captured when the resource was constructed. Node keeps one hidden per-thread slot holding the current context frame, a `Map` from each `AsyncLocalStorage` instance to its store (physically V8's continuation-preserved embedder data), and `als.getStore()` simply reads that slot and looks itself up in the map. The `AsyncResource` constructor saves the frame that is in the slot at that moment, which is the creator's context. `runInAsyncScope()` then works in five steps. It establishes the context by swapping the saved frame into the slot and remembering the frame that was there before. It triggers the `before` hooks. It calls `fn` with `thisArg` as `this` and the remaining arguments. It triggers the `after` hooks. Finally, in a `finally` block, it puts the previous frame back into the slot. The callback receives no extra argument: it just calls `getStore()` as usual, and because the slot temporarily holds the saved frame, it sees the creator's store. Any async work `fn` schedules (timers, promises, I/O) captures the frame from the slot too, so it inherits the same context. `runInAsyncScope()` returns `fn`'s return value, and the previous frame is restored even if `fn` throws. This is the method a library uses when it finally invokes a user's callback.
+
+```js
+// what the constructor and runInAsyncScope do (simplified Node source)
+constructor(type) {
+  this[contextFrameSymbol] = AsyncContextFrame.current(); // save the creator's frame
+}
+runInAsyncScope(fn, thisArg, ...args) {
+  emitBefore(this.asyncId(), this.triggerAsyncId(), this);
+  const prior = AsyncContextFrame.exchange(this[contextFrameSymbol]); // swap saved frame in
+  try {
+    return Reflect.apply(fn, thisArg, args); // getStore() inside fn reads the saved frame
+  } finally {
+    AsyncContextFrame.set(prior);            // put the previous frame back
+    emitAfter(this.asyncId());
+  }
+}
+```
+
+```js
+const als = new AsyncLocalStorage();
+let task;
+
+als.run({ id: "r1" }, () => {
+  task = new AsyncResource("Task"); // saves frame { als -> { id: 'r1' } }
+});
+
+als.run({ id: "r2" }, () => {
+  als.getStore(); // { id: 'r2' }
+  task.runInAsyncScope(() => {
+    als.getStore(); // { id: 'r1' } (the slot holds the saved frame)
+    setTimeout(() => als.getStore()); // { id: 'r1' } (the timer captured the saved frame)
+  });
+  als.getStore(); // { id: 'r2' } (previous frame restored)
+});
+```
+
+```js
+import { AsyncResource } from "node:async_hooks";
+
+class DBQuery extends AsyncResource {
+  constructor(db) {
+    super("DBQuery");
+    this.db = db;
+  }
+
+  getInfo(query, callback) {
+    this.db.get(query, (err, data) => {
+      // whatever context the driver calls back from, run the user's callback in ours
+      this.runInAsyncScope(callback, null, err, data);
+    });
+  }
+
+  close() {
+    this.db = null;
+  }
+}
+```
+
+Gotcha: `thisArg` is a required positional argument before the callback's arguments. Writing `runInAsyncScope(callback, err, data)` silently uses `err` as `this` and shifts the arguments, so pass `null` when `this` does not matter. Also, the `before`/`after` hooks are a separate, older layer of context: during `fn`, `executionAsyncId()` returns the resource's `asyncId`. `AsyncLocalStorage` does not depend on that layer; only `async_hooks`-based diagnostic tools do.
+
+</details><br>
+
+<details>
+<summary>227. How do the static AsyncResource.bind() and the instance method asyncResource.bind() differ, and what do they return?</summary>
+
+`AsyncResource.bind(fn[, type[, thisArg]])` creates a new `AsyncResource` in the current context, binds `fn` to it and returns the bound function. `type` names the resource and defaults to `fn.name`, or `'bound-anonymous-fn'` for anonymous functions. `resource.bind(fn[, thisArg])` binds `fn` to an existing resource's context instead. Both return a wrapper function that calls `fn` through `runInAsyncScope()` and keeps `fn.length` (the docs list the return type as `void`, but a function is returned).
+
+```js
+import { AsyncResource } from "node:async_hooks";
+
+// bind to the context that is current right now
+const onClose = AsyncResource.bind(() => log("closed"));
+
+// bind several callbacks of one operation to a single shared resource
+const batch = new AsyncResource("Batch");
+const onItem = batch.bind((item) => handle(item));
+const onEnd = batch.bind(() => flush());
+```
+
+Gotcha: the static method allocates a new resource on every call. When many callbacks belong to the same logical operation, or binding happens in a hot loop, create one resource and use the instance method so all callbacks share it.
+
+</details><br>
+
+<details>
+<summary>228. How does AsyncResource give a Worker thread pool correct async context, and what does a task callback see with and without it?</summary>
+
+Imagine a server where every request runs inside `requestContext.run({ requestId, user }, ...)` and sends CPU-heavy work to a pool of worker threads. The callback passed with the task must log with the right request id and know which user the result belongs to, for example for an audit record or the response. It receives neither as an argument; it reads them with `requestContext.getStore()`, like any other code in the request. The difficulty is that the result comes back through the `Worker` object's `'message'` event. That listener runs in the context in which the `Worker` was created, usually pool startup, outside any request. If the pool simply stores the callback and calls it from the `'message'` listener, `getStore()` returns `undefined`. The pattern from the Node.js docs fixes this by creating one `AsyncResource` subclass instance per task when the task is submitted. Its constructor saves the submitter's context, and when the result arrives, `runInAsyncScope()` swaps that saved context back in before calling the callback. The same pattern applies to database connection pools and any other pool.
+
+```js
+// task_processor.mjs (runs inside each worker thread)
+import { parentPort } from "node:worker_threads";
+parentPort.on("message", (task) => parentPort.postMessage(task.a + task.b));
+```
+
+```js
+// worker_pool.mjs (condensed from the Node.js docs)
+import { AsyncResource } from "node:async_hooks";
+import { Worker } from "node:worker_threads";
+
+class WorkerPoolTaskInfo extends AsyncResource {
+  constructor(callback) {
+    super("WorkerPoolTaskInfo"); // saves the SUBMITTER's context
+    this.callback = callback;
+  }
+
+  done(err, result) {
+    this.runInAsyncScope(this.callback, null, err, result); // re-enter it for the callback
+  }
+}
+
+export class WorkerPool {
+  constructor(size, file) {
+    this.workers = [];
+    this.free = [];
+    this.queue = [];
+    for (let i = 0; i < size; i++) {
+      const worker = new Worker(file); // created at startup, outside any request
+      worker.on("message", (result) => {
+        const info = worker.info; // this listener runs in the startup context
+        worker.info = null;
+        this.free.push(worker);
+        info.done(null, result); // callback runs in the submitter's context
+        this.#next();
+      });
+      this.workers.push(worker);
+      this.free.push(worker);
+    }
+  }
+
+  runTask(task, callback) {
+    // create the resource NOW, so the context is captured even if the task waits in the queue
+    this.queue.push({ task, info: new WorkerPoolTaskInfo(callback) });
+    this.#next();
+  }
+
+  #next() {
+    if (this.queue.length === 0 || this.free.length === 0) return;
+    const { task, info } = this.queue.shift();
+    const worker = this.free.pop();
+    worker.info = info;
+    worker.postMessage(task);
+  }
+
+  close() {
+    for (const worker of this.workers) worker.terminate();
+  }
+}
+```
+
+```js
+// main.mjs: four "requests" share a pool of only 2 workers, so two tasks wait in the queue
+import { AsyncLocalStorage } from "node:async_hooks";
+import { WorkerPool } from "./worker_pool.mjs";
+
+const requestContext = new AsyncLocalStorage();
+const log = (msg) =>
+  console.log(
+    `[${requestContext.getStore()?.requestId ?? "no-request"}] ${msg}`,
+  );
+
+const pool = new WorkerPool(
+  2,
+  new URL("./task_processor.mjs", import.meta.url),
+);
+
+let finished = 0;
+for (const user of ["alice", "bob", "carol", "dave"]) {
+  requestContext.run({ requestId: `req-${user}`, user }, () => {
+    pool.runTask({ a: 42, b: user.length }, (err, result) => {
+      // nothing request-specific was passed in: it all comes from the context
+      log(`result ${result} belongs to ${requestContext.getStore()?.user}`);
+      if (++finished === 4) pool.close();
+    });
+  });
+}
+```
+
+```text
+with WorkerPoolTaskInfo (order may vary):
+[req-alice] result 47 belongs to alice
+[req-bob] result 45 belongs to bob
+[req-carol] result 47 belongs to carol
+[req-dave] result 46 belongs to dave
+
+if the pool stored the plain callback and called it from the 'message' listener:
+[no-request] result 47 belongs to undefined
+[no-request] result 45 belongs to undefined
+[no-request] result 47 belongs to undefined
+[no-request] result 46 belongs to undefined
+```
+
+Gotcha: the resource must be created when the task is submitted, not when it is dispatched. In the original docs example, a task that waits in the queue gets its `WorkerPoolTaskInfo` only later, from inside another worker's `'message'` listener, so queued tasks capture the wrong context. That is why the condensed pool above creates it in `runTask()` and stores it in the queue. A related trap: if the pool were created lazily inside the first request, the workers' listeners would carry that request's context, and without `AsyncResource` every result would be attributed to that first user, which is wrong data rather than missing data.
+
+</details><br>
+
+<details>
+<summary>229. In which async context do EventEmitter listeners run by default, and why do they lose the context of the code that registered them?</summary>
+
+Timers, promises and I/O capture the current context when they are scheduled, but an `EventEmitter` schedules nothing. `on()` only stores the function in an array, and `emit()` loops over that array and calls each listener synchronously. A plain listener therefore runs in whatever context the code calling `emit()` is in; the context active at `on()` is never saved. This becomes a problem whenever a long-lived object emits events and a request subscribes to them. Examples are a database, Redis or message-queue client created at startup that emits from its own socket callbacks, a cache that emits from a background refresh timer, or an HTTP `req` or stream emitting from socket internals. The listener logically belongs to the request, but it sees another request's store, or no store at all.
+
+```js
+// stripped-down EventEmitter: nothing about context is stored
+class TinyEmitter {
+  listeners = {};
+  on(event, fn) {
+    (this.listeners[event] ??= []).push(fn);
+  }
+  emit(event, ...args) {
+    for (const fn of this.listeners[event] ?? []) fn(...args);
+  }
+}
+```
+
+```js
+// bus.mjs - run with: node bus.mjs
+import { EventEmitter } from "node:events";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const als = new AsyncLocalStorage();
+const bus = new EventEmitter(); // created at startup, shared by everyone
+
+als.run("request-A", () => {
+  bus.on("job-done", () => console.log("listener sees:", als.getStore()));
+});
+
+als.run("request-B", () => bus.emit("job-done")); // listener sees: request-B (another request's data)
+bus.emit("job-done"); // listener sees: undefined (no context)
+setTimeout(() => bus.emit("job-done"), 10); // listener sees: undefined (timer scheduled outside run)
+```
+
+The fix is to wrap the listener with `AsyncResource.bind(fn)` (or `AsyncLocalStorage.bind(fn)`, which does the same thing). The wrapper captures the context at registration time and always runs the listener in it:
+
+```js
+import { AsyncResource } from "node:async_hooks";
+
+als.run("request-A", () => {
+  bus.on(
+    "job-done",
+    AsyncResource.bind(() => console.log("bound sees:", als.getStore())),
+  );
+});
+
+als.run("request-B", () => bus.emit("job-done")); // bound sees: request-A
+```
+
+Gotcha: `bind()` returns a new function, so keep a reference to it if you want to remove the listener. `bus.off('job-done', handler)` does nothing when the registered function was `AsyncResource.bind(handler)`. Also, a bound listener left on a long-lived emitter keeps the captured request context, with all its stores, in memory until it is removed.
+
+```js
+const onDone = AsyncResource.bind(handler);
+bus.on("job-done", onDone);
+bus.off("job-done", onDone); // works
+bus.off("job-done", handler); // does nothing: handler itself was never registered
+```
+
+</details><br>
+
+<details>
+<summary>230. Which three context anchors can an EventEmitter listener use, and how do they differ when the emitter is created, the listener registered and the event emitted in three different contexts?</summary>
+
+Three different contexts can be involved in one event: where the emitter was created, where the listener was registered, and where `emit()` is called. Each listener style follows exactly one of them:
+
+- `on(fn)` (plain listener, runs in the context of the code that calls `emit()`);
+- `on(AsyncResource.bind(fn))` (bound listener, runs in the context of the code that called `on()`);
+- `EventEmitterAsyncResource` (an emitter from `node:events`, added in v17.4.0 and v16.14.0, whose `emit()` runs every listener in the context where the emitter was constructed).
+
+The script below makes all three visible at once. Both emitters are created in `request-C`, all listeners are registered in `request-A`, and both events are emitted from `request-B`.
+
+```js
+// anchors.mjs - run with: node anchors.mjs
+import { EventEmitter, EventEmitterAsyncResource } from "node:events";
+import { AsyncLocalStorage, AsyncResource } from "node:async_hooks";
+
+const als = new AsyncLocalStorage();
+
+// 1. emitters are CREATED inside request-C
+const plainEmitter = als.run("request-C", () => new EventEmitter());
+const contextEmitter = als.run(
+  "request-C",
+  () => new EventEmitterAsyncResource({ name: "Job" }),
+);
+
+// 2. listeners are REGISTERED inside request-A
+als.run("request-A", () => {
+  plainEmitter.on("done", () => {
+    console.log("plain on(fn)               ->", als.getStore());
+  });
+  plainEmitter.on(
+    "done",
+    AsyncResource.bind(() => {
+      console.log("on(AsyncResource.bind(fn)) ->", als.getStore());
+    }),
+  );
+  contextEmitter.on("done", () => {
+    console.log("EventEmitterAsyncResource  ->", als.getStore());
+  });
+});
+
+// 3. events are EMITTED inside request-B
+als.run("request-B", () => {
+  plainEmitter.emit("done");
+  contextEmitter.emit("done");
+});
+```
+
+```text
+plain on(fn)               -> request-B    (who emitted)
+on(AsyncResource.bind(fn)) -> request-A    (who registered)
+EventEmitterAsyncResource  -> request-C    (who created the emitter)
+```
+
+Use a plain listener when the subscriber is registered once at startup and should follow whichever request emits. Use a bound listener when a request subscribes to a shared, long-lived emitter. Use `EventEmitterAsyncResource` when the emitter itself is created by a request, for that request, such as a job object or a per-request progress reporter.
+
+Gotcha: none of the three is "correct" in general. The wrong anchor does not throw or return `undefined` reliably; it silently attaches the event to a different request, so choose the anchor deliberately for each emitter.
+
+</details><br>
+
+<details>
+<summary>231. When is the default emit-time context of a plain EventEmitter listener the correct choice, and what goes wrong if you bind such a listener?</summary>
+
+A plain listener follows the context of the code that calls `emit()`. That is exactly right for subscribers registered once at startup on an app-wide bus, while request handlers emit domain events. An audit logger, for instance, must record the id of the request that caused the event, which is the emitter's request. Binding such a listener with `AsyncResource.bind()` captures the startup context, where no request exists, and pins it there forever. Every audit line then loses its request id.
+
+```js
+// audit.mjs - run with: node audit.mjs
+import { EventEmitter } from "node:events";
+import { AsyncLocalStorage, AsyncResource } from "node:async_hooks";
+
+const requestContext = new AsyncLocalStorage();
+const bus = new EventEmitter();
+
+function audit(message) {
+  const requestId = requestContext.getStore()?.requestId ?? "no-request";
+  console.log(`[audit][${requestId}] ${message}`);
+}
+
+// startup: subscribers registered once, OUTSIDE any request
+bus.on("user-deleted", (userId) => {
+  audit(`user ${userId} deleted (plain listener)`);
+});
+bus.on(
+  "user-deleted",
+  AsyncResource.bind((userId) => {
+    audit(`user ${userId} deleted (bound listener)`); // wrong choice here
+  }),
+);
+
+// request handler: runs per request and emits a domain event
+function deleteUserHandler(requestId, userId) {
+  requestContext.run({ requestId }, () => {
+    // ...delete the user from the database...
+    bus.emit("user-deleted", userId);
+  });
+}
+
+deleteUserHandler("r-17", 42);
+deleteUserHandler("r-18", 7);
+```
+
+```text
+[audit][r-17] user 42 deleted (plain listener)
+[audit][no-request] user 42 deleted (bound listener)
+[audit][r-18] user 7 deleted (plain listener)
+[audit][no-request] user 7 deleted (bound listener)
+```
+
+Gotcha: the deciding question is who owns the subscription. If it was made at startup and should serve every request, leave it plain. If it was made by one request and should only ever serve that request, bind it. "Always bind listeners" is as wrong as "never bind listeners".
+
+</details><br>
+
+<details>
+<summary>232. How does awaiting events.once() avoid EventEmitter listener context problems?</summary>
+
+When you only need the next occurrence of an event, `once(emitter, name)` from `node:events` returns a promise that resolves with the event's arguments as an array. Code after an `await` resumes in the context captured at the `await`, which is the awaiting code's context, regardless of who calls `emit()`. No listener runs your logic, so there is nothing to bind and nothing to remove afterwards.
+
+```js
+// once.mjs - run with: node once.mjs
+import { EventEmitter, once } from "node:events";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const als = new AsyncLocalStorage();
+const bus = new EventEmitter();
+
+als.run("request-A", async () => {
+  const [status] = await once(bus, "job-done");
+  console.log(status, als.getStore()); // 'ok' 'request-A' (the awaiting request)
+});
+
+als.run("request-B", () => bus.emit("job-done", "ok")); // emitted from another request
+```
+
+Gotcha: `once()` rejects if the emitter emits `'error'` before the awaited event, so wrap the `await` in `try`/`catch`. It also waits forever if the event never comes; pass `{ signal }` with an `AbortSignal` (for example `AbortSignal.timeout(5000)`) to bound the wait.
+
+</details><br>
+
+<details>
+<summary>233. Which async context tool fits which situation in Node.js?</summary>
+
+Choose the tool by the situation:
+
+- `als.run()` (the entry point of a flow such as a request, job or message; the default choice);
+- `als.enterWith()` (a framework hook where the rest of the work cannot be wrapped in a callback, accepting the leak risk);
+- `als.withScope()` (a synchronous block that should be scoped with `using`);
+- `als.exit()` (background work that must neither see nor retain the current store);
+- `util.promisify()` (the first fix for a callback-based API that loses context);
+- `AsyncLocalStorage.bind()` (one callback that a foreign queue or emitter will invoke later);
+- `AsyncLocalStorage.snapshot()` (many functions to run later in a context captured once);
+- `AsyncResource` (a library-owned async resource that needs a named type, ids and `destroy` events for diagnostic tools);
+- `EventEmitterAsyncResource` (an emitter whose listeners should all run in its construction context).
+
+```js
+app.use((req, res, next) => als.run({ id: req.id }, next)); // entry point
+als.exit(() => startCacheRefresher()); // background work
+legacyLib.onDone(AsyncLocalStorage.bind(callback)); // foreign callback
+```
+
+Gotcha: among the instance methods in this list only `run()` is stable and the other three are experimental, while the static helpers and `AsyncResource` are stable. Prefer the stable options whenever they solve the problem.
+
+</details><br>
+
+<details>
+<summary>234. What are typical use cases for AsyncLocalStorage, and when should you not use it?</summary>
+
+`AsyncLocalStorage` is meant for cross-cutting, per-flow data that many layers need but few should pass explicitly. Request-scoped logging attaches a request or trace id to every log line. Distributed tracing and APM agents track the active span this way; OpenTelemetry's `AsyncLocalStorageContextManager` is built on it. Applications use it to expose the authenticated user for permission checks and audit fields, the tenant id for multi-tenant data filtering, an open database transaction that repositories join automatically, per-request caches such as DataLoader instances, and resolved locale or feature flags.
+
+```js
+const txContext = new AsyncLocalStorage();
+
+async function withTransaction(work) {
+  const tx = await db.begin();
+  try {
+    const result = await txContext.run(tx, work);
+    await tx.commit();
+    return result;
+  } catch (err) {
+    await tx.rollback();
+    throw err;
+  }
+}
+
+function executor() {
+  return txContext.getStore() ?? db; // joins the active transaction if there is one
+}
+```
+
+Gotcha: a good test is whether the function would still be correct if the store were missing and a fallback were used. If not, for example `calculatePrice()` silently needing a currency from the store, the value is a real dependency and belongs in the signature.
+
+</details><br>
+
+<details>
+<summary>235. How do you set up a per-request AsyncLocalStorage context in an Express app, and what can break it?</summary>
+
+Register a middleware that creates a fresh store for every request and calls `ctx.run(store, next)`. Everything that runs as a result of `next()` (later middleware, route handlers and all the async work they start) then executes inside that context.
+
+The request id is not passed around, but it is still read explicitly: exactly one place in the code calls `ctx.getStore()`, usually a small helper such as a logger. Two things make that work. First, `ctx` is a module-level singleton: `context.js` is evaluated once, so every module that imports it gets the same `AsyncLocalStorage` instance, and that instance is the key used to look up the store. Second, `getStore()` does not search for "the request"; it reads the store that the current async context frame holds for `ctx`, and that frame was inherited from the `ctx.run(store, next)` call the current code descends from (through `next()`, the `await` and the timer). Business code in between never sees `req`, the id or `ctx`.
+
+In the example below, only `log.js` touches the store. `users.js` knows nothing about requests, yet its log lines carry the right id, even when two requests interleave.
+
+```js
+// context.js - creates the one shared instance (evaluated once, cached by the module system)
+import { AsyncLocalStorage } from "node:async_hooks";
+export const ctx = new AsyncLocalStorage();
+
+// log.js - the ONLY place that reads the store; callers never pass an id
+import { ctx } from "./context.js";
+export function log(msg) {
+  const id = ctx.getStore()?.requestId ?? "no-request"; // the "hidden" lookup
+  console.log(`[${id}] ${msg}`);
+}
+
+// users.js - business code: no req, no id, no ctx
+import { log } from "./log.js";
+export async function loadUser(id, delayMs) {
+  log(`loading user ${id}`);
+  await new Promise((r) => setTimeout(r, delayMs)); // context survives the await
+  log(`loaded user ${id}`);
+  return { id };
+}
+
+// app.js - run with: node app.js (needs express installed)
+import express from "express";
+import { randomUUID } from "node:crypto";
+import { ctx } from "./context.js";
+import { log } from "./log.js";
+import { loadUser } from "./users.js";
+
+const app = express();
+
+app.use((req, res, next) => {
+  const store = { requestId: req.get("x-request-id") ?? randomUUID() };
+  ctx.run(store, next); // the only place the store is written
+});
+
+app.get("/users/:id", async (req, res) => {
+  const user = await loadUser(req.params.id, Number(req.query.delay));
+  log("sending response");
+  res.json(user);
+});
+
+const server = app.listen(3000, async () => {
+  log("server started"); // not inside any ctx.run()
+  // two concurrent requests; A is slower, so their log lines interleave
+  await Promise.all([
+    fetch("http://localhost:3000/users/1?delay=100", {
+      headers: { "x-request-id": "req-A" },
+    }),
+    fetch("http://localhost:3000/users/2?delay=20", {
+      headers: { "x-request-id": "req-B" },
+    }),
+  ]);
+  server.close();
+});
+```
+
+```text
+[no-request] server started
+[req-A] loading user 1
+[req-B] loading user 2
+[req-B] loaded user 2
+[req-B] sending response
+[req-A] loaded user 1
+[req-A] sending response
+```
+
+The first two request lines may swap depending on which request arrives first. Each line still carries its own request's id, because each `loadUser` continuation resumes in the frame captured at its own `await`.
+
+Gotcha: if the module system loads two copies of `context.js` (for example two versions of the same package in `node_modules`), there are two `AsyncLocalStorage` instances. The middleware writes to one, `log()` reads from the other, and every line prints `no-request`.
+
+Another gotcha: middleware that calls `next()` from inside a stream or event callback (body parsers waiting for the request's `'end'` event historically did this) resumes the chain in the emitter's context and can drop the store. Register the context middleware after such middleware, or make sure that middleware binds its callbacks.
 
 </details><br>

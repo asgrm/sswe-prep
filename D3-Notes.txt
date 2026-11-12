@@ -1,20 +1,15 @@
 
 2. Node.js
-2.1 https://www.udemy.com/course/understanding-nodejs-core-concepts/
+work day -25 minutes from usual
+day off -0 minutes from usual
 
-work day -98 minutes from usual
-day off -6 minutes from usual
+// other node.js loops
 
-2.1.1. continue video 186 00:00
-2.1.2. read docs (
-  https://nodejs.org/docs/latest/api/worker_threads.html
-  https://nodejs.org/docs/latest/api/v8.html (shallow glance over)
-  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics
-  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
-  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
-  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
-)
-2.1.3. make anki cards, do 2 repetitions on them
+tmp.md (now at )
+temp_cards.md (proofread)
+temp_cards.md 2 repetitions
+
+https://openai-partneru.sana.ai/program/9b23459e-9443-4943-a81b-e93211b8303a
 
 
 2.2 cover all articles in https://nodejs.org/learn/getting-started/introduction-to-nodejs
@@ -23,16 +18,11 @@ day off -6 minutes from usual
 2.4. googling on what mentioned in article (https://kb.epam.com/spaces/EPMCJSCC/pages/1922479074/JS+D3+Growth+-+Node.js) but not covered yet
 2.5. googling on what mentioned in topics/nodejs-core.md but not covered yet
 
-
 2.6. go over list of node.js modules (scope is to be adjusted),
 
-already covered: [events]
-
 2.6.1. read:
-  async_context
   web-streams-api
   timers
-  worker_threads
   url
   perf_hooks
   modules + esm + typescript
@@ -43,8 +33,6 @@ already covered: [events]
 
   errors - stop once covered Class: Error
   async_hooks — read it for understanding, but know that the stable surface you actually use is async_context (AsyncLocalStorage).
-
-  crypto — Focus on randomBytes, createHash, createHmac, createCipheriv/createDecipheriv. Skip the low-level DH/DSA/EC key generation details .
 
   inspector — too deep for a senior generalist. Know it exists, know it powers --inspect and Chrome DevTools. Unless you're building debuggers or profiling tools you don't need the API.
 
