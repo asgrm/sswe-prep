@@ -6398,3 +6398,795 @@ Gotcha: if the module system loads two copies of `context.js` (for example two v
 Another gotcha: middleware that calls `next()` from inside a stream or event callback (body parsers waiting for the request's `'end'` event historically did this) resumes the chain in the emitter's context and can drop the store. Register the context middleware after such middleware, or make sure that middleware binds its callbacks.
 
 </details><br>
+
+<details>
+<summary>236. What are highWaterMark and desiredSize in web streams, and how do they implement backpressure?</summary>
+
+Backpressure means a slow consumer makes a fast producer slow down, instead of the queue growing without limit. Web streams express it with one number:
+
+```text
+desiredSize = highWaterMark - (total size of queued chunks)
+```
+
+When `desiredSize > 0` the queue wants more data, and when it is `<= 0` the producer should stop. `highWaterMark` is a threshold, not a hard limit: `enqueue()` always succeeds, it just pushes `desiredSize` below zero. The stream calls `pull()` only while `desiredSize > 0`.
+
+Default `highWaterMark` values differ by stream kind:
+
+- `ReadableStream` (`1` chunk);
+- byte `ReadableStream` (`0` bytes);
+- `WritableStream` (`1` chunk);
+- `TransformStream` (`1` on the writable side, `0` on the readable side).
+
+```js
+// defaults.mjs
+new ReadableStream({ start: (c) => console.log("readable", c.desiredSize) }); // readable 1
+new ReadableStream({
+  type: "bytes",
+  start: (c) => console.log("bytes", c.desiredSize),
+}); // bytes 0
+console.log("writable", new WritableStream().getWriter().desiredSize); // writable 1
+new TransformStream({
+  start: (c) => console.log("transform readable", c.desiredSize),
+}); // transform readable 0
+
+const s = new ReadableStream(
+  {
+    start(c) {
+      for (let i = 0; i < 5; i++) c.enqueue(i);
+      console.log("after 5 enqueues with highWaterMark 3:", c.desiredSize); // -2
+    },
+  },
+  { highWaterMark: 3 },
+);
+```
+
+Gotcha: `highWaterMark: 0` means "never pre-fetch": `pull()` is not called until a consumer actually asks for a chunk. That's why the readable side of a `TransformStream` holds nothing until someone reads.
+
+</details><br>
+
+<details>
+<summary>237. How does a pull-based ReadableStream source differ from a push-based one in how much data it produces?</summary>
+
+A push source produces data on its own schedule (typically in `start()`, a timer or an event handler). Unless it checks `controller.desiredSize`, it ignores backpressure and the queue can grow without limit. A pull source produces data only inside `pull()`, which the stream calls only while the queue has room. It automatically produces exactly as fast as the consumer reads, plus `highWaterMark` items of read-ahead.
+
+```js
+// push-vs-pull.mjs
+let pushed = 0;
+const push = new ReadableStream(
+  {
+    start(controller) {
+      for (let i = 1; i <= 10; i++) {
+        controller.enqueue(i); // ignores desiredSize
+        pushed++;
+      }
+      console.log("push: desiredSize after start", controller.desiredSize);
+    },
+  },
+  { highWaterMark: 2 },
+);
+
+let pulled = 0;
+const pull = new ReadableStream(
+  {
+    pull(controller) {
+      pulled++;
+      controller.enqueue(pulled);
+      if (pulled === 10) controller.close();
+    },
+  },
+  { highWaterMark: 2 },
+);
+
+await new Promise((r) => setTimeout(r, 20)); // nobody reads yet
+console.log("push: produced", pushed, "| pull: produced", pulled);
+
+const reader = pull.getReader();
+await reader.read();
+await reader.read();
+await reader.read();
+await new Promise((r) => setTimeout(r, 0));
+console.log("pull: produced after 3 reads", pulled);
+```
+
+```text
+push: desiredSize after start -8
+push: produced 10 | pull: produced 2
+pull: produced after 3 reads 5
+```
+
+Gotcha: when data is genuinely pushed at you (a socket, an event emitter), you can't move production into `pull()`. Check `controller.desiredSize <= 0` in the handler, pause the underlying source, and resume it from `pull()`, which the stream calls when there is room again.
+
+</details><br>
+
+<details>
+<summary>238. How do you read a ReadableStream with a reader, and what does locking mean?</summary>
+
+`stream.getReader()` returns a `ReadableStreamDefaultReader` and locks the stream: while a reader is active, `stream.locked` is `true`, and no second reader, pipe or `for await` can attach. This guarantees that a single consumer sees every chunk in order. `reader.read()` returns a promise of `{ value, done }`. After the end it keeps returning `{ value: undefined, done: true }`. `new ReadableStreamDefaultReader(stream)` is equivalent to `getReader()`.
+
+```js
+// reader-lock.mjs
+const stream = ReadableStream.from(["a", "b"]);
+const reader = stream.getReader();
+console.log("locked:", stream.locked); // locked: true
+
+console.log(await reader.read()); // { value: 'a', done: false }
+console.log(await reader.read()); // { value: 'b', done: false }
+console.log(await reader.read()); // { value: undefined, done: true }
+console.log(await reader.read()); // { value: undefined, done: true }
+
+try {
+  stream.getReader();
+} catch (e) {
+  console.log(e.name, e.code, e.message); // TypeError ERR_INVALID_STATE Invalid state: ReadableStream is locked
+}
+
+reader.releaseLock();
+console.log("locked:", stream.locked); // locked: false
+```
+
+Gotcha: `for await`, `pipeTo()`, `pipeThrough()` and `tee()` take the lock too. If a helper you called earlier grabbed a reader and never released it, every later attempt to consume the stream throws "ReadableStream is locked".
+
+</details><br>
+
+<details>
+<summary>239. What do releaseLock(), closed and cancel() do on a ReadableStreamDefaultReader?</summary>
+
+Besides `read()`, a default reader has three members:
+
+- `releaseLock()` (unlocks the stream so another consumer can attach; any `read()` still pending rejects with `TypeError`);
+- `closed` (a promise that fulfills when the stream closes, and rejects if the stream errors or the lock is released before it closes);
+- `cancel(reason)` (cancels the stream: calls the source's `cancel(reason)`, drops the queue, and later reads return `done: true`).
+
+```js
+// reader-members.mjs
+const idle = new ReadableStream({}); // never produces anything
+const r = idle.getReader();
+const pending = r.read();
+r.releaseLock();
+await pending.catch((e) => console.log("pending read:", e.message)); // pending read: Invalid state: Releasing reader
+await r.closed.catch((e) => console.log("closed rejected:", e.name)); // closed rejected: TypeError
+
+const s = new ReadableStream({
+  cancel(reason) {
+    console.log("source cancel with", reason);
+  },
+});
+const r2 = s.getReader();
+await r2.cancel("not needed"); // source cancel with not needed
+console.log(await r2.read()); // { value: undefined, done: true }
+```
+
+Gotcha: on a locked stream, `stream.cancel()` rejects with `TypeError`. Only the lock owner can cancel, so call `reader.cancel(reason)` instead.
+
+</details><br>
+
+<details>
+<summary>240. What happens when you exit a for await loop over a ReadableStream early, and how do you keep the stream alive?</summary>
+
+`ReadableStream` supports `for await`, which locks the stream while the loop runs. By default, leaving the loop early (`break`, `return` or `throw`) cancels the stream: the source's `cancel()` runs and the remaining data is lost. To stop iterating without cancelling, iterate over `stream.values({ preventCancel: true })` (default `false`). The lock is released and the rest of the stream can be read later.
+
+```js
+// early-exit.mjs
+function letters(name) {
+  return new ReadableStream({
+    start(c) {
+      for (const l of ["a", "b", "c"]) c.enqueue(l);
+      c.close();
+    },
+    cancel() {
+      console.log(`${name}: cancelled`);
+    },
+  });
+}
+
+const plain = letters("plain");
+for await (const x of plain) {
+  console.log("plain first", x);
+  break;
+}
+
+const kept = letters("kept");
+for await (const x of kept.values({ preventCancel: true })) {
+  console.log("kept first", x);
+  break;
+}
+for await (const x of kept) console.log("kept rest", x);
+```
+
+```text
+plain first a
+plain: cancelled
+kept first a
+kept rest b
+kept rest c
+```
+
+Gotcha: the stream must not be locked when the loop starts, and it can't be read by anything else during the loop. A `throw` inside the loop body also cancels the stream, before the error reaches your `catch`.
+
+</details><br>
+
+<details>
+<summary>241. What does readableStream.tee() do, and what are its memory and data-sharing pitfalls?</summary>
+
+`tee()` returns two new `ReadableStream`s ("branches") that each receive every chunk of the original, which becomes locked. It's used when two consumers need the same data, for example hashing and uploading one file. Byte streams can be teed since v18.10.0 / v16.18.0.
+
+Two pitfalls follow from how it works. The original is read as fast as the faster branch reads, and chunks not yet read by the slower branch pile up in its queue without limit. And chunks are not copied: both branches get the same object.
+
+```js
+// tee.mjs
+let pulled = 0;
+const src = new ReadableStream({
+  pull(c) {
+    c.enqueue(++pulled);
+    if (pulled === 5) c.close();
+  },
+});
+const [fast, slow] = src.tee();
+for await (const _ of fast) {
+} // read the fast branch to the end
+console.log("pulled from source:", pulled); // 5, all buffered for the slow branch
+
+const [a, b] = ReadableStream.from([{ n: 1 }]).tee();
+const fromA = await a.getReader().read();
+fromA.value.n = 99; // mutate in branch a
+console.log("branch b sees", (await b.getReader().read()).value); // branch b sees { n: 99 }
+```
+
+Gotcha: if one branch is never read (or never cancelled), the whole stream ends up buffered in memory. Cancel a branch you no longer need. The source is cancelled only when both branches are cancelled.
+
+</details><br>
+
+<details>
+<summary>242. What is a byte ReadableStream (type: 'bytes'), and how does it differ from a default ReadableStream?</summary>
+
+A byte stream is a `ReadableStream` created with `type: "bytes"` in the underlying source. It is specialised for binary data. Compared with a default stream:
+
+- `chunks` (must be `ArrayBufferView`s such as `Uint8Array`, `Buffer` or `DataView`; enqueuing a string throws `TypeError`);
+- `controller` (a `ReadableByteStreamController` with the same `enqueue`, `close`, `error`, `desiredSize`, plus `byobRequest`);
+- `highWaterMark` (defaults to `0`, measured in bytes; a `size()` strategy is not allowed and throws `RangeError`);
+- `readers` (supports the BYOB reader via `getReader({ mode: "byob" })` in addition to the default reader).
+
+```js
+// byte-stream.mjs
+const bytes = new ReadableStream({
+  type: "bytes",
+  start(c) {
+    c.enqueue(new Uint8Array([1, 2, 3]));
+    try {
+      c.enqueue("text");
+    } catch (e) {
+      console.log("string into byte stream:", e.name); // TypeError
+    }
+    c.close();
+  },
+});
+console.log(await bytes.getReader().read()); // { value: Uint8Array(3) [ 1, 2, 3 ], done: false }
+
+try {
+  new ReadableStream({ type: "bytes" }, { size: () => 1 });
+} catch (e) {
+  console.log("bytes + size():", e.name); // RangeError
+}
+```
+
+Gotcha: a default reader works on a byte stream too and gets ordinary chunks. The benefit of `type: "bytes"` only shows when a consumer uses a BYOB reader to supply its own buffers.
+
+</details><br>
+
+<details>
+<summary>243. What is a BYOB reader, and how do read(view) and the min option work?</summary>
+
+BYOB means "bring your own buffer". `stream.getReader({ mode: "byob" })` returns a `ReadableStreamBYOBReader` (byte streams only). Instead of the stream allocating a new buffer per chunk, the consumer passes its own view to `read(view)`, and the source writes bytes straight into it. That avoids extra allocations and copies when reading large binary data. The promise resolves to `{ value, done }`, where `value` is a new view over the same memory covering only the bytes written.
+
+The `min` option (v21.7.0 / v20.17.0) makes `read(view, { min })` wait until at least `min` elements are filled. Without it, the read resolves as soon as at least one element is available.
+
+```js
+// byob-min.mjs
+let calls = 0;
+const oneByteAtATime = () =>
+  new ReadableStream({
+    type: "bytes",
+    pull(c) {
+      calls++;
+      c.byobRequest.view[0] = calls; // write 1 byte into the consumer's buffer
+      c.byobRequest.respond(1);
+    },
+  });
+
+const r1 = oneByteAtATime().getReader({ mode: "byob" });
+console.log("no min:", (await r1.read(new Uint8Array(4))).value); // no min: Uint8Array(1) [ 1 ]
+
+calls = 0;
+const r2 = oneByteAtATime().getReader({ mode: "byob" });
+console.log(
+  "min 4:",
+  (await r2.read(new Uint8Array(4), { min: 4 })).value,
+  "pull calls",
+  calls,
+);
+// min 4: Uint8Array(4) [ 1, 2, 3, 4 ] pull calls 4
+```
+
+Gotcha: `min` is useful for fixed-size binary headers (read exactly 8 bytes). Without it you would have to loop and reassemble short reads yourself.
+
+</details><br>
+
+<details>
+<summary>244. Why must you never pass a pooled Buffer to ReadableStreamBYOBReader.read()?</summary>
+
+`read(view)` transfers the view's underlying `ArrayBuffer` into the stream, which detaches it. Every existing view on that `ArrayBuffer` becomes length 0 and unusable, and only the returned `value` points at the memory. Pooled Buffers, created by `Buffer.allocUnsafe()`, `Buffer.from()` and many `node:fs` callbacks, are small slices of one shared `ArrayBuffer`. Passing one to `read()` detaches the whole pool and silently destroys unrelated Buffers elsewhere in the process. Pass `Buffer.alloc(n)` or `new Uint8Array(n)`, and always continue with `value`, not your original view.
+
+```js
+// detach.mjs
+const source = new ReadableStream({
+  type: "bytes",
+  pull(c) {
+    c.byobRequest.view.set([65, 66]);
+    c.byobRequest.respond(2);
+  },
+});
+const reader = source.getReader({ mode: "byob" });
+
+const mine = new Uint8Array(8);
+const { value } = await reader.read(mine);
+console.log(value); // Uint8Array(2) [ 65, 66 ]
+console.log("value.buffer.byteLength", value.buffer.byteLength); // 8 (same memory, now owned by value)
+console.log("mine.byteLength", mine.byteLength); // 0 (detached)
+```
+
+Gotcha: to read in a loop, reuse the returned memory for the next call: `reader.read(new Uint8Array(value.buffer))`. Reusing `mine` fails because it is detached.
+
+</details><br>
+
+<details>
+<summary>245. How does a byte stream source fill BYOB reads with ReadableStreamBYOBRequest, and what does autoAllocateChunkSize do?</summary>
+
+The problem it solves: in a BYOB read the **consumer** owns the buffer (`reader.read(myBuffer)`), but the bytes are produced by the **source**, inside `pull()`. The stream needs a way to hand the consumer's buffer over to the source. That handover is `controller.byobRequest`.
+
+What happens during one BYOB read:
+
+1. the consumer calls `reader.read(new Uint8Array(8))`, meaning "fill this buffer for me";
+2. the stream calls the source's `pull(controller)`;
+3. inside `pull()`, `controller.byobRequest.view` **is** that 8-byte buffer (the same memory, not a copy);
+4. the source writes bytes into `view` and calls `controller.byobRequest.respond(n)`, meaning "done, I wrote n bytes";
+5. the consumer's `read()` resolves, and `value` is the first n bytes of its own buffer.
+
+No chunk was allocated and nothing was copied: the source wrote directly into the consumer's memory.
+
+Members of `ReadableStreamBYOBRequest`:
+
+- `view` (the consumer's buffer, the part still to be filled);
+- `respond(bytesWritten)` (tells the stream that `bytesWritten` bytes were written into `view`, which completes the read);
+- `respondWithNewView(view)` (rarely needed: tells the stream the bytes were written through a different view over the same memory).
+
+What `autoAllocateChunkSize` is for: a default reader calls `read()` with **no buffer**. There is no cup, so `controller.byobRequest` is `null`, and the source needs a second code path that allocates its own chunk and calls `controller.enqueue()`. With `autoAllocateChunkSize: N` in the underlying source, the stream itself allocates an N-byte buffer for every such read and offers it as `byobRequest.view`. The source then always works the same way: fill `view`, call `respond()`.
+
+```js
+// byob-request.mjs
+// One source, three consumers. The source produces the bytes 1, 2, 3, ...
+function makeStream(autoAllocateChunkSize) {
+  let next = 1;
+  return new ReadableStream({
+    type: "bytes",
+    autoAllocateChunkSize, // undefined = feature is off
+    pull(controller) {
+      const request = controller.byobRequest;
+      if (request === null) {
+        // Nobody gave us a buffer: allocate our own chunk and hand it over.
+        console.log(
+          "  source: byobRequest is null, so I enqueue() my own chunk",
+        );
+        controller.enqueue(new Uint8Array([next++, next++]));
+        return;
+      }
+      // Somebody gave us a buffer: write straight into it.
+      console.log(
+        `  source: byobRequest.view has room for ${request.view.byteLength} bytes`,
+      );
+      request.view[0] = next++;
+      request.view[1] = next++;
+      request.respond(2); // "I wrote 2 bytes into your buffer"
+    },
+  });
+}
+
+const show = ({ value }) =>
+  console.log(
+    "  consumer got",
+    value,
+    "inside a buffer of",
+    value.buffer.byteLength,
+    "bytes",
+  );
+
+console.log("1) BYOB reader brings its own 8-byte buffer:");
+show(await makeStream().getReader({ mode: "byob" }).read(new Uint8Array(8)));
+
+console.log("2) default reader brings nothing, autoAllocateChunkSize is off:");
+show(await makeStream().getReader().read());
+
+console.log("3) default reader brings nothing, autoAllocateChunkSize: 4:");
+show(await makeStream(4).getReader().read());
+```
+
+```text
+1) BYOB reader brings its own 8-byte buffer:
+  source: byobRequest.view has room for 8 bytes
+  consumer got Uint8Array(2) [ 1, 2 ] inside a buffer of 8 bytes
+2) default reader brings nothing, autoAllocateChunkSize is off:
+  source: byobRequest is null, so I enqueue() my own chunk
+  consumer got Uint8Array(2) [ 1, 2 ] inside a buffer of 2 bytes
+3) default reader brings nothing, autoAllocateChunkSize: 4:
+  source: byobRequest.view has room for 4 bytes
+  consumer got Uint8Array(2) [ 1, 2 ] inside a buffer of 4 bytes
+```
+
+How to read the output (the consumer gets the same bytes `1, 2` every time; what changes is whose buffer they live in):
+
+- case 1 (the 8-byte buffer is the consumer's own; the source saw it as `view` and filled 2 of the 8 bytes);
+- case 2 (no buffer came from the consumer, `byobRequest` was `null`, and the source had to allocate its own 2-byte chunk);
+- case 3 (no buffer came from the consumer either, but the stream allocated 4 bytes on its behalf, so the source took the same "fill the view" path as in case 1).
+
+Gotcha: without `autoAllocateChunkSize`, a source that only uses `byobRequest` crashes on a default reader, because `controller.byobRequest` is `null` there. Either set `autoAllocateChunkSize` or keep the `enqueue()` fallback. The docs' file example sets `autoAllocateChunkSize: 1024` and reads the file directly into the view with `file.read({ buffer: view, ... })`.
+
+</details><br>
+
+<details>
+<summary>246. What are the members of WritableStreamDefaultWriter, and what does each promise represent?</summary>
+
+`writableStream.getWriter()` (or `new WritableStreamDefaultWriter(stream)`) locks the stream to one writer:
+
+- `write(chunk)` (queues a chunk; the promise settles when the sink has processed this chunk);
+- `ready` (a promise that fulfills when `desiredSize` is positive again, so there is room to write);
+- `desiredSize` (`highWaterMark` minus the queued size, where the chunk being written counts as queued);
+- `close()` (closes after queued writes; later `write()` calls reject with `TypeError`);
+- `abort(reason)` (stops immediately, rejects queued writes, calls the sink's `abort(reason)`);
+- `closed` (fulfills when the stream closes, rejects on error or when the lock is released);
+- `releaseLock()` (unlocks the `WritableStream`; the docs say "`ReadableStream`" here, which is a typo).
+
+```js
+// writer-members.mjs
+const ws = new WritableStream({});
+const writer = ws.getWriter();
+await writer.write("x");
+await writer.close();
+console.log("closed state:", await writer.closed); // closed state: undefined
+await writer
+  .write("y")
+  .catch((e) => console.log("write after close:", e.message));
+// write after close: Invalid state: WritableStream is closed
+
+const ws2 = new WritableStream({});
+ws2.getWriter();
+await ws2
+  .close()
+  .catch((e) => console.log("stream.close while locked:", e.message));
+// stream.close while locked: Invalid state: WritableStream is locked
+```
+
+Gotcha: `writableStream.close()` and `writableStream.abort()` also exist on the stream itself, but they reject while a writer holds the lock. Use the writer's methods, or call `releaseLock()` first.
+
+</details><br>
+
+<details>
+<summary>247. How do you write many chunks to a WritableStream while respecting backpressure?</summary>
+
+Wait for `writer.ready` before each `writer.write(chunk)`. `ready` is pending while the queue is full (`desiredSize <= 0`) and fulfills when the sink has made room, so the producer pauses at exactly the right moment and the queue never grows beyond `highWaterMark`. Not awaiting the individual writes lets several chunks be in flight. Finish with `await writer.close()`, which also reports any write error.
+
+```js
+// write-backpressure.mjs
+const sink = new WritableStream(
+  {
+    async write(chunk) {
+      await new Promise((r) => setTimeout(r, 20)); // slow sink
+      console.log("  sink wrote", chunk);
+    },
+  },
+  { highWaterMark: 2 },
+);
+
+const writer = sink.getWriter();
+for (const chunk of ["c1", "c2", "c3", "c4"]) {
+  console.log("before", chunk, "desiredSize", writer.desiredSize);
+  await writer.ready;
+  writer.write(chunk);
+}
+await writer.close();
+console.log("closed");
+```
+
+```text
+before c1 desiredSize 2
+before c2 desiredSize 1
+before c3 desiredSize 0
+  sink wrote c1
+before c4 desiredSize 0
+  sink wrote c2
+  sink wrote c3
+  sink wrote c4
+closed
+```
+
+Gotcha: a tight loop of `writer.write(x)` with no awaits ignores backpressure and buffers all chunks in memory. `await writer.write(x)` on each chunk is safe but allows only one chunk in flight. Errors from un-awaited writes still surface through `ready` and `close()`.
+
+</details><br>
+
+<details>
+<summary>248. What is the difference between readableStream.pipeThrough() and readableStream.pipeTo()?</summary>
+
+Both connect a `ReadableStream` to something, lock it while the pipe runs, and respect backpressure automatically: data is read from the source only when the destination has room.
+
+`pipeThrough(transform[, options])` takes any object with `writable` and `readable` properties (a `TransformStream`, `TextDecoderStream`, `CompressionStream`, ...). It pipes into `transform.writable` and returns `transform.readable`, so calls chain. `pipeTo(destination[, options])` pipes into a final `WritableStream` and returns a promise that fulfills when everything is written and the destination is closed, or rejects on error.
+
+```js
+// pipe-chain.mjs
+const double = new TransformStream({ transform: (n, c) => c.enqueue(n * 2) });
+const toText = new TransformStream({
+  transform: (n, c) => c.enqueue(`value=${n}`),
+});
+const out = [];
+
+const result = ReadableStream.from([1, 2, 3])
+  .pipeThrough(double) // returns double.readable
+  .pipeThrough(toText) // returns toText.readable
+  .pipeTo(new WritableStream({ write: (s) => out.push(s) })); // returns a promise
+
+console.log(result instanceof Promise); // true
+await result;
+console.log(out); // [ 'value=2', 'value=4', 'value=6' ]
+```
+
+Gotcha: `pipeThrough()` returns immediately and data only flows once the returned readable is consumed. Errors anywhere in the chain are reported through the final `pipeTo()` promise, so always `await` it (or attach `.catch`), or they become unhandled rejections.
+
+</details><br>
+
+<details>
+<summary>249. What are CountQueuingStrategy and ByteLengthQueuingStrategy, and how do they change desiredSize?</summary>
+
+A queuing strategy tells a stream how to measure each chunk (`size(chunk)`) and how much is "full" (`highWaterMark`). Node provides two built-in classes, both constructed with `{ highWaterMark }`:
+
+- `CountQueuingStrategy` (every chunk has size 1, so `highWaterMark` is a number of chunks; this is also the default behaviour);
+- `ByteLengthQueuingStrategy` (size is `chunk.byteLength`, so `highWaterMark` is a number of bytes).
+
+Pass one as the `strategy` argument of `ReadableStream` / `WritableStream`, or as the writable/readable strategy (second and third arguments) of `TransformStream`. A plain object `{ highWaterMark, size }` works too.
+
+```js
+// strategies.mjs
+const neverFinishes = { write: () => new Promise(() => {}) }; // keeps everything queued
+
+const byCount = new WritableStream(
+  neverFinishes,
+  new CountQueuingStrategy({ highWaterMark: 10 }),
+).getWriter();
+const byBytes = new WritableStream(
+  neverFinishes,
+  new ByteLengthQueuingStrategy({ highWaterMark: 10 }),
+).getWriter();
+
+for (const w of [byCount, byBytes]) {
+  w.write(new Uint8Array(4));
+  w.write(new Uint8Array(16));
+}
+console.log("count strategy desiredSize:", byCount.desiredSize); // 8  (10 - 2 chunks)
+console.log("byte strategy desiredSize:", byBytes.desiredSize); // -10 (10 - 20 bytes)
+```
+
+Gotcha: with binary data of varying chunk size, a count-based limit says little about memory (10 chunks could be 10 bytes or 10 GB). Use `ByteLengthQueuingStrategy` when memory is what you want to bound. Byte streams (`type: "bytes"`) don't accept a `size` function at all; their `highWaterMark` is already in bytes.
+
+</details><br>
+
+<details>
+<summary>250. Why use TextDecoderStream instead of calling TextDecoder.decode() on each chunk, and what do its options do?</summary>
+
+Network and file chunks are cut at arbitrary byte positions, so a multi-byte UTF-8 character (for example `€`, 3 bytes) can be split between two chunks. Decoding each chunk independently turns both halves into replacement characters (`U+FFFD`). `TextDecoderStream` keeps incomplete bytes until the rest arrives.
+
+`new TextDecoderStream([encoding[, options]])` accepts:
+
+- `encoding` (default `'utf-8'`; any label `TextDecoder` supports);
+- `options.fatal` (when `true`, invalid bytes make the stream error with `TypeError` instead of producing `U+FFFD`);
+- `options.ignoreBOM` (when `true`, the byte order mark is kept in the output; default `false` strips it; only used for UTF-8 and UTF-16).
+
+```js
+// split-char.mjs
+const euro = new TextEncoder().encode("€"); // 3 bytes
+const parts = [euro.slice(0, 1), euro.slice(1)]; // split 1 + 2
+
+console.log(
+  "per-chunk decode:",
+  parts.map((p) => new TextDecoder().decode(p)),
+); // [ '�', '��' ]
+for await (const s of ReadableStream.from(parts).pipeThrough(
+  new TextDecoderStream(),
+)) {
+  console.log("TextDecoderStream:", s); // €
+}
+
+const bad = ReadableStream.from([new Uint8Array([0xff])]).pipeThrough(
+  new TextDecoderStream("utf-8", { fatal: true }),
+);
+await bad
+  .getReader()
+  .read()
+  .catch((e) => console.log("fatal:", e.name, e.code)); // fatal: TypeError ERR_ENCODING_INVALID_ENCODED_DATA
+```
+
+Gotcha: the decoder's `encoding`, `fatal` and `ignoreBOM` are readable properties on the instance. The `encoding` shows the normalized name, for example `new TextDecoderStream("latin1").encoding` is `'windows-1252'`.
+
+</details><br>
+
+<details>
+<summary>251. What do the node:stream/consumers functions do, and what are their limits?</summary>
+
+`node:stream/consumers` (v16.7.0) provides functions that read a whole stream to the end and return a promise. Each accepts a `ReadableStream`, a Node `stream.Readable` or an async iterator:
+
+- `arrayBuffer(stream)` (an `ArrayBuffer`);
+- `blob(stream)` (a `Blob`);
+- `buffer(stream)` (a Node `Buffer`);
+- `bytes(stream)` (a `Uint8Array`; v25.6.0 / v24.14.0);
+- `json(stream)` (the UTF-8 text passed through `JSON.parse()`);
+- `text(stream)` (a UTF-8 string).
+
+Individual chunks don't need to be meaningful on their own: the content is joined first, then decoded or parsed.
+
+```js
+// consumers.mjs
+import { buffer, json, text } from "node:stream/consumers";
+
+console.log(await text(ReadableStream.from(["a", "b"]))); // ab
+console.log(await json(ReadableStream.from(['{"a":', "1}"]))); // { a: 1 }
+console.log(
+  Buffer.isBuffer(await buffer(ReadableStream.from([new Uint8Array([1])]))),
+); // true
+
+const once = ReadableStream.from(["x"]);
+console.log("first:", await text(once)); // first: x
+console.log("second:", JSON.stringify(await text(once))); // second: ""  (already consumed)
+
+const locked = ReadableStream.from(["x"]);
+locked.getReader();
+await text(locked).catch((e) => console.log("locked:", e.message)); // locked: Invalid state: ReadableStream is locked
+```
+
+Gotcha: they buffer the entire content in memory, so use them only when the data is known to be small. For large data, keep streaming.
+
+</details><br>
+
+<details>
+<summary>252. Can stream.pipeline() be used with web streams, and how does it compare to pipeTo()?</summary>
+
+Yes. Since v19.7.0 / v18.16.0, `pipeline()` (callback form from `node:stream`, promise form from `node:stream/promises`) accepts `ReadableStream`, `TransformStream` and `WritableStream` stages mixed freely with Node streams, iterables and generator functions. Like `pipeTo()`, it propagates errors and destroys or cancels every stage on failure. It saves you from converting at each boundary.
+
+```js
+// pipeline-mixed.mjs
+import { pipeline } from "node:stream/promises";
+import { Writable } from "node:stream";
+
+const got = [];
+await pipeline(
+  ReadableStream.from(["p", "q"]), // web source
+  new TransformStream({ transform: (c, ctl) => ctl.enqueue(c.toUpperCase()) }), // web transform
+  new Writable({
+    // node sink
+    objectMode: true,
+    write(c, _enc, cb) {
+      got.push(c);
+      cb();
+    },
+  }),
+);
+console.log(got); // [ 'P', 'Q' ]
+```
+
+Gotcha: `pipeTo()` / `pipeThrough()` only accept web streams. When one end is a Node stream (for example `fs.createWriteStream`), either use `pipeline()` or convert that end with `Writable.toWeb()`.
+
+</details><br>
+
+<details>
+<summary>253. Can a web stream be transferred to a worker thread with postMessage(), and can a classic Node.js stream be transferred the same way?</summary>
+
+**Web streams: yes.** `ReadableStream`, `WritableStream` and `TransformStream` are transferable. Put the stream into the transfer list, the second argument of `postMessage()`: `worker.postMessage(stream, [stream])`. Without the transfer list `postMessage()` tries to **copy** the stream and throws `DataCloneError`, because a stream is a live pipe with functions and state, not data.
+
+After the transfer:
+
+- the sender's stream object is locked (the sender cannot read from it any more);
+- the receiver gets a new stream object in its own thread, connected to the original one;
+- the source's code (`pull()`) still runs in the sender's thread, and each chunk is copied (structured clone) to the receiver.
+
+**Classic Node.js streams: no.** `stream.Readable`, `Writable`, `Duplex` and `Transform` are not transferable. `postMessage()` throws `DataCloneError` for them, with or without the transfer list. The workaround is to wrap the Node stream into a web stream with `Readable.toWeb(nodeStream)` (or `Writable.toWeb()`) and transfer the wrapper. The receiving thread reads it as a web stream, or turns it back into a Node stream with `Readable.fromWeb()`.
+
+```js
+// transfer-worker.mjs
+// This one file runs twice: as the main thread, and as the worker it starts.
+import { Readable } from "node:stream";
+import {
+  Worker,
+  isMainThread,
+  parentPort,
+  threadId,
+} from "node:worker_threads";
+
+if (isMainThread) {
+  // ---------- main thread: creates the streams, then gives them away ----------
+  let n = 0;
+  const webStream = new ReadableStream({
+    pull(controller) {
+      n++;
+      console.log(`thread ${threadId}: source makes chunk ${n}`);
+      controller.enqueue({ n });
+      if (n === 3) controller.close();
+    },
+  });
+  const nodeStream = Readable.from(["a", "b"]); // a classic Node.js stream
+
+  const worker = new Worker(new URL(import.meta.url));
+  worker.on("message", (report) => console.log(report));
+
+  try {
+    worker.postMessage(webStream); // wrong: asks for a copy, and a stream cannot be copied
+  } catch (e) {
+    console.log(
+      `thread ${threadId}: web stream without transfer list throws ${e.name}`,
+    );
+  }
+
+  try {
+    worker.postMessage(nodeStream, [nodeStream]); // wrong: a Node stream is not transferable
+  } catch (e) {
+    console.log(
+      `thread ${threadId}: Node stream in transfer list throws ${e.name}`,
+    );
+  }
+
+  // right: transfer the web stream, and the Node stream wrapped into a web stream
+  const wrapped = Readable.toWeb(nodeStream);
+  worker.postMessage({ webStream, wrapped }, [webStream, wrapped]);
+
+  console.log(
+    `thread ${threadId}: after the transfer, webStream.locked = ${webStream.locked}`,
+  );
+  try {
+    webStream.getReader();
+  } catch (e) {
+    console.log(`thread ${threadId}: webStream.getReader() throws ${e.name}`);
+  }
+} else {
+  // ---------- worker thread: receives the streams and reads them ----------
+  parentPort.once("message", async ({ webStream, wrapped }) => {
+    for (const [name, stream] of [
+      ["web stream", webStream],
+      ["wrapped Node stream", wrapped],
+    ]) {
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(chunk);
+      parentPort.postMessage(
+        `thread ${threadId}: read from ${name}: ${JSON.stringify(chunks)}`,
+      );
+    }
+  });
+}
+```
+
+```text
+thread 0: web stream without transfer list throws DataCloneError
+thread 0: Node stream in transfer list throws DataCloneError
+thread 0: after the transfer, webStream.locked = true
+thread 0: webStream.getReader() throws TypeError
+thread 0: source makes chunk 1
+thread 0: source makes chunk 2
+thread 0: source makes chunk 3
+thread 1: read from web stream: [{"n":1},{"n":2},{"n":3}]
+thread 1: read from wrapped Node stream: ["a","b"]
+```
+
+How to read the output (thread 0 is the main thread, thread 1 is the worker):
+
+- line 1 (a web stream must be in the transfer list, otherwise `postMessage` tries to copy it and fails);
+- line 2 (a classic Node stream fails even in the transfer list: it is not transferable at all);
+- lines 3-4 (after the transfer the original web stream is locked, so the main thread cannot read it any more);
+- lines 5-7 (the chunks are still **made in thread 0**: the source's `pull()` never left the main thread);
+- line 8 (the chunks were **read in thread 1**: the worker iterated its own stream object and got copies of all three);
+- line 9 (the Node stream did reach the worker, but only wrapped by `Readable.toWeb()`).
+
+Gotcha: every chunk is copied with structured clone, so chunks must be cloneable: plain objects, strings, numbers and typed arrays are fine, but functions fail and class instances arrive as plain objects.
+
+</details><br>

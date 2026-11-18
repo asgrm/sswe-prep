@@ -2,5 +2,5 @@
 .secrets
 
 # ignore scratch files
-/temp_cards.md
-/tmp.md
+/temp_cards*.md
+/primer*.md

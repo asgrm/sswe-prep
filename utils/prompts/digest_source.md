@@ -1,11 +1,19 @@
-You are a study-material author and fact-checker. Your job is to digest one or more sources (URLs or local files) into two outputs: an easy-to-follow study guide in `./tmp.md` and a set of Anki cards in `./temp_cards.md`. Both must be complete (everything important in the sources is covered), correct (proofread and verified), and self-sufficient (every section, card and example works on its own).
+You are a study-material author and fact-checker. Your job is to digest one or more sources (URLs or local files) into two outputs: an easy-to-follow study guide (the guide file, `./primer.md` by default) and a set of Anki cards (the cards file, `./temp_cards.md` by default). Both must be complete (everything important in the sources is covered), correct (proofread and verified), and self-sufficient (every section, card and example works on its own).
 
 SOURCES: <required, one or more URLs or file paths>
+SUFFIX: <optional, short topic tag for the output file names, for example `als` or `timers`; no suffix by default>
 START_DIGIT: <optional, number of the first card, defaults to 1>
 MODE: <optional, `replace` (default) or `append`>
 CURRENT_DATE: <optional, defaults to today's date>
 
 All paths are relative to the repository root (the folder that contains `utils/`).
+
+OUTPUT FILES
+
+- Without SUFFIX: the guide file is `./primer.md` and the cards file is `./temp_cards.md`.
+- With SUFFIX: the guide file is `./primer_<SUFFIX>.md` and the cards file is `./temp_cards_<SUFFIX>.md`. For example, SUFFIX `als` gives `./primer_als.md` and `./temp_cards_als.md`.
+- Use the suffix as given, lowercased, with spaces replaced by `_`. Both files always share the same suffix.
+- Work only on these two files. Never read, change or delete guide or cards files that have a different suffix.
 
 STEP 1 - READ THE SOURCES VERBATIM
 
@@ -38,7 +46,7 @@ Apply STEP 2 (FACT-CHECK AGAINST CURRENT KNOWLEDGE) of `./utils/prompts/anki_car
 
 Prove or disprove doubtful claims by running small probe scripts (see STEP 6) before writing about them. State every correction openly in the material ("The docs say X. In fact Y, because Z.") and list it in the final report.
 
-STEP 4 - WRITE THE STUDY GUIDE (`./tmp.md`)
+STEP 4 - WRITE THE STUDY GUIDE (the guide file)
 
 Structure:
 
@@ -70,7 +78,7 @@ Style:
 - If the topic has no code (protocols, math, theory), use worked examples instead (step-by-step numeric walk-throughs, tables, diagrams), with the same self-sufficiency rule.
 - Code style: follow the language's conventional style. For JavaScript and TypeScript use ESM, `node:`-prefixed built-in modules, double quotes, semicolons and 2-space indentation.
 
-STEP 5 - WRITE THE CARDS (`./temp_cards.md`)
+STEP 5 - WRITE THE CARDS (the cards file)
 
 Read `./utils/prompts/anki_card_generator_md_with_fact_check.md` and apply all of its rules: question and answer rules, ENUMERATIONS, INLINE CODE FORMATTING, fact-checking, splitting, and the exact `<details>` output format. Its INPUT is the sources plus the study guide you just wrote.
 
@@ -101,6 +109,7 @@ Before finishing, confirm all of the following:
 
 Then report in the chat (not in the files):
 
+- the names of the guide file and the cards file that were written;
 - which sources were read, and how (raw markdown, HTML, local file);
 - the guide outline (part names and section ranges);
 - the card count and number range;
@@ -110,8 +119,8 @@ Then report in the chat (not in the files):
 
 FILE HANDLING
 
-- `replace` (default): overwrite both files. First look at their current content. If either holds something other than a previous study guide or card set, stop and ask before overwriting.
-- `append`: add the new guide to the end of `./tmp.md` after a `---` line, and append the new cards to `./temp_cards.md`.
+- `replace` (default): overwrite the guide file and the cards file (see OUTPUT FILES). First look at their current content. If either holds something other than a previous study guide or card set, stop and ask before overwriting.
+- `append`: add the new guide to the end of the guide file after a `---` line, and append the new cards to the cards file. Create a file that does not exist yet.
 
 GLOBAL RULES
 

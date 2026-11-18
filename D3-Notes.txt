@@ -1,13 +1,13 @@
 
 2. Node.js
-work day -25 minutes from usual
+work day -35 minutes from usual
 day off -0 minutes from usual
 
-// other node.js loops
+temp_cards_modules.md repetiton (2/2 next card 1/33)
+temp_cards_perf_hooks.md repetiton (1/2 next card 1/16)
+primer_timers.md(now at line 1)
+temp_cards_timers.md proofread(now at line 1)
 
-tmp.md (now at )
-temp_cards.md (proofread)
-temp_cards.md 2 repetitions
 
 https://openai-partneru.sana.ai/program/9b23459e-9443-4943-a81b-e93211b8303a
 
@@ -22,12 +22,12 @@ https://openai-partneru.sana.ai/program/9b23459e-9443-4943-a81b-e93211b8303a
 
 2.6.1. read:
   web-streams-api
-  timers
-  url
-  perf_hooks
-  modules + esm + typescript
-  globals
-  environment_variables
+  timers - materials created https://beta.docs.nodejs.org/timers
+  url - materials created https://beta.docs.nodejs.org/url
+  perf_hooks - materials created https://beta.docs.nodejs.org/perf_hooks
+  modules + esm + typescript - materials created https://beta.docs.nodejs.org/modules , https://beta.docs.nodejs.org/esm, https://beta.docs.nodejs.org/typescript
+  globals - materials created https://beta.docs.nodejs.org/globals
+  environment_variables - materials created https://beta.docs.nodejs.org/environment_variables
 
 2.6.2 read with constrains
 
